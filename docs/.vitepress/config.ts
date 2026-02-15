@@ -59,6 +59,7 @@ export default defineConfig({
     },
 
     footer: {
+      message: 'A project by <a href="https://paulrose.com">Paul Rose</a>',
       copyright: 'Copyright © 2025-present Paul Rose',
     },
   },
