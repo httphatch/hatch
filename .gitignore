@@ -1,0 +1,44 @@
+# Binary
+/hatch
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Dependency directories
+vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+.claude
+CLAUDE.md
+
+# Testing
+testing/
+
+# Frontend
+node_modules/
+frontend/dist/
+frontend/src/wailsjs/
+*.tsbuildinfo
+
+# Wails build
+build/bin/

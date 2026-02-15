@@ -1,0 +1,15 @@
+version: 1
+
+settings:
+  tld: test
+  http_port: 80
+  https_port: 443
+  auto_start: true
+  log_level: info
+
+projects:
+  bad:
+    domain: bad.com
+    path: ""
+    enabled: true
+    services: {}

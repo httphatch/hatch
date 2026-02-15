@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Fugaz One";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./assets/fonts/FugazOne-Regular.ttf") format("truetype");
+}
+
+@theme {
+  /* Sweet Summer Melody palette */
+  --color-honey-bronze: #f6bd60;
+  --color-linen: #f7ede2;
+  --color-cotton-rose: #f5cac3;
+  --color-muted-teal: #84a59d;
+  --color-light-coral: #f28482;
+  --color-text-primary: #3d3d3d;
+  --color-text-muted: #6b6b6b;
+  --font-heading: "Fugaz One", cursive;
+
+  /* shadcn theme tokens mapped to palette */
+  --color-background: #f7ede2;
+  --color-foreground: #3d3d3d;
+  --color-card: #ffffff;
+  --color-card-foreground: #3d3d3d;
+  --color-primary: #84a59d;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f5cac3;
+  --color-secondary-foreground: #3d3d3d;
+  --color-muted: #f0e6d8;
+  --color-muted-foreground: #6b6b6b;
+  --color-accent: #f6bd60;
+  --color-accent-foreground: #3d3d3d;
+  --color-destructive: #f28482;
+  --color-border: #e2d6c8;
+  --color-input: #e2d6c8;
+  --color-ring: #84a59d;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  color: var(--color-foreground);
+  background-color: var(--color-background);
+}

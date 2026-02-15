@@ -1,0 +1,174 @@
+# How It Works
+
+Hatch is a single daemon that orchestrates four subsystems: DNS resolution, TLS certificate management, HTTPS reverse proxying, and a management API. This page explains each one.
+
+## Architecture Overview
+
+```
+Browser request: https://myapp.test
+        │
+        ▼
+┌─────────────────┐
+│  macOS Resolver  │  /etc/resolver/test → 127.0.0.1:5053
+└────────┬────────┘
+         ▼
+┌─────────────────┐
+│   DNS Server     │  *.test → 127.0.0.1
+└────────┬────────┘
+         ▼
+┌─────────────────┐
+│   Caddy (HTTPS)  │  TLS termination + reverse proxy
+│   port 443       │  cert signed by Hatch CA
+└────────┬────────┘
+         ▼
+┌─────────────────┐
+│  Your Dev Server │  http://localhost:3000
+└─────────────────┘
+```
+
+## DNS
+
+Hatch runs a DNS server on `127.0.0.1:5053` using the [miekg/dns](https://github.com/miekg/dns) library.
+
+**Resolver file:** During `hatch init`, a file is created at `/etc/resolver/<tld>` (e.g., `/etc/resolver/test`) containing:
+
+```
+nameserver 127.0.0.1
+port 5053
+```
+
+macOS checks `/etc/resolver/` for per-domain nameserver overrides. Any DNS query for `*.test` is sent to `127.0.0.1:5053`, which is Hatch's DNS server.
+
+**Query handling:**
+- Queries matching `*.<tld>` return `127.0.0.1` (A record) or `::1` (AAAA record)
+- All other queries are forwarded to the system's upstream DNS servers
+
+## TLS Certificates
+
+Hatch maintains a two-tier CA hierarchy:
+
+```
+Root CA (self-signed, trusted in Keychain)
+  └── Intermediate CA (signed by Root)
+        └── Site certificates (signed by Intermediate, issued by Caddy)
+```
+
+### Root CA
+
+- Generated during `hatch init` as an ECDSA P-256 key pair
+- Self-signed, valid for 10 years
+- Stored at `~/.hatch/certs/rootCA.pem` and `~/.hatch/certs/rootCA-key.pem`
+- Added to the macOS Keychain as a trusted certificate via `security add-trusted-cert`
+
+### Intermediate CA
+
+- Also ECDSA P-256, signed by the root CA
+- Valid for 10 years
+- Stored at `~/.hatch/certs/intermediateCA.pem` and `~/.hatch/certs/intermediateCA-key.pem`
+- **Not** added to Keychain - trust chains through the root
+
+### Site Certificates
+
+- Generated on-the-fly by Caddy's built-in PKI module
+- Signed by the intermediate CA
+- Cached in `~/.hatch/caddy/`
+- Created automatically when a new domain is first accessed
+
+Because the root CA is trusted in your Keychain, the full chain (root → intermediate → site cert) is valid and browsers show a green lock.
+
+## Reverse Proxy
+
+Hatch embeds [Caddy](https://caddyserver.com) as a library. Caddy handles TLS termination and reverse proxying.
+
+**Config translation:** Hatch translates its YAML config into Caddy's JSON config format. Each service becomes a Caddy route:
+
+- **Host matching** - routes are matched by domain (e.g., `myapp.test`)
+- **Path matching** - services with a `route` field match a path prefix (e.g., `/api/*`)
+- **Subdomain matching** - services with a `subdomain` field match `<sub>.<domain>`
+- **WebSocket support** - services with `websocket: true` get `Connection`/`Upgrade` header forwarding and instant response flushing
+
+Routes are sorted by specificity: subdomains first, then path routes, then catch-all.
+
+**HTTP → HTTPS redirect:** All HTTP requests are redirected to HTTPS with a 302.
+
+**Live reload:** When `config.yml` changes, Hatch re-translates the config and loads it into Caddy via its admin API (`localhost:2019`). No process restart needed.
+
+## Daemon
+
+The daemon is a single long-running process managed by macOS launchd.
+
+### Launchd
+
+A plist file is installed at `~/Library/LaunchAgents/dev.hatch.daemon.plist`. Key properties:
+
+| Property | Value |
+|----------|-------|
+| Label | `dev.hatch.daemon` |
+| Program | Path to `hatch` binary |
+| Arguments | `hatch _run` (hidden command) |
+| RunAtLoad | `true` if `auto_start` enabled |
+| KeepAlive | `true` if `auto_start` enabled |
+
+`hatch up` installs and loads the plist. `hatch down` unloads it.
+
+### Startup Sequence
+
+1. Acquire PID lock (`~/.hatch/hatch.pid`)
+2. Load and validate config
+3. Verify ports are available
+4. Start DNS server
+5. Start Caddy with translated config
+6. Start health checker
+7. Start API server (`127.0.0.1:42824`)
+8. Start config file watcher
+9. Block until shutdown signal
+
+### Config Watching
+
+The daemon watches `~/.hatch/config.yml` for changes using filesystem notifications. When a change is detected:
+
+1. Reload and validate the config
+2. Re-translate to Caddy JSON
+3. Push to Caddy via admin API
+4. Update health checker targets
+
+No daemon restart is required for config changes.
+
+## API Server
+
+The daemon exposes a local HTTP API on `127.0.0.1:42824` for the CLI and dashboard to communicate with the running daemon.
+
+Key endpoints:
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/status` | Daemon info (PID, uptime, version) |
+| GET | `/api/projects` | List all projects |
+| POST | `/api/projects` | Add a project |
+| PUT | `/api/projects/{name}` | Update a project |
+| DELETE | `/api/projects/{name}` | Remove a project |
+| PATCH | `/api/projects/{name}/toggle` | Toggle enabled state |
+| GET | `/api/health` | Service health statuses |
+| GET | `/api/logs` | Live log stream (SSE) |
+| GET | `/api/config` | Read config (YAML) |
+| PUT | `/api/config` | Write config (YAML) |
+| GET | `/api/certs` | Certificate status |
+| POST | `/api/restart` | Reload config |
+
+The API is localhost-only and used by both the CLI commands and the React dashboard.
+
+## Health Checking
+
+Hatch periodically checks the health of each service's upstream target. Health status is exposed via the API and displayed in the dashboard and `hatch status` output.
+
+## File Locations
+
+| Path | Purpose |
+|------|---------|
+| `~/.hatch/config.yml` | Main configuration |
+| `~/.hatch/certs/` | CA certificates and keys |
+| `~/.hatch/logs/hatch.log` | Daemon log file |
+| `~/.hatch/hatch.pid` | Daemon PID lock file |
+| `~/.hatch/caddy/` | Caddy data (cached site certs) |
+| `/etc/resolver/<tld>` | macOS DNS resolver override |
+| `~/Library/LaunchAgents/dev.hatch.daemon.plist` | Launchd service |

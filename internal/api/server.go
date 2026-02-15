@@ -1,0 +1,103 @@
+package api
+
+import (
+	"context"
+	"fmt"
+	"net"
+	"net/http"
+	"sync"
+	"time"
+
+	"github.com/rs/zerolog/log"
+
+	"github.com/httphatch/hatch/internal/certs"
+	"github.com/httphatch/hatch/internal/health"
+)
+
+// DaemonControl allows the API to trigger daemon operations.
+type DaemonControl interface {
+	ReloadConfig() error
+}
+
+// Server is the HTTP API server for the Hatch dashboard.
+type Server struct {
+	httpSrv   *http.Server
+	daemon    DaemonControl
+	health    *health.Checker
+	caPaths   certs.CAPaths
+	version   string
+	startTime time.Time
+	logHub    *LogHub
+	cfgMu     sync.Mutex // serializes config read-modify-write operations
+}
+
+// ServerConfig holds the configuration for creating a new API server.
+type ServerConfig struct {
+	Addr      string
+	Health    *health.Checker
+	Daemon    DaemonControl
+	CAPaths   certs.CAPaths
+	Version   string
+	StartTime time.Time
+	LogHub    *LogHub
+}
+
+// NewServer creates a new API server with the given configuration.
+func NewServer(cfg ServerConfig) *Server {
+	s := &Server{
+		daemon:    cfg.Daemon,
+		health:    cfg.Health,
+		caPaths:   cfg.CAPaths,
+		version:   cfg.Version,
+		startTime: cfg.StartTime,
+		logHub:    cfg.LogHub,
+	}
+
+	mux := http.NewServeMux()
+	s.registerRoutes(mux)
+
+	s.httpSrv = &http.Server{
+		Addr:              cfg.Addr,
+		Handler:           corsLocal(mux),
+		ReadHeaderTimeout: 10 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
+
+	return s
+}
+
+// Start begins serving HTTP requests in a background goroutine.
+func (s *Server) Start() error {
+	ln, err := net.Listen("tcp", s.httpSrv.Addr)
+	if err != nil {
+		return fmt.Errorf("listen %s: %w", s.httpSrv.Addr, err)
+	}
+
+	go func() {
+		if err := s.httpSrv.Serve(ln); err != nil && err != http.ErrServerClosed {
+			log.Error().Err(err).Msg("api server error")
+		}
+	}()
+
+	return nil
+}
+
+// Shutdown gracefully stops the HTTP server.
+func (s *Server) Shutdown(ctx context.Context) error {
+	return s.httpSrv.Shutdown(ctx)
+}
+
+func (s *Server) registerRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("GET /api/status", s.handleStatus)
+	mux.HandleFunc("GET /api/projects", s.handleListProjects)
+	mux.HandleFunc("POST /api/projects", requireJSON(s.handleAddProject))
+	mux.HandleFunc("PUT /api/projects/{name}", requireJSON(s.handleUpdateProject))
+	mux.HandleFunc("DELETE /api/projects/{name}", s.handleDeleteProject)
+	mux.HandleFunc("PATCH /api/projects/{name}/toggle", s.handleToggleProject)
+	mux.HandleFunc("GET /api/health", s.handleHealth)
+	mux.HandleFunc("GET /api/logs", s.handleLogs)
+	mux.HandleFunc("GET /api/config", s.handleGetConfig)
+	mux.HandleFunc("PUT /api/config", s.handlePutConfig)
+	mux.HandleFunc("GET /api/certs", s.handleCerts)
+	mux.HandleFunc("POST /api/restart", s.handleRestart)
+}

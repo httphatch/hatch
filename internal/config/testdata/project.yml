@@ -1,0 +1,4 @@
+domain: myapp.test
+services:
+  web:
+    proxy: "http://localhost:3000"

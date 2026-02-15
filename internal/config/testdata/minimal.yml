@@ -1,0 +1,10 @@
+version: 1
+
+settings:
+  tld: test
+  http_port: 80
+  https_port: 443
+  auto_start: false
+  log_level: debug
+
+projects: {}

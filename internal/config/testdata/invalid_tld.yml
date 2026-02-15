@@ -1,0 +1,10 @@
+version: 1
+
+settings:
+  tld: com
+  http_port: 80
+  https_port: 443
+  auto_start: true
+  log_level: info
+
+projects: {}

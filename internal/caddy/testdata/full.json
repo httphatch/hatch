@@ -1,0 +1,170 @@
+{
+  "admin": {
+    "listen": "localhost:2019"
+  },
+  "apps": {
+    "http": {
+      "servers": {
+        "hatch_http": {
+          "listen": [
+            ":80"
+          ],
+          "routes": [
+            {
+              "handle": [
+                {
+                  "handler": "static_response",
+                  "headers": {
+                    "Location": [
+                      "https://{http.request.host}{http.request.uri}"
+                    ]
+                  },
+                  "status_code": "302"
+                }
+              ],
+              "match": [
+                {
+                  "host": [
+                    "acme.test",
+                    "ws.acme.test"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "hatch_https": {
+          "automatic_https": {
+            "disable_redirects": true
+          },
+          "listen": [
+            ":443"
+          ],
+          "logs": {
+            "default_logger_name": "access"
+          },
+          "routes": [
+            {
+              "handle": [
+                {
+                  "flush_interval": -1,
+                  "handler": "reverse_proxy",
+                  "headers": {
+                    "request": {
+                      "set": {
+                        "Connection": [
+                          "{http.request.header.Connection}"
+                        ],
+                        "Upgrade": [
+                          "{http.request.header.Upgrade}"
+                        ]
+                      }
+                    }
+                  },
+                  "upstreams": [
+                    {
+                      "dial": "localhost:6001"
+                    }
+                  ]
+                }
+              ],
+              "match": [
+                {
+                  "host": [
+                    "ws.acme.test"
+                  ]
+                }
+              ],
+              "terminal": true
+            },
+            {
+              "handle": [
+                {
+                  "handler": "reverse_proxy",
+                  "upstreams": [
+                    {
+                      "dial": "localhost:8000"
+                    }
+                  ]
+                }
+              ],
+              "match": [
+                {
+                  "host": [
+                    "acme.test"
+                  ],
+                  "path": [
+                    "/api/*"
+                  ]
+                }
+              ],
+              "terminal": true
+            },
+            {
+              "handle": [
+                {
+                  "handler": "reverse_proxy",
+                  "upstreams": [
+                    {
+                      "dial": "localhost:3000"
+                    }
+                  ]
+                }
+              ],
+              "match": [
+                {
+                  "host": [
+                    "acme.test"
+                  ]
+                }
+              ],
+              "terminal": true
+            }
+          ],
+          "tls_connection_policies": [
+            {}
+          ]
+        }
+      }
+    },
+    "tls": {
+      "automation": {
+        "policies": [
+          {
+            "issuers": [
+              {
+                "module": "internal"
+              }
+            ],
+            "subjects": [
+              "acme.test",
+              "ws.acme.test"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "logging": {
+    "logs": {
+      "access": {
+        "include": [
+          "http.log.access"
+        ],
+        "writer": {
+          "output": "stderr"
+        }
+      },
+      "default": {
+        "level": "WARN",
+        "writer": {
+          "output": "stderr"
+        }
+      }
+    }
+  },
+  "storage": {
+    "module": "file_system",
+    "root": "/test/data/caddy"
+  }
+}
