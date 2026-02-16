@@ -5,17 +5,17 @@ import (
 	"os/exec"
 )
 
-// CommandRunner is the interface for executing shell commands, allowing
-// injection for testing.
+// CommandRunner is the interface for executing privileged commands.
+// Arguments are passed individually to avoid shell interpretation.
 type CommandRunner interface {
-	Run(command string) error
+	Run(args ...string) error
+	WriteFile(path string, content string) error
 }
 
 // TrustCA adds the CA certificate to the macOS System Keychain as a
 // trusted root. Requires elevated privileges via the provided runner.
 func TrustCA(runner CommandRunner, certPath string) error {
-	cmd := fmt.Sprintf("security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain %s", certPath)
-	if err := runner.Run(cmd); err != nil {
+	if err := runner.Run("security", "add-trusted-cert", "-d", "-r", "trustRoot", "-k", "/Library/Keychains/System.keychain", certPath); err != nil {
 		return fmt.Errorf("trusting CA certificate: %w", err)
 	}
 	return nil
@@ -24,8 +24,7 @@ func TrustCA(runner CommandRunner, certPath string) error {
 // UntrustCA removes the CA certificate from the macOS trusted certificates.
 // Requires elevated privileges via the provided runner.
 func UntrustCA(runner CommandRunner, certPath string) error {
-	cmd := fmt.Sprintf("security remove-trusted-cert -d %s", certPath)
-	if err := runner.Run(cmd); err != nil {
+	if err := runner.Run("security", "remove-trusted-cert", "-d", certPath); err != nil {
 		return fmt.Errorf("untrusting CA certificate: %w", err)
 	}
 	return nil

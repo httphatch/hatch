@@ -8,12 +8,16 @@ import (
 
 // MockRunner records commands instead of executing them.
 type MockRunner struct {
-	Commands []string
+	Commands [][]string
 	Err      error // error to return from Run, if any
 }
 
-func (m *MockRunner) Run(command string) error {
-	m.Commands = append(m.Commands, command)
+func (m *MockRunner) Run(args ...string) error {
+	m.Commands = append(m.Commands, args)
+	return m.Err
+}
+
+func (m *MockRunner) WriteFile(path string, content string) error {
 	return m.Err
 }
 
@@ -29,9 +33,15 @@ func TestTrustCA(t *testing.T) {
 		t.Fatalf("expected 1 command, got %d", len(runner.Commands))
 	}
 
-	want := "security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain /tmp/certs/rootCA.pem"
-	if runner.Commands[0] != want {
-		t.Errorf("unexpected command:\n  got:  %s\n  want: %s", runner.Commands[0], want)
+	want := []string{"security", "add-trusted-cert", "-d", "-r", "trustRoot", "-k", "/Library/Keychains/System.keychain", "/tmp/certs/rootCA.pem"}
+	got := runner.Commands[0]
+	if len(got) != len(want) {
+		t.Fatalf("expected %d args, got %d: %v", len(want), len(got), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("arg[%d] = %q, want %q", i, got[i], want[i])
+		}
 	}
 }
 
@@ -47,9 +57,15 @@ func TestUntrustCA(t *testing.T) {
 		t.Fatalf("expected 1 command, got %d", len(runner.Commands))
 	}
 
-	want := "security remove-trusted-cert -d /tmp/certs/rootCA.pem"
-	if runner.Commands[0] != want {
-		t.Errorf("unexpected command:\n  got:  %s\n  want: %s", runner.Commands[0], want)
+	want := []string{"security", "remove-trusted-cert", "-d", "/tmp/certs/rootCA.pem"}
+	got := runner.Commands[0]
+	if len(got) != len(want) {
+		t.Fatalf("expected %d args, got %d: %v", len(want), len(got), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("arg[%d] = %q, want %q", i, got[i], want[i])
+		}
 	}
 }
 
@@ -64,4 +80,3 @@ func TestTrustCA_Error(t *testing.T) {
 		t.Errorf("unexpected error message: %v", err)
 	}
 }
-

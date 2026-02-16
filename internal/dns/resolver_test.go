@@ -78,17 +78,25 @@ func TestInstallResolverFile(t *testing.T) {
 	}
 
 	cmd := runner.Commands[0]
-	if !strings.Contains(cmd, "mkdir -p /etc/resolver") {
-		t.Errorf("expected mkdir command, got: %s", cmd)
+	want := []string{"mkdir", "-p", "/etc/resolver"}
+	if len(cmd) != len(want) {
+		t.Fatalf("expected args %v, got %v", want, cmd)
 	}
-	if !strings.Contains(cmd, "nameserver 127.0.0.1") {
-		t.Errorf("expected nameserver in command, got: %s", cmd)
+	for i := range want {
+		if cmd[i] != want[i] {
+			t.Errorf("arg[%d] = %q, want %q", i, cmd[i], want[i])
+		}
 	}
-	if !strings.Contains(cmd, "port 5053") {
-		t.Errorf("expected port in command, got: %s", cmd)
+
+	content, ok := runner.Files["/etc/resolver/test"]
+	if !ok {
+		t.Fatal("expected WriteFile to be called for /etc/resolver/test")
 	}
-	if !strings.Contains(cmd, "/etc/resolver/test") {
-		t.Errorf("expected resolver path in command, got: %s", cmd)
+	if !strings.Contains(content, "nameserver 127.0.0.1") {
+		t.Errorf("expected nameserver in content, got: %s", content)
+	}
+	if !strings.Contains(content, "port 5053") {
+		t.Errorf("expected port in content, got: %s", content)
 	}
 }
 
@@ -105,8 +113,14 @@ func TestRemoveResolverFile(t *testing.T) {
 	}
 
 	cmd := runner.Commands[0]
-	if cmd != "rm -f /etc/resolver/test" {
-		t.Errorf("expected rm command, got: %s", cmd)
+	want := []string{"rm", "-f", "/etc/resolver/test"}
+	if len(cmd) != len(want) {
+		t.Fatalf("expected args %v, got %v", want, cmd)
+	}
+	for i := range want {
+		if cmd[i] != want[i] {
+			t.Errorf("arg[%d] = %q, want %q", i, cmd[i], want[i])
+		}
 	}
 }
 
@@ -118,11 +132,24 @@ func TestInstallResolverFile_Error(t *testing.T) {
 		t.Fatal("expected error")
 	}
 
-	if !strings.Contains(err.Error(), "installing resolver file for test") {
+	if !strings.Contains(err.Error(), "creating resolver directory") {
 		t.Errorf("expected wrapped error, got: %s", err.Error())
 	}
 	if !strings.Contains(err.Error(), "permission denied") {
 		t.Errorf("expected original error, got: %s", err.Error())
+	}
+}
+
+func TestInstallResolverFile_WriteError(t *testing.T) {
+	runner := &MockRunner{WriteErr: errors.New("permission denied")}
+
+	err := InstallResolverFile(runner, "test", "127.0.0.1", 5053)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+
+	if !strings.Contains(err.Error(), "installing resolver file for test") {
+		t.Errorf("expected wrapped error, got: %s", err.Error())
 	}
 }
 

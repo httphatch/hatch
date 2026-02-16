@@ -1,7 +1,8 @@
 package dns
 
-// CommandRunner is the interface for executing shell commands, allowing
-// injection for testing.
+// CommandRunner is the interface for executing privileged commands.
+// Arguments are passed individually to avoid shell interpretation.
 type CommandRunner interface {
-	Run(command string) error
+	Run(args ...string) error
+	WriteFile(path string, content string) error
 }
