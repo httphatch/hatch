@@ -1,0 +1,34 @@
+# Hatch
+
+> Local HTTPS development for macOS — automatic DNS, trusted certificates, and reverse proxying for .test domains.
+
+Hatch is a local development environment tool for macOS. It runs as a background daemon that provides DNS resolution, TLS certificate management, and HTTPS reverse proxying so that local projects are accessible via clean `.test` domains (e.g., `https://myapp.test`) with trusted certificates.
+
+Key concepts:
+- **Daemon**: A single background process (managed via launchd) that runs the DNS server, certificate authority, and reverse proxy.
+- **Projects**: Each project maps a `.test` domain to one or more local services. Projects are added with `hatch add` or by linking a `.hatch.yml` config file.
+- **Services**: Each project has one or more services, each proxying to a local upstream (e.g., `http://localhost:3000`). Services can be routed by path prefix or subdomain.
+- **Certificates**: Hatch generates a local root CA and intermediate CA, trusted in the macOS Keychain. Per-domain certificates are issued automatically.
+- **DNS**: A local DNS server resolves `*.test` to localhost via a macOS resolver config in `/etc/resolver/`.
+
+## Guide
+
+- [What is Hatch?](https://httphatch.com/guide/what-is-hatch): Feature overview and how Hatch compares to editing /etc/hosts or using self-signed certificates.
+- [Getting Started](https://httphatch.com/guide/getting-started): Installation (Homebrew or source), first-time setup with `hatch init`, starting the daemon, and adding your first project.
+- [Dashboard](https://httphatch.com/guide/dashboard): Visual GUI for managing projects, viewing logs, and monitoring service health.
+
+## Reference
+
+- [CLI](https://httphatch.com/reference/cli): Complete command reference — daemon management (`up`, `down`, `restart`, `status`, `logs`), project management (`add`, `link`, `unlink`, `list`, `remove`, `enable`, `disable`, `open`), system setup (`init`, `trust`, `doctor`, `clean`), and config commands.
+- [Configuration](https://httphatch.com/reference/config): Global config file (`~/.hatch/config.yml`) — TLD, HTTP/HTTPS ports, auto-start, log level, and project/service definitions.
+- [.hatch.yml](https://httphatch.com/reference/hatch-yml): Per-project config file format — domain, services with proxy, route, subdomain, and websocket options.
+
+## Advanced
+
+- [How It Works](https://httphatch.com/advanced/how-it-works): Architecture internals — embedded Caddy server, DNS resolver integration, certificate chain, launchd lifecycle, and live config reloading.
+- [Troubleshooting](https://httphatch.com/advanced/troubleshooting): Common issues and diagnostic steps — `hatch doctor`, port conflicts, DNS resolution failures, certificate trust problems.
+
+## Community
+
+- [Contributing](https://httphatch.com/contributing): Development setup, code conventions, and how to submit changes.
+- [GitHub](https://github.com/httphatch/hatch): Source code and issue tracker.
