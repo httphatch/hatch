@@ -30,10 +30,12 @@ func InstallResolverFile(runner CommandRunner, tld, listenIP string, port int) e
 	if err := validateResolverInputs(tld, listenIP, port); err != nil {
 		return err
 	}
-	content := ResolverFileContent(listenIP, port)
 	path := ResolverFilePath(tld)
-	cmd := fmt.Sprintf("mkdir -p %s && printf '%%s' '%s' > %s", ResolverDir, content, path)
-	if err := runner.Run(cmd); err != nil {
+	if err := runner.Run("mkdir", "-p", ResolverDir); err != nil {
+		return fmt.Errorf("creating resolver directory: %w", err)
+	}
+	content := ResolverFileContent(listenIP, port)
+	if err := runner.WriteFile(path, content); err != nil {
 		return fmt.Errorf("installing resolver file for %s: %w", tld, err)
 	}
 	return nil
@@ -47,8 +49,7 @@ func RemoveResolverFile(runner CommandRunner, tld string) error {
 		return fmt.Errorf("invalid TLD %q", tld)
 	}
 	path := ResolverFilePath(tld)
-	cmd := fmt.Sprintf("rm -f %s", path)
-	if err := runner.Run(cmd); err != nil {
+	if err := runner.Run("rm", "-f", path); err != nil {
 		return fmt.Errorf("removing resolver file for %s: %w", tld, err)
 	}
 	return nil
