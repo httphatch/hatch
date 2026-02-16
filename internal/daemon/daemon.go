@@ -49,6 +49,12 @@ func New(version string, logHub *api.LogHub) *Daemon {
 // Run starts all subsystems and blocks until ctx is cancelled.
 // On context cancellation it performs a graceful shutdown.
 func (d *Daemon) Run(ctx context.Context) error {
+	return d.RunSubsystems(ctx, nil)
+}
+
+// RunSubsystems starts all daemon subsystems and blocks until ctx is cancelled.
+// An optional DashboardShower is passed to the API server for the dashboard/show endpoint.
+func (d *Daemon) RunSubsystems(ctx context.Context, dashboard api.DashboardShower) error {
 	d.startTime = time.Now()
 
 	// Write PID file (acquires flock).
@@ -167,6 +173,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 		Health:    d.health,
 		Processes: d.processes,
 		Daemon:    d,
+		Dashboard: dashboard,
 		CAPaths:   d.caPaths,
 		Version:   d.version,
 		StartTime: d.startTime,
@@ -199,6 +206,14 @@ func (d *Daemon) Run(ctx context.Context) error {
 	log.Info().Msg("shutdown signal received")
 
 	return d.Shutdown()
+}
+
+// HealthChecker returns the daemon's health checker instance.
+// It is safe to call from any goroutine; returns nil before subsystems start.
+func (d *Daemon) HealthChecker() *health.Checker {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.health
 }
 
 // Shutdown stops all subsystems in reverse start order and removes the PID file.

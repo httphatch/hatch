@@ -44,7 +44,7 @@ var runCmd = &cobra.Command{
 		defer func() { _ = w.Close() }()
 
 		d := daemon.New(version, logHub)
-		if err := d.Run(ctx); err != nil {
+		if err := runDaemon(ctx, d); err != nil {
 			log.Error().Err(err).Msg("daemon exited with error")
 			os.Exit(1)
 		}

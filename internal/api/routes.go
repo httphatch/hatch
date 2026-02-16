@@ -358,6 +358,15 @@ func (s *Server) handleRestart(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "reloaded"})
 }
 
+func (s *Server) handleShowDashboard(w http.ResponseWriter, r *http.Request) {
+	if s.dashboard == nil {
+		writeError(w, http.StatusNotImplemented, "dashboard not available on this platform")
+		return
+	}
+	s.dashboard.ShowDashboard()
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
 func (s *Server) handleCerts(w http.ResponseWriter, r *http.Request) {
 	type certInfo struct {
 		Exists  bool   `json:"exists"`
