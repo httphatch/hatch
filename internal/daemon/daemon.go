@@ -17,6 +17,7 @@ import (
 	"github.com/httphatch/hatch/internal/config"
 	"github.com/httphatch/hatch/internal/dns"
 	"github.com/httphatch/hatch/internal/health"
+	"github.com/httphatch/hatch/internal/process"
 )
 
 // Daemon orchestrates all Hatch subsystems as a long-running background process.
@@ -24,6 +25,7 @@ type Daemon struct {
 	caddy     *caddy.Server
 	dns       *dns.Server
 	health    *health.Checker
+	processes *process.Manager
 	watcher   *config.Watcher
 	api       *api.Server
 	pidFile   *os.File
@@ -142,10 +144,28 @@ func (d *Daemon) Run(ctx context.Context) error {
 	d.health = checker
 	log.Info().Msg("health checker started")
 
+	// Start process manager.
+	procMgr := process.NewManager(process.ManagerConfig{
+		OnOutput: func(project, service, source, line string) {
+			log.Info().
+				Str("project", project).
+				Str("service", service).
+				Str("source", source).
+				Msg(line)
+		},
+	})
+	if err := procMgr.ApplyConfig(cfg); err != nil {
+		d.shutdownPartial()
+		return fmt.Errorf("apply process config: %w", err)
+	}
+	d.processes = procMgr
+	log.Info().Msg("process manager started")
+
 	// Start API server.
 	apiSrv := api.NewServer(api.ServerConfig{
 		Addr:      "127.0.0.1:42824",
 		Health:    d.health,
+		Processes: d.processes,
 		Daemon:    d,
 		CAPaths:   d.caPaths,
 		Version:   d.version,
@@ -211,6 +231,14 @@ func (d *Daemon) Shutdown() error {
 		log.Info().Msg("config watcher stopped")
 	}
 
+	// Process manager.
+	if d.processes != nil {
+		if err := d.processes.Stop(); err != nil {
+			errs = append(errs, fmt.Errorf("stop process manager: %w", err))
+		}
+		log.Info().Msg("process manager stopped")
+	}
+
 	// Health checker.
 	if d.health != nil {
 		if err := d.health.Stop(); err != nil {
@@ -274,6 +302,13 @@ func (d *Daemon) onConfigReload(cfg config.Config) {
 	}
 
 	d.health.UpdateConfig(cfg)
+
+	if d.processes != nil {
+		if err := d.processes.ApplyConfig(cfg); err != nil {
+			log.Error().Err(err).Msg("failed to apply process config")
+		}
+	}
+
 	log.Info().Msg("config reloaded successfully")
 }
 
@@ -293,6 +328,9 @@ func (d *Daemon) shutdownPartial() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		_ = d.api.Shutdown(ctx)
 		cancel()
+	}
+	if d.processes != nil {
+		_ = d.processes.Stop()
 	}
 	if d.health != nil {
 		_ = d.health.Stop()

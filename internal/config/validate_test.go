@@ -153,7 +153,6 @@ func TestValidate_ServiceProxy(t *testing.T) {
 		proxy    string
 		errSubst string
 	}{
-		{"empty", "", "proxy is required"},
 		{"no scheme", "localhost:3000", "must be a valid URL"},
 		{"ftp scheme", "ftp://localhost:3000", "must be a valid URL"},
 	}
@@ -165,6 +164,56 @@ func TestValidate_ServiceProxy(t *testing.T) {
 			cfg.Projects["myapp"] = p
 			errs := Validate(cfg)
 			requireError(t, errs, tt.errSubst)
+		})
+	}
+}
+
+func TestValidate_ServiceCommandOrProxy(t *testing.T) {
+	tests := []struct {
+		name     string
+		svc      Service
+		wantErr  string
+	}{
+		{
+			name:    "neither command nor proxy",
+			svc:     Service{},
+			wantErr: "command or proxy is required",
+		},
+		{
+			name: "command only",
+			svc:  Service{Command: "php artisan queue:work"},
+		},
+		{
+			name: "proxy only",
+			svc:  Service{Proxy: "http://localhost:3000"},
+		},
+		{
+			name: "command and proxy",
+			svc:  Service{Command: "php artisan serve --port=8000", Proxy: "http://localhost:8000"},
+		},
+		{
+			name:    "route without proxy",
+			svc:     Service{Command: "echo hello", Route: "/api/*"},
+			wantErr: "route requires proxy",
+		},
+		{
+			name:    "subdomain without proxy",
+			svc:     Service{Command: "echo hello", Subdomain: "api"},
+			wantErr: "subdomain requires proxy",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := validConfig()
+			p := cfg.Projects["myapp"]
+			p.Services = map[string]Service{"web": tt.svc}
+			cfg.Projects["myapp"] = p
+			errs := Validate(cfg)
+			if tt.wantErr != "" {
+				requireError(t, errs, tt.wantErr)
+			} else if len(errs) != 0 {
+				t.Errorf("expected no errors, got %v", errs)
+			}
 		})
 	}
 }
@@ -194,6 +243,34 @@ func TestValidate_NoProjects(t *testing.T) {
 	errs := Validate(cfg)
 	if len(errs) != 0 {
 		t.Fatalf("config with no projects should be valid, got %v", errs)
+	}
+}
+
+func TestValidate_ServiceEnvFile(t *testing.T) {
+	tests := []struct {
+		name    string
+		envFile string
+		wantErr string
+	}{
+		{"relative path", ".env", ""},
+		{"nested relative", "config/.env", ""},
+		{"absolute path", "/etc/secrets/.env", "must be a relative path"},
+		{"parent traversal", "../.env", "must not contain '..'"},
+		{"nested traversal", "config/../../.env", "must not contain '..'"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := validConfig()
+			p := cfg.Projects["myapp"]
+			p.Services = map[string]Service{"web": {Command: "npm start", EnvFile: tt.envFile}}
+			cfg.Projects["myapp"] = p
+			errs := Validate(cfg)
+			if tt.wantErr != "" {
+				requireError(t, errs, tt.wantErr)
+			} else if len(errs) != 0 {
+				t.Errorf("expected no errors, got %v", errs)
+			}
+		})
 	}
 }
 

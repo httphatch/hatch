@@ -315,6 +315,39 @@ func TestChecker_DisabledProjectSkipped(t *testing.T) {
 	}
 }
 
+func TestChecker_CommandOnlyServiceSkipped(t *testing.T) {
+	ln := startTestListener(t)
+
+	cfg := config.Config{
+		Projects: map[string]config.Project{
+			"myproject": {
+				Enabled: true,
+				Services: map[string]config.Service{
+					"web":    {Proxy: "http://" + ln.Addr().String()},
+					"worker": {Command: "php artisan queue:work"},
+				},
+			},
+		},
+	}
+
+	c := newTestChecker()
+	if err := c.Start(cfg); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = c.Stop() }()
+
+	waitForStatus(t, c, testKey, StatusHealthy, 2*time.Second)
+
+	all := c.ServiceStatuses()
+	if len(all) != 1 {
+		t.Fatalf("expected 1 target (command-only skipped), got %d", len(all))
+	}
+	workerKey := ServiceKey{Project: "myproject", Service: "worker"}
+	if _, ok := all[workerKey]; ok {
+		t.Fatal("command-only service should not be tracked by health checker")
+	}
+}
+
 func TestExtractDialAddress(t *testing.T) {
 	tests := []struct {
 		input string

@@ -12,6 +12,7 @@ import (
 
 	"github.com/httphatch/hatch/internal/certs"
 	"github.com/httphatch/hatch/internal/health"
+	"github.com/httphatch/hatch/internal/process"
 )
 
 // DaemonControl allows the API to trigger daemon operations.
@@ -19,11 +20,17 @@ type DaemonControl interface {
 	ReloadConfig() error
 }
 
+// ProcessStatuser provides a snapshot of managed process statuses.
+type ProcessStatuser interface {
+	Statuses() map[process.ServiceID]process.ProcessStatus
+}
+
 // Server is the HTTP API server for the Hatch dashboard.
 type Server struct {
 	httpSrv   *http.Server
 	daemon    DaemonControl
 	health    *health.Checker
+	processes ProcessStatuser
 	caPaths   certs.CAPaths
 	version   string
 	startTime time.Time
@@ -35,6 +42,7 @@ type Server struct {
 type ServerConfig struct {
 	Addr      string
 	Health    *health.Checker
+	Processes ProcessStatuser
 	Daemon    DaemonControl
 	CAPaths   certs.CAPaths
 	Version   string
@@ -47,6 +55,7 @@ func NewServer(cfg ServerConfig) *Server {
 	s := &Server{
 		daemon:    cfg.Daemon,
 		health:    cfg.Health,
+		processes: cfg.Processes,
 		caPaths:   cfg.CAPaths,
 		version:   cfg.Version,
 		startTime: cfg.StartTime,
@@ -95,6 +104,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /api/projects/{name}", s.handleDeleteProject)
 	mux.HandleFunc("PATCH /api/projects/{name}/toggle", s.handleToggleProject)
 	mux.HandleFunc("GET /api/health", s.handleHealth)
+	mux.HandleFunc("GET /api/processes", s.handleProcesses)
 	mux.HandleFunc("GET /api/logs", s.handleLogs)
 	mux.HandleFunc("GET /api/config", s.handleGetConfig)
 	mux.HandleFunc("PUT /api/config", s.handlePutConfig)

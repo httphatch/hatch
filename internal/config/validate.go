@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"net/url"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -108,19 +109,39 @@ func validateService(prefix, name string, s Service) []error {
 	var errs []error
 	svcPrefix := fmt.Sprintf("%s.services.%s", prefix, name)
 
-	// Proxy URL
-	if s.Proxy == "" {
-		errs = append(errs, fmt.Errorf("%s.proxy is required", svcPrefix))
-	} else {
+	// At least one of command or proxy is required.
+	if s.Command == "" && s.Proxy == "" {
+		errs = append(errs, fmt.Errorf("%s: command or proxy is required", svcPrefix))
+	}
+
+	// Proxy URL (validated only when set).
+	if s.Proxy != "" {
 		u, err := url.Parse(s.Proxy)
 		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
 			errs = append(errs, fmt.Errorf("%s.proxy %q must be a valid URL with http or https scheme", svcPrefix, s.Proxy))
 		}
 	}
 
-	// Subdomain (optional)
+	// Route and subdomain require proxy.
+	if s.Route != "" && s.Proxy == "" {
+		errs = append(errs, fmt.Errorf("%s.route requires proxy to be set", svcPrefix))
+	}
+	if s.Subdomain != "" && s.Proxy == "" {
+		errs = append(errs, fmt.Errorf("%s.subdomain requires proxy to be set", svcPrefix))
+	}
+
+	// Subdomain format (optional).
 	if s.Subdomain != "" && !validHostnameLabel.MatchString(s.Subdomain) {
 		errs = append(errs, fmt.Errorf("%s.subdomain %q must be a valid hostname label", svcPrefix, s.Subdomain))
+	}
+
+	// EnvFile must be a relative path without traversal.
+	if s.EnvFile != "" {
+		if filepath.IsAbs(s.EnvFile) {
+			errs = append(errs, fmt.Errorf("%s.env_file must be a relative path, got %q", svcPrefix, s.EnvFile))
+		} else if strings.Contains(s.EnvFile, "..") {
+			errs = append(errs, fmt.Errorf("%s.env_file must not contain '..', got %q", svcPrefix, s.EnvFile))
+		}
 	}
 
 	return errs
