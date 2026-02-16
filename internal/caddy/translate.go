@@ -85,6 +85,9 @@ func buildRoutes(cfg config.Config) []map[string]any {
 			continue
 		}
 		for _, svc := range proj.Services {
+			if svc.Proxy == "" {
+				continue
+			}
 			domain := proj.Domain
 			if svc.Subdomain != "" {
 				domain = svc.Subdomain + "." + proj.Domain
@@ -258,9 +261,11 @@ func collectDomains(cfg config.Config) []string {
 		if !proj.Enabled {
 			continue
 		}
-		domainSet[proj.Domain] = true
-
 		for _, svc := range proj.Services {
+			if svc.Proxy == "" {
+				continue
+			}
+			domainSet[proj.Domain] = true
 			if svc.Subdomain != "" {
 				domainSet[svc.Subdomain+"."+proj.Domain] = true
 			}

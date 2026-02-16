@@ -24,12 +24,14 @@ type Project struct {
 	Services map[string]Service `yaml:"services" json:"services"`
 }
 
-// Service defines how a single service is proxied.
+// Service defines how a single service is proxied and optionally managed.
 type Service struct {
-	Proxy     string `yaml:"proxy" json:"proxy"`
+	Proxy     string `yaml:"proxy,omitempty" json:"proxy,omitempty"`
+	Command   string `yaml:"command,omitempty" json:"command,omitempty"`
 	Route     string `yaml:"route,omitempty" json:"route,omitempty"`
 	Subdomain string `yaml:"subdomain,omitempty" json:"subdomain,omitempty"`
 	WebSocket bool   `yaml:"websocket,omitempty" json:"websocket,omitempty"`
+	EnvFile   string `yaml:"env_file,omitempty" json:"env_file,omitempty"`
 }
 
 // ProjectConfig is the schema for a per-project .hatch.yml file.

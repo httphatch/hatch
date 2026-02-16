@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"sort"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -216,6 +217,43 @@ func (s *Server) handleToggleProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]bool{"enabled": proj.Enabled})
+}
+
+func (s *Server) handleProcesses(w http.ResponseWriter, r *http.Request) {
+	if s.processes == nil {
+		writeJSON(w, http.StatusOK, []any{})
+		return
+	}
+
+	statuses := s.processes.Statuses()
+
+	type processInfo struct {
+		Project   string `json:"project"`
+		Service   string `json:"service"`
+		Command   string `json:"command"`
+		Running   bool   `json:"running"`
+		Restarts  int    `json:"restarts"`
+		StartedAt string `json:"started_at"`
+	}
+
+	result := make([]processInfo, 0, len(statuses))
+	for id, st := range statuses {
+		result = append(result, processInfo{
+			Project:   id.Project,
+			Service:   id.Service,
+			Command:   st.Command,
+			Running:   st.Running,
+			Restarts:  st.Restarts,
+			StartedAt: st.StartedAt.Format(time.RFC3339),
+		})
+	}
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].Project != result[j].Project {
+			return result[i].Project < result[j].Project
+		}
+		return result[i].Service < result[j].Service
+	})
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {

@@ -213,6 +213,9 @@ func (c *Checker) applyConfig(appCfg config.Config) {
 			continue
 		}
 		for svcName, svc := range proj.Services {
+			if svc.Proxy == "" {
+				continue
+			}
 			key := ServiceKey{Project: projName, Service: svcName}
 			newTargets[key] = extractDialAddress(svc.Proxy)
 		}
