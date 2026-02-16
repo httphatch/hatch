@@ -7,7 +7,7 @@ LDFLAGS := -s -w \
 	-X github.com/httphatch/hatch/cmd.commit=$(COMMIT) \
 	-X github.com/httphatch/hatch/cmd.date=$(DATE)
 
-.PHONY: build build-test run test clean app frontend icon
+.PHONY: build build-test run test lint clean app frontend icon
 
 build:
 	go build -ldflags '$(LDFLAGS)' -o hatch .
@@ -20,6 +20,9 @@ run:
 
 test:
 	go test ./...
+
+lint:
+	golangci-lint run
 
 frontend:
 	cd frontend && npm install && VITE_APP_VERSION=$(VERSION) npm run build

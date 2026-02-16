@@ -110,7 +110,7 @@ func (m *Manager) Stop() {
 		close(m.done)
 	}
 	if m.checker != nil {
-		m.checker.Stop()
+		_ = m.checker.Stop()
 	}
 	if m.tray != nil {
 		m.tray.Destroy()
@@ -239,7 +239,7 @@ func (m *Manager) buildProjectItem(menu *application.Menu, name string, proj con
 	// Open in Browser.
 	sub.Add("Open in Browser").OnClick(func(_ *application.Context) {
 		u := url.URL{Scheme: "https", Host: domain}
-		browser.OpenURL(u.String())
+		_ = browser.OpenURL(u.String())
 	})
 
 	// Enable / Disable toggle.

@@ -3,15 +3,20 @@ package cmd
 import (
 	"fmt"
 	"net"
+	"net/http"
 	"net/url"
 	"sort"
+	"strings"
+	"sync"
 	"time"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
 	"github.com/httphatch/hatch/internal/config"
 	"github.com/httphatch/hatch/internal/daemon"
+	"github.com/httphatch/hatch/internal/update"
 )
 
 var statusCmd = &cobra.Command{
@@ -35,6 +40,15 @@ func runStatus() error {
 	green := color.New(color.FgGreen).SprintFunc()
 	red := color.New(color.FgRed).SprintFunc()
 	yellow := color.New(color.FgYellow).SprintFunc()
+
+	// Start update check in background so it doesn't block output.
+	var updateHint string
+	var updateWg sync.WaitGroup
+	updateWg.Add(1)
+	go func() {
+		defer updateWg.Done()
+		updateHint = checkUpdateHint()
+	}()
 
 	// Daemon state
 	running, pid, _ := daemon.IsRunning()
@@ -127,6 +141,11 @@ func runStatus() error {
 		}
 	}
 
+	updateWg.Wait()
+	if updateHint != "" {
+		fmt.Print(updateHint)
+	}
+
 	return nil
 }
 
@@ -166,4 +185,33 @@ func resolveDomain(proj config.Project, svc config.Service) string {
 		return svc.Subdomain + "." + proj.Domain
 	}
 	return proj.Domain
+}
+
+// checkUpdateHint silently checks for a newer version and returns a
+// formatted hint string, or empty if up to date / check fails.
+func checkUpdateHint() string {
+	currentRaw := strings.TrimPrefix(version, "v")
+	current, err := semver.NewVersion(currentRaw)
+	if err != nil {
+		return ""
+	}
+
+	client := &http.Client{Timeout: 3 * time.Second}
+	rel, err := update.CheckLatest(client)
+	if err != nil {
+		return ""
+	}
+
+	latestRaw := strings.TrimPrefix(rel.TagName, "v")
+	latest, err := semver.NewVersion(latestRaw)
+	if err != nil {
+		return ""
+	}
+
+	if current.LessThan(latest) {
+		yellow := color.New(color.FgYellow).SprintFunc()
+		return fmt.Sprintf("\n%s Update available: v%s → v%s (run 'hatch update')\n",
+			yellow("!"), current, latest)
+	}
+	return ""
 }

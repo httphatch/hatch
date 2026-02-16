@@ -71,7 +71,7 @@ jobs:
           GH_TOKEN: ${{ secrets.TAP_TOKEN }}
           TAG: ${{ github.ref_name }}
         run: |
-          VERSION="${TAG#v.}"
+          VERSION="${TAG#v}"
           gh api repos/httphatch/homebrew-tap/dispatches \
             -f event_type=formula-update \
             -f 'client_payload[version]'="${VERSION}"
