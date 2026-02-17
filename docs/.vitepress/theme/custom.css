@@ -111,6 +111,8 @@
 .VPHero .name {
   font-family: 'Fugaz One', cursive !important;
   text-transform: uppercase;
+  font-size: 4rem !important;
+  line-height: 1.1 !important;
 }
 
 /* Page headings */
@@ -199,15 +201,34 @@
 }
 
 /* ─────────────────────────────────────────────
- * Hero tagline
+ * Hero
  * ───────────────────────────────────────────── */
 
-.VPHero .tagline {
-  color: #6b6b6b;
+.VPHero .heading {
+  align-items: center !important;
+}
+
+.VPHero .main {
+  max-width: 960px !important;
+  width: 100%;
+  text-align: center;
 }
 
 .VPHero .text {
   color: #84a59d;
+  max-width: 960px !important;
+  font-size: 2rem !important;
+  line-height: 1.4 !important;
+  text-align: center;
+}
+
+.VPHero .tagline {
+  color: #6b6b6b;
+  max-width: 960px !important;
+}
+
+.VPHero .actions {
+  justify-content: center !important;
 }
 
 /* ─────────────────────────────────────────────
