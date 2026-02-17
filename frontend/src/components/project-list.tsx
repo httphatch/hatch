@@ -1,10 +1,11 @@
 import { ProjectCard } from "@/components/project-card";
 import { EmptyState } from "@/components/empty-state";
-import type { Project, ServiceHealth } from "@/types";
+import type { ProcessStatus, Project, ServiceHealth } from "@/types";
 
 interface ProjectListProps {
   projects: Record<string, Project>;
   healthLookup: (project: string, service: string) => ServiceHealth | undefined;
+  processLookup: (project: string, service: string) => ProcessStatus | undefined;
   onToggle: (name: string) => void;
   onEdit: (name: string) => void;
   onDelete: (name: string) => void;
@@ -14,6 +15,7 @@ interface ProjectListProps {
 export function ProjectList({
   projects,
   healthLookup,
+  processLookup,
   onToggle,
   onEdit,
   onDelete,
@@ -33,6 +35,7 @@ export function ProjectList({
           name={name}
           project={project}
           healthLookup={healthLookup}
+          processLookup={processLookup}
           onToggle={onToggle}
           onEdit={onEdit}
           onDelete={onDelete}

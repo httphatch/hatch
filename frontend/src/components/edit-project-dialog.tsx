@@ -25,6 +25,8 @@ interface EditProjectDialogProps {
 interface ServiceForm {
   name: string;
   proxy: string;
+  command: string;
+  envFile: string;
   route: string;
   subdomain: string;
   websocket: boolean;
@@ -33,7 +35,9 @@ interface ServiceForm {
 function serviceToForm(name: string, svc: Service): ServiceForm {
   return {
     name,
-    proxy: svc.proxy,
+    proxy: svc.proxy ?? "",
+    command: svc.command ?? "",
+    envFile: svc.env_file ?? "",
     route: svc.route ?? "",
     subdomain: svc.subdomain ?? "",
     websocket: svc.websocket ?? false,
@@ -73,7 +77,7 @@ export function EditProjectDialog({
   function addService() {
     setServices((prev) => [
       ...prev,
-      { name: "", proxy: "localhost:3000", route: "", subdomain: "", websocket: false },
+      { name: "", proxy: "localhost:3000", command: "", envFile: "", route: "", subdomain: "", websocket: false },
     ]);
   }
 
@@ -88,9 +92,20 @@ export function EditProjectDialog({
 
     const svcMap: Record<string, Service> = {};
     for (const s of services) {
-      if (!s.name) continue;
+      if (!s.name) {
+        setError("All services must have a name");
+        setSubmitting(false);
+        return;
+      }
+      if (!s.proxy && !s.command) {
+        setError(`Service "${s.name}" must have at least one of proxy or command`);
+        setSubmitting(false);
+        return;
+      }
       svcMap[s.name] = {
-        proxy: s.proxy,
+        ...(s.proxy ? { proxy: s.proxy } : {}),
+        ...(s.command ? { command: s.command } : {}),
+        ...(s.envFile ? { env_file: s.envFile } : {}),
         ...(s.route ? { route: s.route } : {}),
         ...(s.subdomain ? { subdomain: s.subdomain } : {}),
         ...(s.websocket ? { websocket: true } : {}),
@@ -188,7 +203,28 @@ export function EditProjectDialog({
                         updateService(idx, { proxy: e.target.value })
                       }
                       placeholder="localhost:3000"
-                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Command</Label>
+                    <Input
+                      value={svc.command}
+                      onChange={(e) =>
+                        updateService(idx, { command: e.target.value })
+                      }
+                      placeholder="npm start"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Env file</Label>
+                    <Input
+                      value={svc.envFile}
+                      onChange={(e) =>
+                        updateService(idx, { envFile: e.target.value })
+                      }
+                      placeholder=".env"
                     />
                   </div>
                   <div className="space-y-1">

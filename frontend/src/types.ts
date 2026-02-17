@@ -1,8 +1,19 @@
 export interface Service {
-  proxy: string;
+  proxy?: string;
   route?: string;
   subdomain?: string;
   websocket?: boolean;
+  command?: string;
+  env_file?: string;
+}
+
+export interface ProcessStatus {
+  project: string;
+  service: string;
+  command: string;
+  running: boolean;
+  restarts: number;
+  started_at: string;
 }
 
 export interface Project {

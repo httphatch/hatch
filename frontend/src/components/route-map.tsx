@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { HealthDot } from "@/components/health-dot";
+import { serviceUrl } from "@/lib/service-url";
 import type { Project, ServiceHealth } from "@/types";
 import { ChevronDown, ChevronRight, Map } from "lucide-react";
 
@@ -13,6 +14,7 @@ interface RouteEntry {
   domain: string;
   route: string;
   target: string;
+  url: string;
   project: string;
   service: string;
 }
@@ -22,13 +24,16 @@ function buildRoutes(projects: Record<string, Project>): RouteEntry[] {
   for (const [name, proj] of Object.entries(projects)) {
     if (!proj.enabled) continue;
     for (const [svcName, svc] of Object.entries(proj.services)) {
+      const url = serviceUrl(proj.domain, svc);
+      if (!url) continue;
       const domain = svc.subdomain
         ? `${svc.subdomain}.${proj.domain}`
         : proj.domain;
       routes.push({
         domain,
         route: svc.route || "/",
-        target: svc.proxy,
+        target: svc.proxy!,
+        url,
         project: name,
         service: svcName,
       });
@@ -72,7 +77,16 @@ export function RouteMap({ projects, healthLookup }: RouteMapProps) {
                   key={`${r.domain}-${r.route}-${r.service}`}
                   className="border-b border-border last:border-0"
                 >
-                  <td className="px-3 py-2 font-medium">{r.domain}</td>
+                  <td className="px-3 py-2 font-medium">
+                    <a
+                      href={r.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-muted-teal hover:underline"
+                    >
+                      {r.domain}
+                    </a>
+                  </td>
                   <td className="px-3 py-2 text-text-muted">{r.route}</td>
                   <td className="px-3 py-2 text-text-muted">{r.target}</td>
                   <td className="px-3 py-2">

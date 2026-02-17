@@ -82,7 +82,12 @@ func RunWithUI(parentCtx context.Context, d *Daemon, assets embed.FS, icon []byt
 		wailsApp.Quit()
 	}()
 
-	// Start the tray manager once the Wails event loop is ready.
+	// Init creates the tray and sets the initial menu while the app is not
+	// yet running, so the deferred Run() will see the menu and initialise
+	// the native NSMenu pointer. Start() is called later once the event
+	// loop is up to begin periodic refresh.
+	mgr.Init()
+
 	wailsApp.Event.OnApplicationEvent(events.Common.ApplicationStarted, func(_ *application.ApplicationEvent) {
 		mgr.Start()
 	})

@@ -44,6 +44,7 @@ type Manager struct {
 	window  *application.WebviewWindow
 	icon    []byte
 	tray    *application.SystemTray
+	menu    *application.Menu
 	daemon  DaemonControl
 
 	mu   sync.Mutex
@@ -62,11 +63,24 @@ func NewManager(cfg ManagerConfig) *Manager {
 	}
 }
 
-// Start initialises the tray icon and begins periodic menu refresh.
-func (m *Manager) Start() {
+// Init creates the tray icon and sets an initial menu. It must be called
+// before wailsApp.Run() so that the tray's Run() is deferred until the
+// event loop starts, at which point the menu's native NSMenu is properly
+// initialised.
+func (m *Manager) Init() {
+	m.menu = m.app.NewMenu()
 	m.tray = m.app.SystemTray.New()
 	m.tray.SetTemplateIcon(iconPNG)
 
+	// Build the initial menu content so the native NSMenu is populated
+	// when the deferred Run() fires during app startup.
+	m.populateMenu()
+	m.tray.SetMenu(m.menu)
+}
+
+// Start begins periodic menu refresh. It must be called after the Wails
+// event loop is running (e.g. in the ApplicationStarted handler).
+func (m *Manager) Start() {
 	// Hide window on close instead of destroying it — removes the
 	// Dock icon but keeps the tray icon running.
 	if m.window != nil {
@@ -78,9 +92,6 @@ func (m *Manager) Start() {
 
 	m.done = make(chan struct{})
 	done := m.done // capture for goroutine
-
-	// Initial refresh.
-	m.refresh()
 
 	// Periodic refresh goroutine.
 	m.wg.Add(1)
@@ -124,7 +135,13 @@ func (m *Manager) ShowDashboard() {
 func (m *Manager) refresh() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.populateMenu()
+	m.menu.Update()
+}
 
+// populateMenu clears the existing menu and rebuilds its items from
+// the current config and health state.
+func (m *Manager) populateMenu() {
 	cfg, err := config.Load()
 	if err != nil {
 		log.Debug().Err(err).Msg("tray: config load failed during refresh")
@@ -138,16 +155,16 @@ func (m *Manager) refresh() {
 		}
 	}
 
-	// Build menu.
-	menu := m.app.NewMenu()
+	// Clear existing items and rebuild.
+	m.menu.Clear()
 
 	// Version header.
-	menu.Add(fmt.Sprintf("Hatch %s", m.version)).SetEnabled(false)
+	m.menu.Add(fmt.Sprintf("Hatch %s", m.version)).SetEnabled(false)
 
 	// Daemon status — always running since we are the daemon.
-	menu.Add("Daemon: Running").SetEnabled(false)
+	m.menu.Add("Daemon: Running").SetEnabled(false)
 
-	menu.AddSeparator()
+	m.menu.AddSeparator()
 
 	// Projects — sorted by name.
 	projectNames := make([]string, 0, len(cfg.Projects))
@@ -158,31 +175,29 @@ func (m *Manager) refresh() {
 
 	for _, name := range projectNames {
 		proj := cfg.Projects[name]
-		m.buildProjectItem(menu, name, proj, statuses)
+		m.buildProjectItem(m.menu, name, proj, statuses)
 	}
 
 	if len(projectNames) > 0 {
-		menu.AddSeparator()
+		m.menu.AddSeparator()
 	}
 
 	// Open Dashboard.
-	menu.Add("Open Dashboard").OnClick(func(_ *application.Context) {
+	m.menu.Add("Open Dashboard").OnClick(func(_ *application.Context) {
 		m.showWindow()
 	})
 
 	// Add Project.
-	menu.Add("Add Project...").OnClick(func(_ *application.Context) {
+	m.menu.Add("Add Project...").OnClick(func(_ *application.Context) {
 		m.showWindow()
 	})
 
-	menu.AddSeparator()
+	m.menu.AddSeparator()
 
 	// Quit Hatch (triggers full daemon + tray shutdown).
-	menu.Add("Quit Hatch").OnClick(func(_ *application.Context) {
+	m.menu.Add("Quit Hatch").OnClick(func(_ *application.Context) {
 		m.app.Quit()
 	})
-
-	m.tray.SetMenu(menu)
 }
 
 // buildProjectItem adds a submenu item for a single project.

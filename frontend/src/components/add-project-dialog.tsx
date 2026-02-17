@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +25,8 @@ function emptyForm() {
     path: "",
     serviceName: "web",
     proxy: "localhost:3000",
+    command: "",
+    envFile: "",
     route: "",
     subdomain: "",
     websocket: false,
@@ -39,6 +41,13 @@ export function AddProjectDialog({
   const [form, setForm] = useState(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setForm(emptyForm());
+      setError(null);
+    }
+  }, [open]);
 
   function set<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((prev) => {
@@ -56,13 +65,21 @@ export function AddProjectDialog({
     setError(null);
 
     const domain = form.domain || `${form.name}.test`;
+    if (!form.proxy && !form.command) {
+      setError("Each service must have at least one of proxy or command");
+      setSubmitting(false);
+      return;
+    }
+
     const project: Project = {
       domain,
       path: form.path,
       enabled: true,
       services: {
         [form.serviceName]: {
-          proxy: form.proxy,
+          ...(form.proxy ? { proxy: form.proxy } : {}),
+          ...(form.command ? { command: form.command } : {}),
+          ...(form.envFile ? { env_file: form.envFile } : {}),
           ...(form.route ? { route: form.route } : {}),
           ...(form.subdomain ? { subdomain: form.subdomain } : {}),
           ...(form.websocket ? { websocket: true } : {}),
@@ -140,7 +157,26 @@ export function AddProjectDialog({
                   value={form.proxy}
                   onChange={(e) => set("proxy", e.target.value)}
                   placeholder="localhost:3000"
-                  required
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="command">Command</Label>
+                <Input
+                  id="command"
+                  value={form.command}
+                  onChange={(e) => set("command", e.target.value)}
+                  placeholder="npm start"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="env-file">Env file</Label>
+                <Input
+                  id="env-file"
+                  value={form.envFile}
+                  onChange={(e) => set("envFile", e.target.value)}
+                  placeholder=".env"
                 />
               </div>
             </div>

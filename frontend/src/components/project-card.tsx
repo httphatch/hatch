@@ -13,7 +13,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ServiceRow } from "@/components/service-row";
-import type { Project, ServiceHealth } from "@/types";
+import type { ProcessStatus, Project, ServiceHealth } from "@/types";
 import { Copy, ExternalLink, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +21,7 @@ interface ProjectCardProps {
   name: string;
   project: Project;
   healthLookup: (project: string, service: string) => ServiceHealth | undefined;
+  processLookup: (project: string, service: string) => ProcessStatus | undefined;
   onToggle: (name: string) => void;
   onEdit: (name: string) => void;
   onDelete: (name: string) => void;
@@ -30,6 +31,7 @@ export function ProjectCard({
   name,
   project,
   healthLookup,
+  processLookup,
   onToggle,
   onEdit,
   onDelete,
@@ -41,7 +43,7 @@ export function ProjectCard({
   }
 
   function openInBrowser() {
-    window.open(url, "_blank");
+    window.open(url, "_blank", "noopener,noreferrer");
   }
 
   return (
@@ -112,6 +114,8 @@ export function ProjectCard({
               name={svcName}
               service={svc}
               health={healthLookup(name, svcName)}
+              domain={project.domain}
+              process={processLookup(name, svcName)}
             />
           ))}
         </div>

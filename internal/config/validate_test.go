@@ -218,6 +218,35 @@ func TestValidate_ServiceCommandOrProxy(t *testing.T) {
 	}
 }
 
+func TestValidate_ServiceRoute(t *testing.T) {
+	tests := []struct {
+		name    string
+		route   string
+		wantErr string
+	}{
+		{"valid route", "/api", ""},
+		{"valid wildcard", "/api/*", ""},
+		{"no leading slash", "api", "must begin with '/'"},
+		{"newline", "/api\n/evil", "contains invalid characters"},
+		{"carriage return", "/api\r\n", "contains invalid characters"},
+		{"null byte", "/api\x00", "contains invalid characters"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := validConfig()
+			p := cfg.Projects["myapp"]
+			p.Services = map[string]Service{"web": {Proxy: "http://localhost:3000", Route: tt.route}}
+			cfg.Projects["myapp"] = p
+			errs := Validate(cfg)
+			if tt.wantErr != "" {
+				requireError(t, errs, tt.wantErr)
+			} else if len(errs) != 0 {
+				t.Errorf("expected no errors, got %v", errs)
+			}
+		})
+	}
+}
+
 func TestValidate_ServiceSubdomain(t *testing.T) {
 	cfg := validConfig()
 	p := cfg.Projects["myapp"]
