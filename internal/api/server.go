@@ -20,6 +20,11 @@ type DaemonControl interface {
 	ReloadConfig() error
 }
 
+// DashboardShower can show the GUI dashboard window.
+type DashboardShower interface {
+	ShowDashboard()
+}
+
 // ProcessStatuser provides a snapshot of managed process statuses.
 type ProcessStatuser interface {
 	Statuses() map[process.ServiceID]process.ProcessStatus
@@ -29,6 +34,7 @@ type ProcessStatuser interface {
 type Server struct {
 	httpSrv   *http.Server
 	daemon    DaemonControl
+	dashboard DashboardShower
 	health    *health.Checker
 	processes ProcessStatuser
 	caPaths   certs.CAPaths
@@ -44,6 +50,7 @@ type ServerConfig struct {
 	Health    *health.Checker
 	Processes ProcessStatuser
 	Daemon    DaemonControl
+	Dashboard DashboardShower
 	CAPaths   certs.CAPaths
 	Version   string
 	StartTime time.Time
@@ -54,6 +61,7 @@ type ServerConfig struct {
 func NewServer(cfg ServerConfig) *Server {
 	s := &Server{
 		daemon:    cfg.Daemon,
+		dashboard: cfg.Dashboard,
 		health:    cfg.Health,
 		processes: cfg.Processes,
 		caPaths:   cfg.CAPaths,
@@ -91,6 +99,12 @@ func (s *Server) Start() error {
 	return nil
 }
 
+// Handler returns the server's HTTP handler for in-process use (e.g. the
+// Wails asset handler can call it directly without a network round-trip).
+func (s *Server) Handler() http.Handler {
+	return s.httpSrv.Handler
+}
+
 // Shutdown gracefully stops the HTTP server.
 func (s *Server) Shutdown(ctx context.Context) error {
 	return s.httpSrv.Shutdown(ctx)
@@ -109,5 +123,6 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/config", s.handleGetConfig)
 	mux.HandleFunc("PUT /api/config", s.handlePutConfig)
 	mux.HandleFunc("GET /api/certs", s.handleCerts)
-	mux.HandleFunc("POST /api/restart", s.handleRestart)
+	mux.HandleFunc("POST /api/restart", requireJSON(s.handleRestart))
+	mux.HandleFunc("POST /api/dashboard/show", requireJSON(s.handleShowDashboard))
 }

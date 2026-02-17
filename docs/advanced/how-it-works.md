@@ -153,6 +153,7 @@ Key endpoints:
 | GET | `/api/config` | Read config (YAML) |
 | PUT | `/api/config` | Write config (YAML) |
 | GET | `/api/certs` | Certificate status |
+| GET | `/api/processes` | Process statuses |
 | POST | `/api/restart` | Reload config |
 
 The API is localhost-only and used by both the CLI commands and the React dashboard.
@@ -160,6 +161,20 @@ The API is localhost-only and used by both the CLI commands and the React dashbo
 ## Health Checking
 
 Hatch periodically checks the health of each service's upstream target. Health status is exposed via the API and displayed in the dashboard and `hatch status` output.
+
+## Process Management
+
+Services with a `command` field are managed as supervised processes.
+
+**Supervisor model:** Hatch starts each command when the daemon starts (or when the config changes) and monitors it. If a process exits, it is restarted with exponential backoff.
+
+**Exponential backoff:** Restarts begin at 1 second and double up to a maximum of 30 seconds. The backoff resets after the process has been running stably for 60 seconds.
+
+**Command execution:** Commands are run via `sh -c` in the project's `path` directory. Each command runs in its own process group so that child processes are cleaned up on stop.
+
+**Graceful shutdown:** On stop, Hatch sends `SIGTERM` to the process group, waits up to 5 seconds, then sends `SIGKILL` if the process is still running.
+
+**Env file loading:** When `env_file` is set, Hatch loads the specified file (relative to the project path) and injects the variables into the command's environment.
 
 ## File Locations
 

@@ -8,12 +8,14 @@ import { EditProjectDialog } from "@/components/edit-project-dialog";
 import { SettingsDialog } from "@/components/settings-dialog";
 import { useProjects } from "@/hooks/use-projects";
 import { useHealth } from "@/hooks/use-health";
+import { useProcesses } from "@/hooks/use-processes";
 import { useStatus } from "@/hooks/use-status";
 
 function App() {
   const { projects, add, update, remove, toggle, loading, error } =
     useProjects();
   const { lookup } = useHealth();
+  const { lookup: processLookup } = useProcesses();
   const { status } = useStatus();
 
   const [addOpen, setAddOpen] = useState(false);
@@ -50,6 +52,7 @@ function App() {
             <ProjectList
               projects={projects}
               healthLookup={lookup}
+              processLookup={processLookup}
               onToggle={toggle}
               onEdit={setEditTarget}
               onDelete={handleDelete}

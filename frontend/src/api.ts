@@ -1,6 +1,6 @@
-import type { CertStatus, DaemonStatus, Project, ServiceHealth } from "./types";
+import type { CertStatus, DaemonStatus, ProcessStatus, Project, ServiceHealth } from "./types";
 
-const BASE = "http://127.0.0.1:42824";
+const BASE = "";
 
 async function request<T>(
   path: string,
@@ -86,6 +86,10 @@ export async function updateConfig(yaml: string): Promise<void> {
     const text = await res.text().catch(() => res.statusText);
     throw new Error(`${res.status}: ${text}`);
   }
+}
+
+export function getProcesses(): Promise<ProcessStatus[]> {
+  return request("/api/processes");
 }
 
 export function getCerts(): Promise<CertStatus> {

@@ -32,6 +32,12 @@ projects:
         proxy: http://localhost:9000
         subdomain: ws
         websocket: true
+      worker:
+        proxy: http://localhost:3000
+        command: npm run worker
+        env_file: .env.worker
+      tasks:
+        command: npm run tasks
 ```
 
 ## Settings
@@ -117,7 +123,7 @@ A map of named services. Each project must have at least one service.
 ### `services.<name>.proxy`
 
 - **Type:** `string` (URL)
-- **Required:** yes
+- **Required:** yes, unless `command` is set
 
 The upstream URL to proxy to. Must be a valid `http://` or `https://` URL.
 
@@ -150,6 +156,28 @@ subdomain: api
 
 Must be a valid DNS label: alphanumeric, hyphens allowed (not at start/end), max 63 characters.
 
+### `services.<name>.command`
+
+- **Type:** `string`
+- **Optional**
+
+A shell command to run for this service. Hatch supervises the process with exponential backoff (1s→30s, resets after 60s stable). The command is executed via `sh -c` in the project's `path` directory.
+
+```yaml
+command: npm run dev
+```
+
+### `services.<name>.env_file`
+
+- **Type:** `string`
+- **Optional**
+
+Path to an environment file to load before running the command. Relative paths are resolved from the project's `path` directory.
+
+```yaml
+env_file: .env
+```
+
 ### `services.<name>.websocket`
 
 - **Type:** `boolean`
@@ -162,5 +190,7 @@ Enables WebSocket proxying for this service. Adds the necessary `Connection` and
 - `http_port` and `https_port` must be different
 - Each project must have a unique `domain`
 - Each project must have at least one service
+- Each service must have at least one of `proxy` or `command`
 - Service `proxy` must be a valid URL
 - Service `subdomain` must be a valid DNS label
+- `route` and `subdomain` require `proxy`

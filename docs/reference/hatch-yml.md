@@ -8,7 +8,9 @@ The `.hatch.yml` file is a per-project config file that lives in your project's 
 domain: myapp.test
 services:
   <service-name>:
-    proxy: <upstream-url>        # required
+    proxy: <upstream-url>        # required unless command is set
+    command: <shell-command>      # optional
+    env_file: <path>             # optional
     route: <path-prefix>         # optional
     subdomain: <subdomain>       # optional
     websocket: <bool>            # optional, default: false
@@ -115,3 +117,20 @@ services:
 Produces:
 - `https://myapp.test` → `http://localhost:3000`
 - `https://ws.myapp.test` → `http://localhost:9000` (with WebSocket support)
+
+### Process Management
+
+```yaml
+domain: myapp.test
+services:
+  web:
+    proxy: http://localhost:3000
+    command: npm run dev
+  worker:
+    command: npm run worker
+    env_file: .env
+```
+
+Produces:
+- `https://myapp.test` → `http://localhost:3000` (process managed by Hatch)
+- `worker` runs as a supervised process with no proxy route

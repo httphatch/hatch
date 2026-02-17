@@ -122,6 +122,16 @@ func validateService(prefix, name string, s Service) []error {
 		}
 	}
 
+	// Route format.
+	if s.Route != "" {
+		if !strings.HasPrefix(s.Route, "/") {
+			errs = append(errs, fmt.Errorf("%s.route must begin with '/', got %q", svcPrefix, s.Route))
+		}
+		if strings.ContainsAny(s.Route, "\r\n\x00") {
+			errs = append(errs, fmt.Errorf("%s.route contains invalid characters", svcPrefix))
+		}
+	}
+
 	// Route and subdomain require proxy.
 	if s.Route != "" && s.Proxy == "" {
 		errs = append(errs, fmt.Errorf("%s.route requires proxy to be set", svcPrefix))

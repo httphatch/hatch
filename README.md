@@ -49,6 +49,7 @@ domain: myapp.test
 services:
   frontend:
     proxy: http://localhost:3000
+    command: npm run dev
   api:
     proxy: http://localhost:8080
     subdomain: api

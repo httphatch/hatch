@@ -21,7 +21,16 @@ The main view shows all your projects in a grid layout. Each project card displa
 - Service list with proxy targets
 - Health indicators (green = healthy, red = unreachable)
 
-You can **add**, **edit**, and **delete** projects directly from the dashboard using the dialog forms.
+You can **add**, **edit**, and **delete** projects directly from the dashboard using the dialog forms. The add and edit dialogs support `command` and `env_file` fields for process management — proxy is optional when a command is set.
+
+### Process Status
+
+Services configured with a `command` show a process status indicator:
+
+- **Running** (teal) — the process is alive
+- **Stopped** (coral) — the process has exited
+
+A restart count badge appears when the process has been restarted automatically.
 
 ### Route Map
 

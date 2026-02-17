@@ -6,11 +6,12 @@ import (
 	"bytes"
 	"fmt"
 	"net/url"
-	"os"
 	"os/exec"
 	"sort"
+	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/pkg/browser"
 	"github.com/rs/zerolog/log"
@@ -18,9 +19,14 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/events"
 
 	"github.com/httphatch/hatch/internal/config"
-	"github.com/httphatch/hatch/internal/daemon"
 	"github.com/httphatch/hatch/internal/health"
 )
+
+// DaemonControl allows the tray to trigger daemon operations directly.
+type DaemonControl interface {
+	ReloadConfig() error
+	HealthChecker() *health.Checker
+}
 
 // ManagerConfig holds the dependencies for a Manager.
 type ManagerConfig struct {
@@ -28,6 +34,7 @@ type ManagerConfig struct {
 	App     *application.App
 	Window  *application.WebviewWindow
 	Icon    []byte
+	Daemon  DaemonControl
 }
 
 // Manager orchestrates the system tray icon, menu, and health polling.
@@ -37,9 +44,11 @@ type Manager struct {
 	window  *application.WebviewWindow
 	icon    []byte
 	tray    *application.SystemTray
-	checker *health.Checker
+	menu    *application.Menu
+	daemon  DaemonControl
 
 	mu   sync.Mutex
+	wg   sync.WaitGroup
 	done chan struct{}
 }
 
@@ -50,31 +59,28 @@ func NewManager(cfg ManagerConfig) *Manager {
 		app:     cfg.App,
 		window:  cfg.Window,
 		icon:    cfg.Icon,
+		daemon:  cfg.Daemon,
 	}
 }
 
-// Start initialises the tray icon and begins periodic health polling.
-func (m *Manager) Start() {
+// Init creates the tray icon and sets an initial menu. It must be called
+// before wailsApp.Run() so that the tray's Run() is deferred until the
+// event loop starts, at which point the menu's native NSMenu is properly
+// initialised.
+func (m *Manager) Init() {
+	m.menu = m.app.NewMenu()
 	m.tray = m.app.SystemTray.New()
 	m.tray.SetTemplateIcon(iconPNG)
 
-	cfg, err := config.Load()
-	if err != nil {
-		log.Warn().Err(err).Msg("tray: failed to load config")
-		cfg = config.DefaultConfig()
-	}
+	// Build the initial menu content so the native NSMenu is populated
+	// when the deferred Run() fires during app startup.
+	m.populateMenu()
+	m.tray.SetMenu(m.menu)
+}
 
-	m.checker = health.NewChecker(health.CheckerConfig{
-		Interval: 5 * time.Second,
-		Timeout:  2 * time.Second,
-		OnChange: func(_ health.ServiceKey, _, _ health.Status) {
-			m.refresh()
-		},
-	})
-	if err := m.checker.Start(cfg); err != nil {
-		log.Warn().Err(err).Msg("tray: failed to start health checker")
-	}
-
+// Start begins periodic menu refresh. It must be called after the Wails
+// event loop is running (e.g. in the ApplicationStarted handler).
+func (m *Manager) Start() {
 	// Hide window on close instead of destroying it — removes the
 	// Dock icon but keeps the tray icon running.
 	if m.window != nil {
@@ -85,17 +91,17 @@ func (m *Manager) Start() {
 	}
 
 	m.done = make(chan struct{})
-
-	// Initial refresh.
-	m.refresh()
+	done := m.done // capture for goroutine
 
 	// Periodic refresh goroutine.
+	m.wg.Add(1)
 	go func() {
+		defer m.wg.Done()
 		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
 		for {
 			select {
-			case <-m.done:
+			case <-done:
 				return
 			case <-ticker.C:
 				m.refresh()
@@ -104,55 +110,61 @@ func (m *Manager) Start() {
 	}()
 }
 
-// Stop tears down the health checker and removes the tray icon.
+// Stop tears down the tray icon. It is safe to call multiple times.
 func (m *Manager) Stop() {
-	if m.done != nil {
-		close(m.done)
-	}
-	if m.checker != nil {
-		_ = m.checker.Stop()
+	m.mu.Lock()
+	done := m.done
+	m.done = nil
+	m.mu.Unlock()
+
+	if done != nil {
+		close(done)
+		m.wg.Wait()
 	}
 	if m.tray != nil {
 		m.tray.Destroy()
 	}
 }
 
+// ShowDashboard shows the dashboard window (implements api.DashboardShower).
+func (m *Manager) ShowDashboard() {
+	m.showWindow()
+}
+
 // refresh reloads config, queries health, and rebuilds the menu.
 func (m *Manager) refresh() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.populateMenu()
+	m.menu.Update()
+}
 
+// populateMenu clears the existing menu and rebuilds its items from
+// the current config and health state.
+func (m *Manager) populateMenu() {
 	cfg, err := config.Load()
 	if err != nil {
 		log.Debug().Err(err).Msg("tray: config load failed during refresh")
 		cfg = config.DefaultConfig()
 	}
 
-	// Update the checker's targets in case config changed.
-	if m.checker != nil {
-		m.checker.UpdateConfig(cfg)
-	}
-
-	running, pid, _ := daemon.IsRunning()
 	statuses := make(map[health.ServiceKey]health.ServiceStatus)
-	if m.checker != nil {
-		statuses = m.checker.ServiceStatuses()
+	if m.daemon != nil {
+		if checker := m.daemon.HealthChecker(); checker != nil {
+			statuses = checker.ServiceStatuses()
+		}
 	}
 
-	// Build menu.
-	menu := m.app.NewMenu()
+	// Clear existing items and rebuild.
+	m.menu.Clear()
 
 	// Version header.
-	menu.Add(fmt.Sprintf("Hatch %s", m.version)).SetEnabled(false)
+	m.menu.Add(fmt.Sprintf("Hatch %s", m.version)).SetEnabled(false)
 
-	// Daemon status.
-	if running {
-		menu.Add(fmt.Sprintf("Daemon: Running (pid %d)", pid)).SetEnabled(false)
-	} else {
-		menu.Add("Daemon: Stopped").SetEnabled(false)
-	}
+	// Daemon status — always running since we are the daemon.
+	m.menu.Add("Daemon: Running").SetEnabled(false)
 
-	menu.AddSeparator()
+	m.menu.AddSeparator()
 
 	// Projects — sorted by name.
 	projectNames := make([]string, 0, len(cfg.Projects))
@@ -163,48 +175,29 @@ func (m *Manager) refresh() {
 
 	for _, name := range projectNames {
 		proj := cfg.Projects[name]
-		m.buildProjectItem(menu, name, proj, statuses)
+		m.buildProjectItem(m.menu, name, proj, statuses)
 	}
 
 	if len(projectNames) > 0 {
-		menu.AddSeparator()
+		m.menu.AddSeparator()
 	}
 
 	// Open Dashboard.
-	menu.Add("Open Dashboard").OnClick(func(_ *application.Context) {
+	m.menu.Add("Open Dashboard").OnClick(func(_ *application.Context) {
 		m.showWindow()
 	})
 
 	// Add Project.
-	menu.Add("Add Project...").OnClick(func(_ *application.Context) {
+	m.menu.Add("Add Project...").OnClick(func(_ *application.Context) {
 		m.showWindow()
 	})
 
-	menu.AddSeparator()
+	m.menu.AddSeparator()
 
-	// Daemon control.
-	if running {
-		menu.Add("Stop Daemon").OnClick(func(_ *application.Context) {
-			go m.stopDaemon()
-		})
-	} else {
-		menu.Add("Start Daemon").OnClick(func(_ *application.Context) {
-			go m.startDaemon()
-		})
-	}
-
-	menu.Add("Restart Daemon").OnClick(func(_ *application.Context) {
-		go m.restartDaemon()
-	})
-
-	menu.AddSeparator()
-
-	// Quit.
-	menu.Add("Quit").OnClick(func(_ *application.Context) {
+	// Quit Hatch (triggers full daemon + tray shutdown).
+	m.menu.Add("Quit Hatch").OnClick(func(_ *application.Context) {
 		m.app.Quit()
 	})
-
-	m.tray.SetMenu(menu)
 }
 
 // buildProjectItem adds a submenu item for a single project.
@@ -315,43 +308,24 @@ func (m *Manager) toggleProject(name string, enabled bool) {
 		log.Warn().Err(err).Msg("tray: config save failed")
 		return
 	}
-	m.restartDaemon()
-}
-
-func (m *Manager) stopDaemon() {
-	m.runHatch("down")
-	time.Sleep(500 * time.Millisecond)
-	m.refresh()
-}
-
-func (m *Manager) startDaemon() {
-	m.runHatch("up")
-	time.Sleep(500 * time.Millisecond)
-	m.refresh()
-}
-
-func (m *Manager) restartDaemon() {
-	m.runHatch("restart")
-	time.Sleep(500 * time.Millisecond)
-	m.refresh()
-}
-
-func (m *Manager) runHatch(args ...string) {
-	exe, err := os.Executable()
-	if err != nil {
-		log.Warn().Err(err).Msg("tray: failed to find executable path")
-		return
+	if m.daemon != nil {
+		if err := m.daemon.ReloadConfig(); err != nil {
+			log.Warn().Err(err).Msg("tray: reload config failed")
+		}
 	}
-	cmd := exec.Command(exe, args...)
-	if out, err := cmd.CombinedOutput(); err != nil {
-		log.Warn().Err(err).Str("output", string(out)).Msgf("tray: hatch %s failed", args[0])
-	}
+	m.refresh()
 }
 
 // copyToClipboard writes text to the macOS pasteboard via pbcopy.
 func copyToClipboard(text string) {
+	safe := strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) {
+			return -1
+		}
+		return r
+	}, text)
 	cmd := exec.Command("pbcopy")
-	cmd.Stdin = bytes.NewReader([]byte(text))
+	cmd.Stdin = bytes.NewReader([]byte(safe))
 	if err := cmd.Run(); err != nil {
 		log.Warn().Err(err).Msg("tray: clipboard copy failed")
 	}
