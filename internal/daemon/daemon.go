@@ -5,6 +5,7 @@ package daemon
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"sync"
 	"time"
@@ -214,6 +215,17 @@ func (d *Daemon) HealthChecker() *health.Checker {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	return d.health
+}
+
+// APIHandler returns the API server's HTTP handler for in-process use.
+// Returns nil before the API server has started.
+func (d *Daemon) APIHandler() http.Handler {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.api != nil {
+		return d.api.Handler()
+	}
+	return nil
 }
 
 // Shutdown stops all subsystems in reverse start order and removes the PID file.

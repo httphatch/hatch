@@ -1,6 +1,6 @@
 import type { CertStatus, DaemonStatus, ProcessStatus, Project, ServiceHealth } from "./types";
 
-const BASE = "http://127.0.0.1:42824";
+const BASE = "";
 
 async function request<T>(
   path: string,

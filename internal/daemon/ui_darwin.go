@@ -7,6 +7,9 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
+	"net/http"
+	"strings"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -29,6 +32,28 @@ func RunWithUI(parentCtx context.Context, d *Daemon, assets embed.FS, icon []byt
 		return fmt.Errorf("loading frontend assets: %w", err)
 	}
 
+	// Route /api/ requests directly to the daemon's API handler so the
+	// webview doesn't need cross-scheme HTTP fetches (wails:// → http://).
+	// The handler is resolved per-request because subsystems start async.
+	staticHandler := application.BundledAssetFileServer(frontendAssets)
+	assetHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/api/") {
+			// Wait briefly for subsystems to finish starting.
+			for range 50 {
+				if h := d.APIHandler(); h != nil {
+					h.ServeHTTP(w, r)
+					return
+				}
+				time.Sleep(100 * time.Millisecond)
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(`{"error":"daemon starting up"}`))
+			return
+		}
+		staticHandler.ServeHTTP(w, r)
+	})
+
 	wailsApp := application.New(application.Options{
 		Name: "Hatch",
 		Icon: icon,
@@ -39,7 +64,7 @@ func RunWithUI(parentCtx context.Context, d *Daemon, assets embed.FS, icon []byt
 			application.NewService(a),
 		},
 		Assets: application.AssetOptions{
-			Handler: application.BundledAssetFileServer(frontendAssets),
+			Handler: assetHandler,
 		},
 	})
 

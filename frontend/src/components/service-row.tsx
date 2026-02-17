@@ -9,6 +9,7 @@ import { HealthDot } from "@/components/health-dot";
 import { serviceUrl } from "@/lib/service-url";
 import type { ProcessStatus, Service, ServiceHealth } from "@/types";
 import { ExternalLink } from "lucide-react";
+import { Browser } from "@wailsio/runtime";
 
 interface ServiceRowProps {
   name: string;
@@ -67,7 +68,7 @@ export function ServiceRow({ name, service, health, domain, process }: ServiceRo
             <Button
               variant="ghost"
               size="icon-xs"
-              onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
+              onClick={() => Browser.OpenURL(url)}
             >
               <ExternalLink />
             </Button>

@@ -4,6 +4,7 @@ import { HealthDot } from "@/components/health-dot";
 import { serviceUrl } from "@/lib/service-url";
 import type { Project, ServiceHealth } from "@/types";
 import { ChevronDown, ChevronRight, Map } from "lucide-react";
+import { Browser } from "@wailsio/runtime";
 
 interface RouteMapProps {
   projects: Record<string, Project>;
@@ -78,14 +79,13 @@ export function RouteMap({ projects, healthLookup }: RouteMapProps) {
                   className="border-b border-border last:border-0"
                 >
                   <td className="px-3 py-2 font-medium">
-                    <a
-                      href={r.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      type="button"
+                      onClick={() => Browser.OpenURL(r.url)}
                       className="hover:text-muted-teal hover:underline"
                     >
                       {r.domain}
-                    </a>
+                    </button>
                   </td>
                   <td className="px-3 py-2 text-text-muted">{r.route}</td>
                   <td className="px-3 py-2 text-text-muted">{r.target}</td>

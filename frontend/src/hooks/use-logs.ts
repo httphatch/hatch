@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { LogEntry } from "@/types";
 
 const MAX_ENTRIES = 1000;
-const SSE_URL = "http://127.0.0.1:42824/api/logs";
+const SSE_URL = "/api/logs";
 const RECONNECT_DELAY = 3000;
 
 function parseEntry(line: string, idRef: React.RefObject<number>): LogEntry | null {

@@ -99,6 +99,12 @@ func (s *Server) Start() error {
 	return nil
 }
 
+// Handler returns the server's HTTP handler for in-process use (e.g. the
+// Wails asset handler can call it directly without a network round-trip).
+func (s *Server) Handler() http.Handler {
+	return s.httpSrv.Handler
+}
+
 // Shutdown gracefully stops the HTTP server.
 func (s *Server) Shutdown(ctx context.Context) error {
 	return s.httpSrv.Shutdown(ctx)

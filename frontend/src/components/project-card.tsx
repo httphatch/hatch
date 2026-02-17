@@ -16,6 +16,7 @@ import { ServiceRow } from "@/components/service-row";
 import type { ProcessStatus, Project, ServiceHealth } from "@/types";
 import { Copy, ExternalLink, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Browser } from "@wailsio/runtime";
 
 interface ProjectCardProps {
   name: string;
@@ -43,7 +44,7 @@ export function ProjectCard({
   }
 
   function openInBrowser() {
-    window.open(url, "_blank", "noopener,noreferrer");
+    Browser.OpenURL(url);
   }
 
   return (
