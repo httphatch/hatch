@@ -330,7 +330,7 @@ func (s *Server) handlePutConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var cfg config.Config
+	cfg := config.DefaultConfig()
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid YAML: %s", err))
 		return

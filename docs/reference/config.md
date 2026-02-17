@@ -13,6 +13,7 @@ settings:
   http_port: 80
   https_port: 443
   auto_start: true
+  tray_icon: true
   log_level: info
 projects:
   myapp:
@@ -80,6 +81,13 @@ Port for HTTPS traffic. Must be different from `http_port`.
 - **Default:** `true`
 
 When enabled, the daemon starts automatically on login via launchd and restarts on crash.
+
+### `settings.tray_icon`
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Show the Hatch tray icon and status menu (macOS only). Set to `false` to run the daemon without a tray icon or window. Changes to this setting take effect after the daemon restarts.
 
 ### `settings.log_level`
 
