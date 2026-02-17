@@ -22,12 +22,13 @@ var runCmd = &cobra.Command{
 		ctx, stop := signal.NotifyContext(cmd.Context(), syscall.SIGTERM, syscall.SIGINT)
 		defer stop()
 
-		// Best-effort config load to read log level; default to "info".
-		logLevel := "info"
+		// Best-effort config load to read settings; use defaults on failure.
+		defaults := config.DefaultConfig()
+		logLevel := defaults.Settings.LogLevel
+		trayIcon := defaults.Settings.TrayIcon
 		if cfg, err := config.Load(); err == nil {
-			if cfg.Settings.LogLevel != "" {
-				logLevel = cfg.Settings.LogLevel
-			}
+			logLevel = cfg.Settings.LogLevel
+			trayIcon = cfg.Settings.TrayIcon
 		}
 
 		logHub := api.NewLogHub()
@@ -44,7 +45,7 @@ var runCmd = &cobra.Command{
 		defer func() { _ = w.Close() }()
 
 		d := daemon.New(version, logHub)
-		if err := runDaemon(ctx, d); err != nil {
+		if err := runDaemon(ctx, d, trayIcon); err != nil {
 			log.Error().Err(err).Msg("daemon exited with error")
 			os.Exit(1)
 		}

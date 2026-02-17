@@ -9,6 +9,7 @@ func DefaultConfig() Config {
 			HTTPPort:  80,
 			HTTPSPort: 443,
 			AutoStart: true,
+			TrayIcon:  true,
 			LogLevel:  "info",
 		},
 		Projects: make(map[string]Project),

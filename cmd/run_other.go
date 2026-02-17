@@ -8,6 +8,6 @@ import (
 	"github.com/httphatch/hatch/internal/daemon"
 )
 
-func runDaemon(ctx context.Context, d *daemon.Daemon) error {
+func runDaemon(ctx context.Context, d *daemon.Daemon, _ bool) error {
 	return d.Run(ctx)
 }

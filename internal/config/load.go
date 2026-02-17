@@ -16,7 +16,7 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("reading config: %w", err)
 	}
 
-	var cfg Config
+	cfg := DefaultConfig()
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		msgs := FormatYAMLError(err)
 		errs := make([]error, len(msgs))
@@ -117,13 +117,9 @@ func LoadRaw() (Config, error) {
 		return Config{}, fmt.Errorf("reading config: %w", err)
 	}
 
-	var cfg Config
+	cfg := DefaultConfig()
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return Config{}, fmt.Errorf("parsing config: %w", err)
-	}
-
-	if cfg.Projects == nil {
-		cfg.Projects = make(map[string]Project)
 	}
 
 	return cfg, nil

@@ -13,6 +13,7 @@ type Settings struct {
 	HTTPPort  int    `yaml:"http_port" json:"http_port"`
 	HTTPSPort int    `yaml:"https_port" json:"https_port"`
 	AutoStart bool   `yaml:"auto_start" json:"auto_start"`
+	TrayIcon  bool   `yaml:"tray_icon" json:"tray_icon"`
 	LogLevel  string `yaml:"log_level" json:"log_level"`
 }
 

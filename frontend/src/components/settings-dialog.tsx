@@ -22,7 +22,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-muted-teal">Settings</DialogTitle>
         </DialogHeader>
@@ -50,7 +50,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             Certificates
           </Button>
         </div>
-        <div className="min-h-[300px]">
+        <div className="min-h-[300px] overflow-y-auto flex-1">
           {tab === "config" && <ConfigEditor />}
           {tab === "certificates" && <CertStatus />}
         </div>
