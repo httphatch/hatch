@@ -4,7 +4,7 @@ layout: home
 hero:
   name: Hatch
   text: Local HTTPS development for macOS
-  tagline: Automatic DNS, trusted certificates, and reverse proxying for your .test domains.
+  tagline: Stop juggling ports across multiple projects. Automatic DNS, trusted certificates, and reverse proxying for your .test domains.
   actions:
     - theme: brand
       text: Get Started

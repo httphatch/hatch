@@ -7,7 +7,7 @@ LDFLAGS := -s -w \
 	-X github.com/httphatch/hatch/cmd.commit=$(COMMIT) \
 	-X github.com/httphatch/hatch/cmd.date=$(DATE)
 
-.PHONY: build build-test run test lint clean app frontend icon
+.PHONY: build build-test run test lint clean app frontend icon docs
 
 build:
 	go build -ldflags '$(LDFLAGS)' -o hatch .
@@ -32,6 +32,9 @@ app: frontend
 
 icon:
 	rsvg-convert -f png -w 44 -h 44 split-solid-full.svg -o internal/tray/icon.png
+
+docs:
+	cd docs && npx vitepress dev
 
 clean:
 	rm -f hatch
