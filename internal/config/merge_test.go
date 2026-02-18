@@ -1,6 +1,10 @@
 package config
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestMergeProjectConfig_Add(t *testing.T) {
 	cfg := DefaultConfig()
@@ -17,8 +21,8 @@ func TestMergeProjectConfig_Add(t *testing.T) {
 	if !ok {
 		t.Fatal("project not found after merge")
 	}
-	if p.Domain != "myapp.test" {
-		t.Errorf("domain: got %q, want %q", p.Domain, "myapp.test")
+	if p.Domain != "" {
+		t.Errorf("domain should not be stored, got %q", p.Domain)
 	}
 	if p.Path != "/tmp/myapp" {
 		t.Errorf("path: got %q, want %q", p.Path, "/tmp/myapp")
@@ -31,12 +35,11 @@ func TestMergeProjectConfig_Add(t *testing.T) {
 func TestMergeProjectConfig_Update(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.Projects["myapp"] = Project{
-		Domain: "myapp.test", Path: "/tmp/myapp", Enabled: true,
-		Services: map[string]Service{"web": {Proxy: "http://localhost:3000"}},
+		Path: "/tmp/myapp", Enabled: true,
 	}
 
 	pc := ProjectConfig{
-		Domain:   "myapp.test",
+		Domain:   "newdomain.test",
 		Services: map[string]Service{"web": {Proxy: "http://localhost:4000"}},
 	}
 
@@ -44,16 +47,26 @@ func TestMergeProjectConfig_Update(t *testing.T) {
 		t.Fatalf("MergeProjectConfig update: %v", err)
 	}
 
-	if cfg.Projects["myapp"].Services["web"].Proxy != "http://localhost:4000" {
-		t.Error("proxy should have been updated")
+	p := cfg.Projects["myapp"]
+	if p.Domain != "" {
+		t.Errorf("domain should not be stored, got %q", p.Domain)
+	}
+	if len(p.Services) != 0 {
+		t.Errorf("expected no services in merged config, got %d", len(p.Services))
 	}
 }
 
 func TestMergeProjectConfig_DomainConflict(t *testing.T) {
+	// Create a temp directory with a hatch.yml for the existing project
+	existingDir := t.TempDir()
+	hatchYml := "domain: app.test\nservices:\n  web:\n    proxy: http://localhost:3000\n"
+	if err := os.WriteFile(filepath.Join(existingDir, "hatch.yml"), []byte(hatchYml), 0o644); err != nil {
+		t.Fatalf("writing hatch.yml: %v", err)
+	}
+
 	cfg := DefaultConfig()
 	cfg.Projects["existing"] = Project{
-		Domain: "app.test", Path: "/tmp/existing", Enabled: true,
-		Services: map[string]Service{"web": {Proxy: "http://localhost:3000"}},
+		Path: existingDir, Enabled: true,
 	}
 
 	pc := ProjectConfig{
@@ -70,8 +83,7 @@ func TestMergeProjectConfig_DomainConflict(t *testing.T) {
 func TestMergeProjectConfig_SameProjectSameDomain(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.Projects["myapp"] = Project{
-		Domain: "myapp.test", Path: "/tmp/myapp", Enabled: true,
-		Services: map[string]Service{"web": {Proxy: "http://localhost:3000"}},
+		Path: "/tmp/myapp", Enabled: true,
 	}
 
 	pc := ProjectConfig{
@@ -87,8 +99,7 @@ func TestMergeProjectConfig_SameProjectSameDomain(t *testing.T) {
 func TestUnmergeProject(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.Projects["myapp"] = Project{
-		Domain: "myapp.test", Path: "/tmp/myapp", Enabled: true,
-		Services: map[string]Service{"web": {Proxy: "http://localhost:3000"}},
+		Path: "/tmp/myapp", Enabled: true,
 	}
 
 	if err := UnmergeProject(&cfg, "myapp"); err != nil {

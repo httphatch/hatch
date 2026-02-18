@@ -19,7 +19,8 @@ func TestWatcher_CallbackOnChange(t *testing.T) {
 	var mu sync.Mutex
 	var received *Config
 
-	w, err := NewWatcher(func(cfg Config) {
+	cfg := DefaultConfig()
+	w, err := NewWatcher(cfg, func(cfg Config) {
 		mu.Lock()
 		defer mu.Unlock()
 		received = &cfg
@@ -30,9 +31,11 @@ func TestWatcher_CallbackOnChange(t *testing.T) {
 	defer func() { _ = w.Close() }()
 
 	// Modify the config
-	cfg := DefaultConfig()
 	cfg.Settings.LogLevel = "debug"
-	data, _ := yaml.Marshal(cfg)
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		t.Fatalf("yaml.Marshal: %v", err)
+	}
 	if err := os.WriteFile(filepath.Join(home, configFileName), data, 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +66,8 @@ func TestWatcher_InvalidConfigSkipped(t *testing.T) {
 	callCount := 0
 	var mu sync.Mutex
 
-	w, err := NewWatcher(func(cfg Config) {
+	cfg := DefaultConfig()
+	w, err := NewWatcher(cfg, func(cfg Config) {
 		mu.Lock()
 		defer mu.Unlock()
 		callCount++
@@ -94,7 +98,8 @@ func TestWatcher_CleanShutdown(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	w, err := NewWatcher(func(cfg Config) {})
+	cfg := DefaultConfig()
+	w, err := NewWatcher(cfg, func(cfg Config) {})
 	if err != nil {
 		t.Fatalf("NewWatcher: %v", err)
 	}
@@ -112,4 +117,71 @@ func TestWatcher_CleanShutdown(t *testing.T) {
 	case <-time.After(3 * time.Second):
 		t.Fatal("Close did not return within timeout")
 	}
+}
+
+func TestWatcher_ProjectDirChange(t *testing.T) {
+	home := setupTestHome(t)
+	if err := Init(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a project directory with hatch.yml
+	projDir := t.TempDir()
+	hatchYml := filepath.Join(projDir, "hatch.yml")
+	if err := os.WriteFile(hatchYml, []byte("domain: myapp.test\nservices:\n  web:\n    proxy: http://localhost:3000\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Save config with a project pointing to projDir
+	cfg := DefaultConfig()
+	cfg.Projects["myapp"] = Project{
+		Domain:  "myapp.test",
+		Path:    projDir,
+		Enabled: true,
+	}
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		t.Fatalf("yaml.Marshal: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(home, configFileName), data, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	var mu sync.Mutex
+	var received *Config
+
+	w, err := NewWatcher(cfg, func(cfg Config) {
+		mu.Lock()
+		defer mu.Unlock()
+		received = &cfg
+	})
+	if err != nil {
+		t.Fatalf("NewWatcher: %v", err)
+	}
+	defer func() { _ = w.Close() }()
+
+	// Modify hatch.yml in project dir
+	if err := os.WriteFile(hatchYml, []byte("domain: myapp.test\nservices:\n  web:\n    proxy: http://localhost:4000\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		mu.Lock()
+		got := received
+		mu.Unlock()
+		if got != nil {
+			proj, ok := got.Projects["myapp"]
+			if !ok {
+				t.Fatal("project myapp not found after reload")
+			}
+			if svc, ok := proj.Services["web"]; ok {
+				if svc.Proxy == "http://localhost:4000" {
+					return
+				}
+			}
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	t.Fatal("callback was not invoked with updated project config within timeout")
 }

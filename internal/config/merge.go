@@ -1,25 +1,40 @@
 package config
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+)
 
 // MergeProjectConfig adds or updates a project in the config from a ProjectConfig.
 // The name is the project key (e.g. "myapp"), and projectPath is the filesystem path.
+// Domain is not stored in config.yml; it comes from hatch.yml at load time.
 func MergeProjectConfig(cfg *Config, name string, projectPath string, pc ProjectConfig) error {
-	// Check for domain conflicts with other projects
+	// Check for domain conflicts by loading each existing project's hatch.yml
 	for existingName, existingProj := range cfg.Projects {
 		if existingName == name {
 			continue // same project, allow update
 		}
-		if existingProj.Domain == pc.Domain {
+		if existingProj.Path == "" || !filepath.IsAbs(existingProj.Path) {
+			continue
+		}
+		hatchFile := filepath.Join(existingProj.Path, "hatch.yml")
+		existingPC, err := LoadProjectConfig(hatchFile)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				continue
+			}
+			return fmt.Errorf("checking domain conflicts for project %q: %w", existingName, err)
+		}
+		if existingPC.Domain == pc.Domain {
 			return fmt.Errorf("domain %q is already used by project %q", pc.Domain, existingName)
 		}
 	}
 
 	cfg.Projects[name] = Project{
-		Domain:   pc.Domain,
-		Path:     projectPath,
-		Enabled:  true,
-		Services: pc.Services,
+		Path:    projectPath,
+		Enabled: true,
 	}
 
 	return nil

@@ -75,7 +75,7 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleListProjects(w http.ResponseWriter, r *http.Request) {
-	cfg, err := config.Load()
+	cfg, err := config.LoadWithProjectConfigs()
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to load config")
 		return
@@ -254,6 +254,48 @@ func (s *Server) handleProcesses(w http.ResponseWriter, r *http.Request) {
 		return result[i].Service < result[j].Service
 	})
 	writeJSON(w, http.StatusOK, result)
+}
+
+func (s *Server) handleProcessOutput(w http.ResponseWriter, r *http.Request) {
+	if s.outputHub == nil {
+		writeError(w, http.StatusServiceUnavailable, "process output not available")
+		return
+	}
+
+	project := r.URL.Query().Get("project")
+	service := r.URL.Query().Get("service")
+	if project == "" || service == "" {
+		writeError(w, http.StatusBadRequest, "project and service query parameters are required")
+		return
+	}
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		writeError(w, http.StatusInternalServerError, "streaming not supported")
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	flusher.Flush()
+
+	ch, cleanup := s.outputHub.Subscribe(project, service)
+	defer cleanup()
+
+	for {
+		select {
+		case <-r.Context().Done():
+			return
+		case line := <-ch:
+			data, err := json.Marshal(line)
+			if err != nil {
+				continue
+			}
+			_, _ = fmt.Fprintf(w, "data: %s\n\n", data)
+			flusher.Flush()
+		}
+	}
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {

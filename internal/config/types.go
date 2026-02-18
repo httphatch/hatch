@@ -19,10 +19,10 @@ type Settings struct {
 
 // Project defines a single project's proxy configuration.
 type Project struct {
-	Domain   string             `yaml:"domain" json:"domain"`
+	Domain   string             `yaml:"domain,omitempty" json:"domain"`
 	Path     string             `yaml:"path" json:"path"`
 	Enabled  bool               `yaml:"enabled" json:"enabled"`
-	Services map[string]Service `yaml:"services" json:"services"`
+	Services map[string]Service `yaml:"services,omitempty" json:"services"`
 }
 
 // Service defines how a single service is proxied and optionally managed.
@@ -35,7 +35,7 @@ type Service struct {
 	EnvFile   string `yaml:"env_file,omitempty" json:"env_file,omitempty"`
 }
 
-// ProjectConfig is the schema for a per-project .hatch.yml file.
+// ProjectConfig is the schema for a per-project hatch.yml file.
 type ProjectConfig struct {
 	Domain   string             `yaml:"domain"`
 	Services map[string]Service `yaml:"services"`

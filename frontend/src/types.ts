@@ -46,6 +46,14 @@ export interface LogEntry {
   fields: Record<string, unknown>;
 }
 
+export interface OutputLine {
+  project: string;
+  service: string;
+  source: "stdout" | "stderr";
+  line: string;
+  time: string;
+}
+
 export interface CertInfo {
   exists: boolean;
   subject?: string;

@@ -25,7 +25,7 @@ var initCmd = &cobra.Command{
 trusts it in Keychain, and installs the DNS resolver.
 
 With a path argument: scans for docker-compose files, discovers services,
-and generates a .hatch.yml project config.`,
+and generates a hatch.yml project config.`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: runInit,
 }
@@ -168,9 +168,9 @@ func runProjectInit(cmd *cobra.Command, dir string) error {
 		return fmt.Errorf("%s is not a directory", dir)
 	}
 
-	hatchFile := filepath.Join(absDir, ".hatch.yml")
+	hatchFile := filepath.Join(absDir, "hatch.yml")
 	if fileExistsAt(hatchFile) {
-		fmt.Printf("A .hatch.yml already exists in %s. Overwrite? [y/N] ", dir)
+		fmt.Printf("A hatch.yml already exists in %s. Overwrite? [y/N] ", dir)
 		answer, _ := reader.ReadString('\n')
 		answer = strings.TrimSpace(strings.ToLower(answer))
 		if answer != "y" && answer != "yes" {
@@ -240,7 +240,7 @@ func runProjectInit(cmd *cobra.Command, dir string) error {
 	}
 
 	if len(kept) == 0 {
-		fmt.Println("All services skipped. No .hatch.yml written.")
+		fmt.Println("All services skipped. No hatch.yml written.")
 		return nil
 	}
 
@@ -264,10 +264,10 @@ func runProjectInit(cmd *cobra.Command, dir string) error {
 	}
 
 	if err := os.WriteFile(hatchFile, data, 0o644); err != nil {
-		return fmt.Errorf("write .hatch.yml: %w", err)
+		return fmt.Errorf("write hatch.yml: %w", err)
 	}
 
-	fmt.Printf("%s Wrote %s\n", green("✓"), filepath.Join(dir, ".hatch.yml"))
+	fmt.Printf("%s Wrote %s\n", green("✓"), filepath.Join(dir, "hatch.yml"))
 	fmt.Printf("\nYour project will be available at %s\n", cyan("https://"+defaultDomain))
 	fmt.Printf("Run '%s' to register the project with Hatch.\n", color.New(color.Bold).Sprint("hatch link"))
 

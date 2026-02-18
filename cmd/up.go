@@ -39,7 +39,7 @@ func runUp() error {
 	log.Debug().Msg("config initialized")
 
 	// Load config to read settings.
-	cfg, err := config.Load()
+	cfg, err := config.LoadWithProjectConfigs()
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
 	}

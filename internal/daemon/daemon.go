@@ -37,13 +37,15 @@ type Daemon struct {
 	version   string
 	startTime time.Time
 	logHub    *api.LogHub
+	outputHub *api.ProcessOutputHub
 }
 
 // New creates a new Daemon instance with the given version and log hub.
 func New(version string, logHub *api.LogHub) *Daemon {
 	return &Daemon{
-		version: version,
-		logHub:  logHub,
+		version:   version,
+		logHub:    logHub,
+		outputHub: api.NewProcessOutputHub(),
 	}
 }
 
@@ -67,7 +69,7 @@ func (d *Daemon) RunSubsystems(ctx context.Context, dashboard api.DashboardShowe
 	log.Info().Int("pid", os.Getpid()).Msg("pid file written")
 
 	// Load config.
-	cfg, err := config.Load()
+	cfg, err := config.LoadWithProjectConfigs()
 	if err != nil {
 		_ = RemovePID(d.pidFile)
 		return fmt.Errorf("load config: %w", err)
@@ -159,6 +161,7 @@ func (d *Daemon) RunSubsystems(ctx context.Context, dashboard api.DashboardShowe
 				Str("service", service).
 				Str("source", source).
 				Msg(line)
+			d.outputHub.Write(project, service, source, line)
 		},
 	})
 	if err := procMgr.ApplyConfig(cfg); err != nil {
@@ -179,6 +182,7 @@ func (d *Daemon) RunSubsystems(ctx context.Context, dashboard api.DashboardShowe
 		Version:   d.version,
 		StartTime: d.startTime,
 		LogHub:    d.logHub,
+		OutputHub: d.outputHub,
 	})
 	if err := apiSrv.Start(); err != nil {
 		d.shutdownPartial()
@@ -188,7 +192,7 @@ func (d *Daemon) RunSubsystems(ctx context.Context, dashboard api.DashboardShowe
 	log.Info().Str("addr", "127.0.0.1:42824").Msg("api server started")
 
 	// Start config watcher.
-	watcher, err := config.NewWatcher(d.onConfigReload)
+	watcher, err := config.NewWatcher(d.cfg, d.onConfigReload)
 	if err != nil {
 		d.shutdownPartial()
 		return fmt.Errorf("start config watcher: %w", err)
@@ -341,7 +345,7 @@ func (d *Daemon) onConfigReload(cfg config.Config) {
 
 // ReloadConfig loads the current config and applies it to Caddy and the health checker.
 func (d *Daemon) ReloadConfig() error {
-	cfg, err := config.Load()
+	cfg, err := config.LoadWithProjectConfigs()
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
 	}

@@ -78,6 +78,8 @@ func validateProject(name string, p Project, tld string, domains map[string]stri
 
 	// Domain: valid hostname ending with configured TLD
 	switch {
+	case p.Domain == "" && p.Path != "":
+		// Domain lives in hatch.yml for linked projects; not required in central config.
 	case p.Domain == "":
 		errs = append(errs, fmt.Errorf("%s.domain is required", prefix))
 	case !isValidDomain(p.Domain, tld):
@@ -92,10 +94,14 @@ func validateProject(name string, p Project, tld string, domains map[string]stri
 	// Path
 	if p.Path == "" {
 		errs = append(errs, fmt.Errorf("%s.path is required", prefix))
+	} else if !filepath.IsAbs(p.Path) {
+		errs = append(errs, fmt.Errorf("%s.path must be an absolute path, got %q", prefix, p.Path))
 	}
 
-	// Services
-	if len(p.Services) == 0 {
+	// Services — linked projects (with a Path) may have services defined in
+	// hatch.yml rather than in the central config, so empty services are
+	// allowed when a path is set.
+	if len(p.Services) == 0 && p.Path == "" {
 		errs = append(errs, fmt.Errorf("%s.services must have at least one entry", prefix))
 	}
 	for svcName, svc := range p.Services {

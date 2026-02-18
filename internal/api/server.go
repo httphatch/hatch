@@ -41,6 +41,7 @@ type Server struct {
 	version   string
 	startTime time.Time
 	logHub    *LogHub
+	outputHub *ProcessOutputHub
 	cfgMu     sync.Mutex // serializes config read-modify-write operations
 }
 
@@ -55,6 +56,7 @@ type ServerConfig struct {
 	Version   string
 	StartTime time.Time
 	LogHub    *LogHub
+	OutputHub *ProcessOutputHub
 }
 
 // NewServer creates a new API server with the given configuration.
@@ -68,6 +70,7 @@ func NewServer(cfg ServerConfig) *Server {
 		version:   cfg.Version,
 		startTime: cfg.StartTime,
 		logHub:    cfg.LogHub,
+		outputHub: cfg.OutputHub,
 	}
 
 	mux := http.NewServeMux()
@@ -119,6 +122,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PATCH /api/projects/{name}/toggle", s.handleToggleProject)
 	mux.HandleFunc("GET /api/health", s.handleHealth)
 	mux.HandleFunc("GET /api/processes", s.handleProcesses)
+	mux.HandleFunc("GET /api/processes/output", s.handleProcessOutput)
 	mux.HandleFunc("GET /api/logs", s.handleLogs)
 	mux.HandleFunc("GET /api/config", s.handleGetConfig)
 	mux.HandleFunc("PUT /api/config", s.handlePutConfig)

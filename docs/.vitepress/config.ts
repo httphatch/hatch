@@ -27,7 +27,7 @@ export default defineConfig({
         items: [
           { text: 'CLI Commands', link: '/reference/cli' },
           { text: 'Configuration', link: '/reference/config' },
-          { text: '.hatch.yml', link: '/reference/hatch-yml' },
+          { text: 'hatch.yml', link: '/reference/hatch-yml' },
         ],
       },
       {

@@ -73,7 +73,7 @@ hatch add myapp --proxy http://localhost:3000 --path ~/projects/myapp
 
 ### `hatch link`
 
-Link a project using the `.hatch.yml` file in the current directory.
+Link a project using the `hatch.yml` file in the current directory.
 
 ```bash
 cd ~/projects/myapp
@@ -87,7 +87,7 @@ hatch link --name custom-name
 
 ### `hatch unlink`
 
-Unlink a project from Hatch. Removes it from the central config but does not delete the `.hatch.yml` file.
+Unlink a project from Hatch. Removes it from the central config but does not delete the `hatch.yml` file.
 
 ```bash
 cd ~/projects/myapp

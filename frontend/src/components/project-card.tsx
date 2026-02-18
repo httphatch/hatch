@@ -117,6 +117,7 @@ export function ProjectCard({
               health={healthLookup(name, svcName)}
               domain={project.domain}
               process={processLookup(name, svcName)}
+              projectName={name}
             />
           ))}
         </div>

@@ -1,11 +1,13 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 
+	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v3"
 )
 
@@ -88,7 +90,7 @@ func backupConfig(path string) error {
 	return dst.Close()
 }
 
-// LoadProjectConfig reads a per-project .hatch.yml file.
+// LoadProjectConfig reads a per-project hatch.yml file.
 func LoadProjectConfig(path string) (ProjectConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -108,6 +110,45 @@ func LoadProjectConfig(path string) (ProjectConfig, error) {
 	}
 
 	return pc, nil
+}
+
+// MergeAllProjectConfigs re-reads hatch.yml from each linked project's Path
+// directory and overwrites the project's Services and Domain in-place.
+// Projects without a hatch.yml or with an invalid one are logged and skipped.
+func MergeAllProjectConfigs(cfg *Config) {
+	for name, proj := range cfg.Projects {
+		if proj.Path == "" {
+			continue
+		}
+		hatchFile := filepath.Join(proj.Path, "hatch.yml")
+		pc, err := LoadProjectConfig(hatchFile)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				continue
+			}
+			log.Warn().Str("project", name).Err(err).Msg("skipping project config merge")
+			continue
+		}
+		proj.Domain = pc.Domain
+		proj.Services = pc.Services
+		cfg.Projects[name] = proj
+	}
+}
+
+// LoadWithProjectConfigs loads the central config, merges hatch.yml from
+// each linked project, then validates. This makes project-local files the
+// source of truth for services and domain.
+func LoadWithProjectConfigs() (Config, error) {
+	cfg, err := LoadRaw()
+	if err != nil {
+		return Config{}, err
+	}
+	MergeAllProjectConfigs(&cfg)
+
+	if errs := Validate(cfg); len(errs) > 0 {
+		return Config{}, fmt.Errorf("invalid config: %w", &ValidationErrors{Errs: errs})
+	}
+	return cfg, nil
 }
 
 // LoadRaw reads the config file without validation, useful for merging.
