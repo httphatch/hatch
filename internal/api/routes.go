@@ -21,23 +21,6 @@ import (
 // maxBodySize is the maximum allowed request body (1 MB).
 const maxBodySize = 1 << 20
 
-// corsLocal wraps a handler to allow cross-origin requests from the Wails
-// webview (which uses a non-http scheme) to this localhost-only API.
-func corsLocal(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
-
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
@@ -50,7 +33,8 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 
 // requireJSON rejects requests that don't have Content-Type: application/json.
 // This also serves as CSRF protection since non-simple content types trigger
-// a CORS preflight that the server does not respond to.
+// a CORS preflight that this server does not respond to (CORS is only handled
+// by the Caddy proxy layer for .test domains, not by the API server).
 func requireJSON(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ct := r.Header.Get("Content-Type")
@@ -361,6 +345,8 @@ func (s *Server) handleGetConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlePutConfig(w http.ResponseWriter, r *http.Request) {
+	// The non-simple Content-Type also serves as CSRF protection: it triggers
+	// a CORS preflight that this server does not respond to.
 	if ct := r.Header.Get("Content-Type"); ct != "application/yaml" {
 		writeError(w, http.StatusUnsupportedMediaType, "Content-Type must be application/yaml")
 		return

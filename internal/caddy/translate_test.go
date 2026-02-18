@@ -71,11 +71,38 @@ func TestTranslate_SingleService(t *testing.T) {
 		t.Errorf("expected host myapp.test, got %s", hosts[0])
 	}
 
-	handler := route["handle"].([]map[string]any)[0]
-	if handler["handler"] != "reverse_proxy" {
-		t.Errorf("expected handler reverse_proxy, got %s", handler["handler"])
+	subroute := route["handle"].([]map[string]any)[0]
+	if subroute["handler"] != "subroute" {
+		t.Fatalf("expected handler subroute, got %s", subroute["handler"])
 	}
-	upstreams := handler["upstreams"].([]map[string]any)
+
+	subRoutes := subroute["routes"].([]map[string]any)
+	if len(subRoutes) != 2 {
+		t.Fatalf("expected 2 subroutes (preflight + proxy), got %d", len(subRoutes))
+	}
+
+	// First subroute: OPTIONS preflight.
+	preflightMatch := subRoutes[0]["match"].([]map[string]any)[0]
+	if methods := preflightMatch["method"].([]string); methods[0] != "OPTIONS" {
+		t.Errorf("expected preflight method OPTIONS, got %s", methods[0])
+	}
+	preflightHandler := subRoutes[0]["handle"].([]map[string]any)[0]
+	if preflightHandler["status_code"] != "204" {
+		t.Errorf("expected preflight status 204, got %v", preflightHandler["status_code"])
+	}
+
+	// Second subroute: headers + reverse_proxy.
+	proxyHandlers := subRoutes[1]["handle"].([]map[string]any)
+	if len(proxyHandlers) != 2 {
+		t.Fatalf("expected 2 handlers (headers + reverse_proxy), got %d", len(proxyHandlers))
+	}
+	if proxyHandlers[0]["handler"] != "headers" {
+		t.Errorf("expected headers handler, got %s", proxyHandlers[0]["handler"])
+	}
+	if proxyHandlers[1]["handler"] != "reverse_proxy" {
+		t.Errorf("expected reverse_proxy handler, got %s", proxyHandlers[1]["handler"])
+	}
+	upstreams := proxyHandlers[1]["upstreams"].([]map[string]any)
 	if upstreams[0]["dial"] != "localhost:3000" {
 		t.Errorf("expected dial localhost:3000, got %s", upstreams[0]["dial"])
 	}
@@ -186,7 +213,15 @@ func TestTranslate_WebSocket(t *testing.T) {
 		t.Fatalf("expected 1 route, got %d", len(routes))
 	}
 
-	handler := routes[0]["handle"].([]map[string]any)[0]
+	subroute := routes[0]["handle"].([]map[string]any)[0]
+	if subroute["handler"] != "subroute" {
+		t.Fatalf("expected subroute handler, got %s", subroute["handler"])
+	}
+
+	// The reverse_proxy handler is the second handler in the second subroute.
+	subRoutes := subroute["routes"].([]map[string]any)
+	proxyHandlers := subRoutes[1]["handle"].([]map[string]any)
+	handler := proxyHandlers[1]
 
 	flush, ok := handler["flush_interval"]
 	if !ok {

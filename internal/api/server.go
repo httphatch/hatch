@@ -78,7 +78,7 @@ func NewServer(cfg ServerConfig) *Server {
 
 	s.httpSrv = &http.Server{
 		Addr:              cfg.Addr,
-		Handler:           corsLocal(mux),
+		Handler:           mux,
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}

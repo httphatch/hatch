@@ -135,8 +135,21 @@ func routeTier(info routeInfo) int {
 	return 2
 }
 
+// corsHeaders returns the CORS response headers added to every proxied response.
+// The Origin is reflected from the request so that credentialed cross-origin
+// requests work between .test subdomains during local development.
+func corsHeaders() map[string][]string {
+	return map[string][]string{
+		"Access-Control-Allow-Origin":      {"{http.request.header.Origin}"},
+		"Access-Control-Allow-Methods":     {"GET, POST, PUT, PATCH, DELETE, OPTIONS"},
+		"Access-Control-Allow-Headers":     {"Authorization, Content-Type, X-Requested-With, Accept, Origin"},
+		"Access-Control-Allow-Credentials": {"true"},
+		"Vary":                             {"Origin"},
+	}
+}
+
 // buildRoute builds a single HTTPS route with host matcher, optional path matcher,
-// and reverse_proxy handler.
+// and a subroute that handles CORS preflight and adds CORS headers to responses.
 func buildRoute(domain string, svc config.Service) map[string]any {
 	match := map[string]any{
 		"host": []string{domain},
@@ -145,11 +158,49 @@ func buildRoute(domain string, svc config.Service) map[string]any {
 		match["path"] = []string{svc.Route}
 	}
 
-	handler := buildReverseProxyHandler(svc.Proxy, svc.WebSocket)
+	proxyHandler := buildReverseProxyHandler(svc.Proxy, svc.WebSocket)
+
+	cors := corsHeaders()
+
+	// Preflight headers include Max-Age to let browsers cache the result.
+	preflightHeaders := make(map[string][]string, len(cors)+1)
+	for k, v := range cors {
+		preflightHeaders[k] = v
+	}
+	preflightHeaders["Access-Control-Max-Age"] = []string{"3600"}
+
+	subroute := map[string]any{
+		"handler": "subroute",
+		"routes": []map[string]any{
+			{
+				"match": []map[string]any{
+					{"method": []string{"OPTIONS"}},
+				},
+				"handle": []map[string]any{
+					{
+						"handler":     "static_response",
+						"status_code": "204",
+						"headers":     preflightHeaders,
+					},
+				},
+			},
+			{
+				"handle": []map[string]any{
+					{
+						"handler": "headers",
+						"response": map[string]any{
+							"set": cors,
+						},
+					},
+					proxyHandler,
+				},
+			},
+		},
+	}
 
 	return map[string]any{
 		"match":    []map[string]any{match},
-		"handle":   []map[string]any{handler},
+		"handle":   []map[string]any{subroute},
 		"terminal": true,
 	}
 }
