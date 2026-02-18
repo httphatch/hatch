@@ -47,23 +47,89 @@
             {
               "handle": [
                 {
-                  "flush_interval": -1,
-                  "handler": "reverse_proxy",
-                  "headers": {
-                    "request": {
-                      "set": {
-                        "Connection": [
-                          "{http.request.header.Connection}"
-                        ],
-                        "Upgrade": [
-                          "{http.request.header.Upgrade}"
-                        ]
-                      }
-                    }
-                  },
-                  "upstreams": [
+                  "handler": "subroute",
+                  "routes": [
                     {
-                      "dial": "localhost:6001"
+                      "handle": [
+                        {
+                          "handler": "static_response",
+                          "headers": {
+                            "Access-Control-Allow-Credentials": [
+                              "true"
+                            ],
+                            "Access-Control-Allow-Headers": [
+                              "Authorization, Content-Type, X-Requested-With, Accept, Origin"
+                            ],
+                            "Access-Control-Allow-Methods": [
+                              "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+                            ],
+                            "Access-Control-Allow-Origin": [
+                              "{http.request.header.Origin}"
+                            ],
+                            "Access-Control-Max-Age": [
+                              "3600"
+                            ],
+                            "Vary": [
+                              "Origin"
+                            ]
+                          },
+                          "status_code": "204"
+                        }
+                      ],
+                      "match": [
+                        {
+                          "method": [
+                            "OPTIONS"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "handle": [
+                        {
+                          "handler": "headers",
+                          "response": {
+                            "set": {
+                              "Access-Control-Allow-Credentials": [
+                                "true"
+                              ],
+                              "Access-Control-Allow-Headers": [
+                                "Authorization, Content-Type, X-Requested-With, Accept, Origin"
+                              ],
+                              "Access-Control-Allow-Methods": [
+                                "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+                              ],
+                              "Access-Control-Allow-Origin": [
+                                "{http.request.header.Origin}"
+                              ],
+                              "Vary": [
+                                "Origin"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "flush_interval": -1,
+                          "handler": "reverse_proxy",
+                          "headers": {
+                            "request": {
+                              "set": {
+                                "Connection": [
+                                  "{http.request.header.Connection}"
+                                ],
+                                "Upgrade": [
+                                  "{http.request.header.Upgrade}"
+                                ]
+                              }
+                            }
+                          },
+                          "upstreams": [
+                            {
+                              "dial": "localhost:6001"
+                            }
+                          ]
+                        }
+                      ]
                     }
                   ]
                 }
@@ -80,10 +146,76 @@
             {
               "handle": [
                 {
-                  "handler": "reverse_proxy",
-                  "upstreams": [
+                  "handler": "subroute",
+                  "routes": [
                     {
-                      "dial": "localhost:8000"
+                      "handle": [
+                        {
+                          "handler": "static_response",
+                          "headers": {
+                            "Access-Control-Allow-Credentials": [
+                              "true"
+                            ],
+                            "Access-Control-Allow-Headers": [
+                              "Authorization, Content-Type, X-Requested-With, Accept, Origin"
+                            ],
+                            "Access-Control-Allow-Methods": [
+                              "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+                            ],
+                            "Access-Control-Allow-Origin": [
+                              "{http.request.header.Origin}"
+                            ],
+                            "Access-Control-Max-Age": [
+                              "3600"
+                            ],
+                            "Vary": [
+                              "Origin"
+                            ]
+                          },
+                          "status_code": "204"
+                        }
+                      ],
+                      "match": [
+                        {
+                          "method": [
+                            "OPTIONS"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "handle": [
+                        {
+                          "handler": "headers",
+                          "response": {
+                            "set": {
+                              "Access-Control-Allow-Credentials": [
+                                "true"
+                              ],
+                              "Access-Control-Allow-Headers": [
+                                "Authorization, Content-Type, X-Requested-With, Accept, Origin"
+                              ],
+                              "Access-Control-Allow-Methods": [
+                                "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+                              ],
+                              "Access-Control-Allow-Origin": [
+                                "{http.request.header.Origin}"
+                              ],
+                              "Vary": [
+                                "Origin"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "handler": "reverse_proxy",
+                          "upstreams": [
+                            {
+                              "dial": "localhost:8000"
+                            }
+                          ]
+                        }
+                      ]
                     }
                   ]
                 }
@@ -103,10 +235,76 @@
             {
               "handle": [
                 {
-                  "handler": "reverse_proxy",
-                  "upstreams": [
+                  "handler": "subroute",
+                  "routes": [
                     {
-                      "dial": "localhost:3000"
+                      "handle": [
+                        {
+                          "handler": "static_response",
+                          "headers": {
+                            "Access-Control-Allow-Credentials": [
+                              "true"
+                            ],
+                            "Access-Control-Allow-Headers": [
+                              "Authorization, Content-Type, X-Requested-With, Accept, Origin"
+                            ],
+                            "Access-Control-Allow-Methods": [
+                              "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+                            ],
+                            "Access-Control-Allow-Origin": [
+                              "{http.request.header.Origin}"
+                            ],
+                            "Access-Control-Max-Age": [
+                              "3600"
+                            ],
+                            "Vary": [
+                              "Origin"
+                            ]
+                          },
+                          "status_code": "204"
+                        }
+                      ],
+                      "match": [
+                        {
+                          "method": [
+                            "OPTIONS"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "handle": [
+                        {
+                          "handler": "headers",
+                          "response": {
+                            "set": {
+                              "Access-Control-Allow-Credentials": [
+                                "true"
+                              ],
+                              "Access-Control-Allow-Headers": [
+                                "Authorization, Content-Type, X-Requested-With, Accept, Origin"
+                              ],
+                              "Access-Control-Allow-Methods": [
+                                "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+                              ],
+                              "Access-Control-Allow-Origin": [
+                                "{http.request.header.Origin}"
+                              ],
+                              "Vary": [
+                                "Origin"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "handler": "reverse_proxy",
+                          "upstreams": [
+                            {
+                              "dial": "localhost:3000"
+                            }
+                          ]
+                        }
+                      ]
                     }
                   ]
                 }
