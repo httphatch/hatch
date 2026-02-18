@@ -32,7 +32,7 @@ func init() {
 }
 
 func runStatus() error {
-	cfg, err := config.Load()
+	cfg, err := config.LoadWithProjectConfigs()
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
 	}

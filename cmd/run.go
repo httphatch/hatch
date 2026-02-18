@@ -26,7 +26,7 @@ var runCmd = &cobra.Command{
 		defaults := config.DefaultConfig()
 		logLevel := defaults.Settings.LogLevel
 		trayIcon := defaults.Settings.TrayIcon
-		if cfg, err := config.Load(); err == nil {
+		if cfg, err := config.LoadWithProjectConfigs(); err == nil {
 			logLevel = cfg.Settings.LogLevel
 			trayIcon = cfg.Settings.TrayIcon
 		}

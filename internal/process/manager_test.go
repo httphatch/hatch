@@ -157,7 +157,7 @@ func TestManager_ApplyConfigRestartsChanged(t *testing.T) {
 	if st2.Command != "sleep 120" {
 		t.Errorf("command = %q, want %q", st2.Command, "sleep 120")
 	}
-	if !st2.StartedAt.After(st1.StartedAt) && st2.StartedAt != st1.StartedAt {
+	if !st2.StartedAt.After(st1.StartedAt) {
 		t.Error("expected new start time after restart")
 	}
 }
@@ -230,6 +230,127 @@ func TestManager_ProcessRestartsOnCrash(t *testing.T) {
 		default:
 			time.Sleep(100 * time.Millisecond)
 		}
+	}
+}
+
+func TestDeduplicateEnv(t *testing.T) {
+	tests := []struct {
+		name string
+		in   []string
+		want []string
+	}{
+		{
+			name: "no duplicates",
+			in:   []string{"A=1", "B=2"},
+			want: []string{"A=1", "B=2"},
+		},
+		{
+			name: "last value wins",
+			in:   []string{"NODE_ENV=development", "FOO=bar", "NODE_ENV=production"},
+			want: []string{"FOO=bar", "NODE_ENV=production"},
+		},
+		{
+			name: "multiple duplicates",
+			in:   []string{"A=1", "B=2", "A=3", "B=4"},
+			want: []string{"A=3", "B=4"},
+		},
+		{
+			name: "empty value preserved",
+			in:   []string{"A=1", "A="},
+			want: []string{"A="},
+		},
+		{
+			name: "empty slice",
+			in:   []string{},
+			want: []string{},
+		},
+		{
+			name: "entries without equals are dropped",
+			in:   []string{"A=1", "MALFORMED", "B=2"},
+			want: []string{"A=1", "B=2"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := deduplicateEnv(tt.in)
+			if len(got) != len(tt.want) {
+				t.Fatalf("len = %d, want %d; got %v", len(got), len(tt.want), got)
+			}
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Errorf("index %d = %q, want %q", i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
+}
+
+func TestManager_StartedAtUpdatesOnRestart(t *testing.T) {
+	mgr := NewManager(ManagerConfig{})
+	defer func() { _ = mgr.Stop() }()
+
+	// Use a command that exits immediately to trigger restarts.
+	if err := mgr.ApplyConfig(testAppConfig("exit 0")); err != nil {
+		t.Fatal(err)
+	}
+
+	id := ServiceID{Project: "myapp", Service: "worker"}
+
+	// Wait for at least one restart so we have a valid StartedAt.
+	deadline := time.After(10 * time.Second)
+	var firstStartedAt time.Time
+	for {
+		st, ok := mgr.Statuses()[id]
+		if ok && st.Restarts >= 1 && !st.StartedAt.IsZero() {
+			firstStartedAt = st.StartedAt
+			break
+		}
+		select {
+		case <-deadline:
+			t.Fatal("timed out waiting for first restart")
+		default:
+			time.Sleep(50 * time.Millisecond)
+		}
+	}
+
+	// Wait for another restart and verify StartedAt changed.
+	deadline = time.After(10 * time.Second)
+	for {
+		st := mgr.Statuses()[id]
+		if st.Restarts >= 2 && st.StartedAt.After(firstStartedAt) {
+			return // success
+		}
+		select {
+		case <-deadline:
+			t.Fatal("timed out waiting for StartedAt to update after restart")
+		default:
+			time.Sleep(50 * time.Millisecond)
+		}
+	}
+}
+
+func TestManager_SkipsMissingPath(t *testing.T) {
+	cfg := config.Config{
+		Projects: map[string]config.Project{
+			"myapp": {
+				Path:    "/nonexistent/path/that/does/not/exist",
+				Enabled: true,
+				Services: map[string]config.Service{
+					"worker": {Command: "sleep 60"},
+				},
+			},
+		},
+	}
+
+	mgr := NewManager(ManagerConfig{})
+	if err := mgr.ApplyConfig(cfg); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = mgr.Stop() }()
+
+	if len(mgr.Statuses()) != 0 {
+		t.Error("expected no managed processes for project with missing path")
 	}
 }
 

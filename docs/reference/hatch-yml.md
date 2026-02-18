@@ -1,6 +1,6 @@
-# .hatch.yml
+# hatch.yml
 
-The `.hatch.yml` file is a per-project config file that lives in your project's root directory. It defines the domain and services for that project, and is used with `hatch link` to register the project with Hatch.
+The `hatch.yml` file is a per-project config file that lives in your project's root directory. It defines the domain and services for that project, and is used with `hatch link` to register the project with Hatch.
 
 ## Schema
 
@@ -39,7 +39,7 @@ cd ~/projects/myapp
 hatch link
 ```
 
-This reads `.hatch.yml`, validates it, and adds the project to `~/.hatch/config.yml`. The project name defaults to the directory basename (`myapp`). Override it with `--name`:
+This reads `hatch.yml`, validates it, and adds the project to `~/.hatch/config.yml`. The project name defaults to the directory basename (`myapp`). Override it with `--name`:
 
 ```bash
 hatch link --name my-custom-name
@@ -52,7 +52,7 @@ cd ~/projects/myapp
 hatch unlink
 ```
 
-This removes the project from the central config. The `.hatch.yml` file is **not** deleted.
+This removes the project from the central config. The `hatch.yml` file is **not** deleted.
 
 ## Examples
 

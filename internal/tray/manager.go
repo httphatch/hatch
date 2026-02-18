@@ -142,7 +142,7 @@ func (m *Manager) refresh() {
 // populateMenu clears the existing menu and rebuilds its items from
 // the current config and health state.
 func (m *Manager) populateMenu() {
-	cfg, err := config.Load()
+	cfg, err := config.LoadWithProjectConfigs()
 	if err != nil {
 		log.Debug().Err(err).Msg("tray: config load failed during refresh")
 		cfg = config.DefaultConfig()

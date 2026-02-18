@@ -20,7 +20,7 @@ var listCmd = &cobra.Command{
 }
 
 func runList() error {
-	cfg, err := config.Load()
+	cfg, err := config.LoadWithProjectConfigs()
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
 	}

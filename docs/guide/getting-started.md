@@ -55,7 +55,7 @@ This creates a project called `myapp` accessible at `https://myapp.test`, proxyi
 
 ### Option B: Per-Project Config
 
-Create a `.hatch.yml` in your project directory:
+Create a `hatch.yml` in your project directory:
 
 ```yaml
 domain: myapp.test

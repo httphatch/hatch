@@ -169,6 +169,15 @@ func (m *Manager) buildDesired(appCfg config.Config) map[ServiceID]desiredProces
 		if !proj.Enabled {
 			continue
 		}
+		if proj.Path != "" {
+			if _, err := os.Stat(proj.Path); err != nil {
+				log.Warn().
+					Str("project", projName).
+					Str("path", proj.Path).
+					Msg("project path does not exist, skipping managed processes")
+				continue
+			}
+		}
 		for svcName, svc := range proj.Services {
 			if svc.Command == "" {
 				continue
@@ -208,7 +217,7 @@ func (m *Manager) buildDesired(appCfg config.Config) map[ServiceID]desiredProces
 			desired[id] = desiredProcess{
 				command: svc.Command,
 				dir:     proj.Path,
-				env:     env,
+				env:     deduplicateEnv(env),
 			}
 		}
 	}
@@ -224,7 +233,6 @@ func (m *Manager) startSupervised(id ServiceID, command, dir string, env []strin
 		env:     env,
 		cancel:  cancel,
 		done:    make(chan struct{}),
-		started: time.Now(),
 	}
 
 	go m.supervise(ctx, sup)
@@ -250,11 +258,11 @@ func (m *Manager) supervise(ctx context.Context, sup *supervised) {
 			},
 		}}
 
-		sup.mu.Lock()
-		sup.runner = runner
-		sup.mu.Unlock()
-
 		if err := runner.Start(ctx); err != nil {
+			sup.mu.Lock()
+			sup.runner = nil
+			sup.mu.Unlock()
+
 			// If context was cancelled, exit supervision.
 			if ctx.Err() != nil {
 				return
@@ -269,7 +277,13 @@ func (m *Manager) supervise(ctx context.Context, sup *supervised) {
 			}
 		}
 
-		startedAt := time.Now()
+		now := time.Now()
+		sup.mu.Lock()
+		sup.runner = runner
+		sup.started = now
+		sup.mu.Unlock()
+
+		startedAt := now
 
 		// Wait for exit or cancellation.
 		select {
@@ -284,12 +298,11 @@ func (m *Manager) supervise(ctx context.Context, sup *supervised) {
 			return
 		}
 
-		// Reset backoff if the process ran long enough.
+		sup.mu.Lock()
 		if time.Since(startedAt) >= backoffResetTime {
 			backoff = minBackoff
+			sup.restarts = 0
 		}
-
-		sup.mu.Lock()
 		sup.restarts++
 		sup.mu.Unlock()
 
@@ -309,6 +322,26 @@ func nextBackoff(current time.Duration) time.Duration {
 		return maxBackoff
 	}
 	return next
+}
+
+// deduplicateEnv keeps the last occurrence of each environment variable key.
+// This ensures env_file values override inherited environment variables.
+func deduplicateEnv(env []string) []string {
+	seen := make(map[string]int, len(env))
+	for i, entry := range env {
+		if k, _, ok := strings.Cut(entry, "="); ok {
+			seen[k] = i
+		}
+	}
+	result := make([]string, 0, len(seen))
+	for i, entry := range env {
+		if k, _, ok := strings.Cut(entry, "="); ok {
+			if seen[k] == i {
+				result = append(result, entry)
+			}
+		}
+	}
+	return result
 }
 
 func envEqual(a, b []string) bool {

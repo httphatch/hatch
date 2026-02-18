@@ -13,8 +13,8 @@ import (
 
 var linkCmd = &cobra.Command{
 	Use:   "link",
-	Short: "Link a project from its .hatch.yml",
-	Long:  `Reads .hatch.yml from the current directory and merges the project into the central Hatch config.`,
+	Short: "Link a project from its hatch.yml",
+	Long:  `Reads hatch.yml from the current directory and merges the project into the central Hatch config.`,
 	RunE:  runLink,
 }
 
@@ -24,9 +24,9 @@ func runLink(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("get working directory: %w", err)
 	}
 
-	hatchFile := filepath.Join(cwd, ".hatch.yml")
+	hatchFile := filepath.Join(cwd, "hatch.yml")
 	if _, err := os.Stat(hatchFile); err != nil {
-		return fmt.Errorf("no .hatch.yml found in current directory")
+		return fmt.Errorf("no hatch.yml found in current directory")
 	}
 
 	pc, err := config.LoadProjectConfig(hatchFile)

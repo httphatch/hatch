@@ -54,7 +54,7 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 	}
 
 	// Check 1: Config file valid
-	cfg, err := config.Load()
+	cfg, err := config.LoadWithProjectConfigs()
 	if err != nil {
 		var ve *config.ValidationErrors
 		if errors.As(err, &ve) {

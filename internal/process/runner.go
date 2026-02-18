@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"sync"
 	"syscall"
@@ -38,7 +39,11 @@ func (r *Runner) Start(ctx context.Context) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	cmd := exec.CommandContext(ctx, "sh", "-c", r.cfg.Command)
+	shell := os.Getenv("SHELL")
+	if shell == "" {
+		shell = "sh"
+	}
+	cmd := exec.CommandContext(ctx, shell, "-l", "-c", r.cfg.Command)
 	cmd.Dir = r.cfg.Dir
 	cmd.Env = r.cfg.Env
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}

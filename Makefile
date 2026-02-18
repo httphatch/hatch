@@ -9,7 +9,7 @@ LDFLAGS := -s -w \
 
 .PHONY: build build-test run test lint clean app frontend icon docs
 
-build:
+build: frontend
 	go build -ldflags '$(LDFLAGS)' -o hatch .
 
 build-test:
@@ -25,7 +25,7 @@ lint:
 	golangci-lint run
 
 frontend:
-	cd frontend && npm install && VITE_APP_VERSION=$(VERSION) npm run build
+	cd frontend && npm ci && VITE_APP_VERSION=$(VERSION) npm run build
 
 app: frontend
 	go build -ldflags '$(LDFLAGS) -extldflags -w' -o hatch .

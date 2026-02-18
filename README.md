@@ -42,7 +42,7 @@ hatch open myapp
 
 ## Multi-service projects
 
-Create a `.hatch.yml` in your project root:
+Create a `hatch.yml` in your project root:
 
 ```yaml
 domain: myapp.test
@@ -77,7 +77,7 @@ Full docs at [httphatch.com](https://httphatch.com):
 - [Getting Started](https://httphatch.com/guide/getting-started) — install, init, first project
 - [CLI Reference](https://httphatch.com/reference/cli) — all commands and flags
 - [Configuration](https://httphatch.com/reference/config) — global config options
-- [.hatch.yml](https://httphatch.com/reference/hatch-yml) — per-project config format
+- [hatch.yml](https://httphatch.com/reference/hatch-yml) — per-project config format
 - [How It Works](https://httphatch.com/advanced/how-it-works) — architecture and internals
 - [Troubleshooting](https://httphatch.com/advanced/troubleshooting) — common issues and fixes
 

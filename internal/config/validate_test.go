@@ -110,23 +110,40 @@ func TestValidate_ProjectDomain(t *testing.T) {
 	tests := []struct {
 		name     string
 		domain   string
+		path     string
 		errSubst string
 	}{
-		{"empty domain", "", "domain is required"},
-		{"wrong tld", "app.com", "must be a valid hostname ending with .test"},
-		{"bare tld", ".test", "must be a valid hostname ending with .test"},
-		{"invalid label", "app-.test", "must be a valid hostname ending with .test"},
+		{"empty domain (no path)", "", "", "domain is required"},
+		{"wrong tld", "app.com", "/tmp/myapp", "must be a valid hostname ending with .test"},
+		{"bare tld", ".test", "/tmp/myapp", "must be a valid hostname ending with .test"},
+		{"invalid label", "app-.test", "/tmp/myapp", "must be a valid hostname ending with .test"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := validConfig()
 			p := cfg.Projects["myapp"]
 			p.Domain = tt.domain
+			p.Path = tt.path
 			cfg.Projects["myapp"] = p
 			errs := Validate(cfg)
 			requireError(t, errs, tt.errSubst)
 		})
 	}
+
+	// Linked projects (with path) may have empty domain in config.yml;
+	// domain comes from .hatch.yml at load time.
+	t.Run("empty domain with path (linked project)", func(t *testing.T) {
+		cfg := validConfig()
+		p := cfg.Projects["myapp"]
+		p.Domain = ""
+		cfg.Projects["myapp"] = p
+		errs := Validate(cfg)
+		for _, e := range errs {
+			if e.Error() == "projects.myapp.domain is required" {
+				t.Error("linked project with empty domain should not fail validation")
+			}
+		}
+	})
 }
 
 func TestValidate_ProjectPath(t *testing.T) {
@@ -138,13 +155,25 @@ func TestValidate_ProjectPath(t *testing.T) {
 	requireError(t, errs, "path is required")
 }
 
-func TestValidate_ProjectServicesEmpty(t *testing.T) {
+func TestValidate_ProjectServicesEmpty_NoPath(t *testing.T) {
+	cfg := validConfig()
+	p := cfg.Projects["myapp"]
+	p.Services = map[string]Service{}
+	p.Path = ""
+	cfg.Projects["myapp"] = p
+	errs := Validate(cfg)
+	requireError(t, errs, "must have at least one entry")
+}
+
+func TestValidate_ProjectServicesEmpty_WithPath(t *testing.T) {
 	cfg := validConfig()
 	p := cfg.Projects["myapp"]
 	p.Services = map[string]Service{}
 	cfg.Projects["myapp"] = p
 	errs := Validate(cfg)
-	requireError(t, errs, "must have at least one entry")
+	if len(errs) != 0 {
+		t.Errorf("linked project with path should allow empty services, got %v", errs)
+	}
 }
 
 func TestValidate_ServiceProxy(t *testing.T) {

@@ -130,7 +130,7 @@ func TestLoadProjectConfig_Valid(t *testing.T) {
 
 func TestLoadProjectConfig_MissingDomain(t *testing.T) {
 	dir := t.TempDir()
-	path := filepath.Join(dir, ".hatch.yml")
+	path := filepath.Join(dir, "hatch.yml")
 	if err := os.WriteFile(path, []byte("services:\n  web:\n    proxy: http://localhost:3000\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -142,7 +142,7 @@ func TestLoadProjectConfig_MissingDomain(t *testing.T) {
 
 func TestLoadProjectConfig_NoServices(t *testing.T) {
 	dir := t.TempDir()
-	path := filepath.Join(dir, ".hatch.yml")
+	path := filepath.Join(dir, "hatch.yml")
 	if err := os.WriteFile(path, []byte("domain: myapp.test\nservices: {}\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -236,6 +236,139 @@ func TestLoad_MultipleValidationErrors(t *testing.T) {
 	if !strings.Contains(msg, "tld") {
 		t.Errorf("expected tld error in message, got %q", msg)
 	}
+}
+
+func TestMergeAllProjectConfigs(t *testing.T) {
+	setupTestHome(t)
+	if err := EnsureConfigDir(); err != nil {
+		t.Fatal(err)
+	}
+
+	projDir := t.TempDir()
+	hatchYml := filepath.Join(projDir, "hatch.yml")
+	if err := os.WriteFile(hatchYml, []byte("domain: myapp.test\nservices:\n  web:\n    proxy: http://localhost:3000\n  worker:\n    command: node worker.js\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := DefaultConfig()
+	cfg.Projects["myapp"] = Project{
+		Domain:  "myapp.test",
+		Path:    projDir,
+		Enabled: true,
+	}
+
+	MergeAllProjectConfigs(&cfg)
+
+	proj := cfg.Projects["myapp"]
+	if len(proj.Services) != 2 {
+		t.Fatalf("expected 2 services, got %d", len(proj.Services))
+	}
+	if proj.Services["web"].Proxy != "http://localhost:3000" {
+		t.Errorf("web proxy: got %q, want %q", proj.Services["web"].Proxy, "http://localhost:3000")
+	}
+	if proj.Services["worker"].Command != "node worker.js" {
+		t.Errorf("worker command: got %q, want %q", proj.Services["worker"].Command, "node worker.js")
+	}
+}
+
+func TestMergeAllProjectConfigs_MissingFile(t *testing.T) {
+	setupTestHome(t)
+	if err := EnsureConfigDir(); err != nil {
+		t.Fatal(err)
+	}
+
+	projDir := t.TempDir()
+	// No hatch.yml in projDir
+
+	cfg := DefaultConfig()
+	cfg.Projects["myapp"] = Project{
+		Domain:  "myapp.test",
+		Path:    projDir,
+		Enabled: true,
+	}
+
+	// Should not panic or modify the project
+	MergeAllProjectConfigs(&cfg)
+
+	proj := cfg.Projects["myapp"]
+	if len(proj.Services) != 0 {
+		t.Errorf("expected no services for missing hatch.yml, got %d", len(proj.Services))
+	}
+}
+
+func TestMergeAllProjectConfigs_InvalidFile(t *testing.T) {
+	setupTestHome(t)
+	if err := EnsureConfigDir(); err != nil {
+		t.Fatal(err)
+	}
+
+	projDir := t.TempDir()
+	hatchYml := filepath.Join(projDir, "hatch.yml")
+	if err := os.WriteFile(hatchYml, []byte(":::invalid yaml"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := DefaultConfig()
+	cfg.Projects["myapp"] = Project{
+		Domain:  "myapp.test",
+		Path:    projDir,
+		Enabled: true,
+	}
+
+	// Should not panic; project should be skipped
+	MergeAllProjectConfigs(&cfg)
+
+	proj := cfg.Projects["myapp"]
+	if len(proj.Services) != 0 {
+		t.Errorf("expected no services for invalid hatch.yml, got %d", len(proj.Services))
+	}
+}
+
+func TestLoadWithProjectConfigs(t *testing.T) {
+	home := setupTestHome(t)
+	if err := EnsureConfigDir(); err != nil {
+		t.Fatal(err)
+	}
+
+	projDir := t.TempDir()
+	hatchYml := filepath.Join(projDir, "hatch.yml")
+	if err := os.WriteFile(hatchYml, []byte("domain: myapp.test\nservices:\n  web:\n    proxy: http://localhost:3000\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := DefaultConfig()
+	cfg.Projects["myapp"] = Project{
+		Domain:  "myapp.test",
+		Path:    projDir,
+		Enabled: true,
+	}
+	if err := Save(cfg); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+
+	loaded, err := LoadWithProjectConfigs()
+	if err != nil {
+		t.Fatalf("LoadWithProjectConfigs: %v", err)
+	}
+
+	proj, ok := loaded.Projects["myapp"]
+	if !ok {
+		t.Fatal("project myapp not found")
+	}
+	if proj.Services["web"].Proxy != "http://localhost:3000" {
+		t.Errorf("proxy: got %q, want %q", proj.Services["web"].Proxy, "http://localhost:3000")
+	}
+
+	// Verify that the saved config does NOT have services (they come from hatch.yml)
+	raw, err := LoadRaw()
+	if err != nil {
+		t.Fatalf("LoadRaw: %v", err)
+	}
+	rawProj := raw.Projects["myapp"]
+	if len(rawProj.Services) != 0 {
+		t.Errorf("saved config should not have services, got %d", len(rawProj.Services))
+	}
+	_ = home
 }
 
 func TestLoadRaw(t *testing.T) {
