@@ -2,7 +2,6 @@ package process
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -33,9 +32,9 @@ type Runner struct {
 	mu   sync.Mutex
 }
 
-// Start launches the process. The context is used only for cancellation
-// signalling — the process is stopped via Stop(), not context cancellation.
-func (r *Runner) Start(ctx context.Context) error {
+// Start launches the process. The process is stopped exclusively via Stop(),
+// which sends SIGTERM to the entire process group for clean shutdown.
+func (r *Runner) Start() error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -43,7 +42,7 @@ func (r *Runner) Start(ctx context.Context) error {
 	if shell == "" {
 		shell = "sh"
 	}
-	cmd := exec.CommandContext(ctx, shell, "-l", "-c", r.cfg.Command)
+	cmd := exec.Command(shell, "-l", "-c", r.cfg.Command)
 	cmd.Dir = r.cfg.Dir
 	cmd.Env = r.cfg.Env
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}

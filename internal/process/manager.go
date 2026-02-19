@@ -77,16 +77,33 @@ func NewManager(cfg ManagerConfig) *Manager {
 func (m *Manager) ApplyConfig(appCfg config.Config) error {
 	desired := m.buildDesired(appCfg)
 
+	// Stop processes no longer in config. Release the lock before waiting
+	// so Statuses() and Stop() are not blocked during graceful shutdown.
 	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	// Stop processes no longer in config.
+	var removed []*supervised
+	var removedIDs []ServiceID
 	for id, sup := range m.processes {
 		if _, ok := desired[id]; !ok {
 			sup.cancel()
-			<-sup.done
-			delete(m.processes, id)
+			removed = append(removed, sup)
+			removedIDs = append(removedIDs, id)
 		}
+	}
+	m.mu.Unlock()
+
+	var wg sync.WaitGroup
+	for _, sup := range removed {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-sup.done
+		}()
+	}
+	wg.Wait()
+
+	m.mu.Lock()
+	for _, id := range removedIDs {
+		delete(m.processes, id)
 	}
 
 	// Start or restart processes.
@@ -98,13 +115,16 @@ func (m *Manager) ApplyConfig(appCfg config.Config) error {
 			}
 			// Restart: stop old, start new.
 			existing.cancel()
+			m.mu.Unlock()
 			<-existing.done
+			m.mu.Lock()
 			delete(m.processes, id)
 		}
 
 		sup := m.startSupervised(id, want.command, want.dir, want.env)
 		m.processes[id] = sup
 	}
+	m.mu.Unlock()
 
 	return nil
 }
@@ -120,8 +140,16 @@ func (m *Manager) Stop() error {
 
 	for _, sup := range procs {
 		sup.cancel()
-		<-sup.done
 	}
+	var wg sync.WaitGroup
+	for _, sup := range procs {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-sup.done
+		}()
+	}
+	wg.Wait()
 
 	m.mu.Lock()
 	m.processes = make(map[ServiceID]*supervised)
@@ -258,7 +286,7 @@ func (m *Manager) supervise(ctx context.Context, sup *supervised) {
 			},
 		}}
 
-		if err := runner.Start(ctx); err != nil {
+		if err := runner.Start(); err != nil {
 			sup.mu.Lock()
 			sup.runner = nil
 			sup.mu.Unlock()
