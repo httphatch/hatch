@@ -12,6 +12,7 @@ export interface ProcessStatus {
   service: string;
   command: string;
   running: boolean;
+  stopped: boolean;
   restarts: number;
   started_at: string;
 }

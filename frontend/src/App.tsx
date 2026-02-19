@@ -15,7 +15,7 @@ function App() {
   const { projects, add, update, remove, toggle, loading, error } =
     useProjects();
   const { lookup } = useHealth();
-  const { lookup: processLookup } = useProcesses();
+  const { lookup: processLookup, refresh: refreshProcesses } = useProcesses();
   const { status } = useStatus();
 
   const [addOpen, setAddOpen] = useState(false);
@@ -57,6 +57,7 @@ function App() {
               onEdit={setEditTarget}
               onDelete={handleDelete}
               onAdd={() => setAddOpen(true)}
+              onProcessRefresh={refreshProcesses}
             />
             <RouteMap projects={projects} healthLookup={lookup} />
           </>

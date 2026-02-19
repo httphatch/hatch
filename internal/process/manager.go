@@ -2,6 +2,8 @@ package process
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,6 +21,12 @@ const (
 	backoffResetTime = 60 * time.Second
 )
 
+var (
+	ErrProcessNotFound   = errors.New("process not found")
+	ErrAlreadyStopped    = errors.New("process is already stopped")
+	ErrAlreadyRunning    = errors.New("process is already running")
+)
+
 // ServiceID uniquely identifies a managed process.
 type ServiceID struct {
 	Project string
@@ -31,9 +39,10 @@ func (id ServiceID) String() string {
 
 // ProcessStatus holds the current state of a managed process.
 type ProcessStatus struct {
-	Command  string    `json:"command"`
-	Running  bool      `json:"running"`
-	Restarts int       `json:"restarts"`
+	Command   string    `json:"command"`
+	Running   bool      `json:"running"`
+	Stopped   bool      `json:"stopped"`
+	Restarts  int       `json:"restarts"`
 	StartedAt time.Time `json:"started_at"`
 }
 
@@ -55,6 +64,7 @@ type supervised struct {
 	mu       sync.Mutex
 	restarts int
 	started  time.Time
+	stopped  bool
 }
 
 // Manager supervises processes defined in the Hatch config.
@@ -177,12 +187,80 @@ func (m *Manager) Statuses() map[ServiceID]ProcessStatus {
 		out[id] = ProcessStatus{
 			Command:   sup.command,
 			Running:   running,
+			Stopped:   sup.stopped,
 			Restarts:  sup.restarts,
 			StartedAt: sup.started,
 		}
 		sup.mu.Unlock()
 	}
 	return out
+}
+
+// StopProcess manually stops a running process. The process remains in the
+// process map but will not auto-restart until explicitly started again.
+func (m *Manager) StopProcess(id ServiceID) error {
+	m.mu.Lock()
+	sup, ok := m.processes[id]
+	if !ok {
+		m.mu.Unlock()
+		return fmt.Errorf("%w: %v", ErrProcessNotFound, id)
+	}
+	sup.mu.Lock()
+	if sup.stopped {
+		sup.mu.Unlock()
+		m.mu.Unlock()
+		return fmt.Errorf("%w: %v", ErrAlreadyStopped, id)
+	}
+	sup.stopped = true
+	sup.mu.Unlock()
+	sup.cancel()
+	m.mu.Unlock()
+	<-sup.done
+	return nil
+}
+
+// StartProcess resumes a manually stopped process by replacing the old
+// supervised entry with a fresh one, avoiding mutation of shared fields.
+func (m *Manager) StartProcess(id ServiceID) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	sup, ok := m.processes[id]
+	if !ok {
+		return fmt.Errorf("%w: %v", ErrProcessNotFound, id)
+	}
+	sup.mu.Lock()
+	if !sup.stopped {
+		sup.mu.Unlock()
+		return fmt.Errorf("%w: %v", ErrAlreadyRunning, id)
+	}
+	sup.mu.Unlock()
+
+	newSup := m.startSupervised(id, sup.command, sup.dir, sup.env)
+	m.processes[id] = newSup
+	return nil
+}
+
+// RestartProcess restarts a process. If running, it stops then starts it.
+// If already stopped, it just starts it.
+func (m *Manager) RestartProcess(id ServiceID) error {
+	m.mu.Lock()
+	sup, ok := m.processes[id]
+	if !ok {
+		m.mu.Unlock()
+		return fmt.Errorf("%w: %v", ErrProcessNotFound, id)
+	}
+	sup.mu.Lock()
+	wasStopped := sup.stopped
+	sup.mu.Unlock()
+	m.mu.Unlock()
+
+	if !wasStopped {
+		if err := m.StopProcess(id); err != nil {
+			return fmt.Errorf("stopping process: %w", err)
+		}
+	}
+	return m.StartProcess(id)
 }
 
 type desiredProcess struct {
@@ -321,12 +399,16 @@ func (m *Manager) supervise(ctx context.Context, sup *supervised) {
 		case <-runner.Done():
 		}
 
-		// Don't restart if context is cancelled.
+		// Don't restart if context is cancelled or manually stopped.
 		if ctx.Err() != nil {
 			return
 		}
 
 		sup.mu.Lock()
+		if sup.stopped {
+			sup.mu.Unlock()
+			return
+		}
 		if time.Since(startedAt) >= backoffResetTime {
 			backoff = minBackoff
 			sup.restarts = 0

@@ -92,6 +92,27 @@ export function getProcesses(): Promise<ProcessStatus[]> {
   return request("/api/processes");
 }
 
+export function stopProcess(project: string, service: string): Promise<void> {
+  return request(`/api/processes/${encodeURIComponent(project)}/${encodeURIComponent(service)}/stop`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+export function startProcess(project: string, service: string): Promise<void> {
+  return request(`/api/processes/${encodeURIComponent(project)}/${encodeURIComponent(service)}/start`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+export function restartProcess(project: string, service: string): Promise<void> {
+  return request(`/api/processes/${encodeURIComponent(project)}/${encodeURIComponent(service)}/restart`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 export function getCerts(): Promise<CertStatus> {
   return request("/api/certs");
 }

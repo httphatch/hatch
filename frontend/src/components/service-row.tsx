@@ -9,8 +9,9 @@ import {
 import { HealthDot } from "@/components/health-dot";
 import { ProcessOutputDialog } from "@/components/process-output-dialog";
 import { serviceUrl } from "@/lib/service-url";
+import { stopProcess, startProcess, restartProcess } from "@/api";
 import type { ProcessStatus, Service, ServiceHealth } from "@/types";
-import { ExternalLink, Terminal } from "lucide-react";
+import { ExternalLink, Play, RotateCw, Square, Terminal } from "lucide-react";
 import { Browser } from "@wailsio/runtime";
 
 interface ServiceRowProps {
@@ -20,11 +21,25 @@ interface ServiceRowProps {
   domain: string;
   process?: ProcessStatus;
   projectName: string;
+  onRefresh: () => void;
 }
 
-export function ServiceRow({ name, service, health, domain, process, projectName }: ServiceRowProps) {
+export function ServiceRow({ name, service, health, domain, process, projectName, onRefresh }: ServiceRowProps) {
   const url = serviceUrl(domain, service);
   const [outputOpen, setOutputOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  async function handleAction(action: "stop" | "start" | "restart") {
+    setActionLoading(action);
+    try {
+      if (action === "stop") await stopProcess(projectName, name);
+      else if (action === "start") await startProcess(projectName, name);
+      else await restartProcess(projectName, name);
+      onRefresh();
+    } finally {
+      setActionLoading(null);
+    }
+  }
 
   return (
     <div className="flex items-center gap-2 text-sm py-1">
@@ -65,6 +80,51 @@ export function ServiceRow({ name, service, health, domain, process, projectName
         <Badge variant="outline" className="text-xs">
           {process.restarts} restart{process.restarts !== 1 ? "s" : ""}
         </Badge>
+      )}
+      {process && process.running && (
+        <>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                disabled={actionLoading !== null}
+                onClick={() => handleAction("stop")}
+              >
+                <Square className={actionLoading === "stop" ? "animate-pulse" : ""} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Stop</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                disabled={actionLoading !== null}
+                onClick={() => handleAction("restart")}
+              >
+                <RotateCw className={actionLoading === "restart" ? "animate-spin" : ""} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Restart</TooltipContent>
+          </Tooltip>
+        </>
+      )}
+      {process && process.stopped && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              disabled={actionLoading !== null}
+              onClick={() => handleAction("start")}
+            >
+              <Play className={actionLoading === "start" ? "animate-pulse" : ""} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Start</TooltipContent>
+        </Tooltip>
       )}
       <Tooltip>
         <TooltipTrigger asChild>

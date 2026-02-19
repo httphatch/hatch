@@ -25,9 +25,12 @@ type DashboardShower interface {
 	ShowDashboard()
 }
 
-// ProcessStatuser provides a snapshot of managed process statuses.
-type ProcessStatuser interface {
+// ProcessController provides process status and control operations.
+type ProcessController interface {
 	Statuses() map[process.ServiceID]process.ProcessStatus
+	StopProcess(id process.ServiceID) error
+	StartProcess(id process.ServiceID) error
+	RestartProcess(id process.ServiceID) error
 }
 
 // Server is the HTTP API server for the Hatch dashboard.
@@ -36,7 +39,7 @@ type Server struct {
 	daemon    DaemonControl
 	dashboard DashboardShower
 	health    *health.Checker
-	processes ProcessStatuser
+	processes ProcessController
 	caPaths   certs.CAPaths
 	version   string
 	startTime time.Time
@@ -49,7 +52,7 @@ type Server struct {
 type ServerConfig struct {
 	Addr      string
 	Health    *health.Checker
-	Processes ProcessStatuser
+	Processes ProcessController
 	Daemon    DaemonControl
 	Dashboard DashboardShower
 	CAPaths   certs.CAPaths
@@ -122,6 +125,9 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PATCH /api/projects/{name}/toggle", s.handleToggleProject)
 	mux.HandleFunc("GET /api/health", s.handleHealth)
 	mux.HandleFunc("GET /api/processes", s.handleProcesses)
+	mux.HandleFunc("POST /api/processes/{project}/{service}/stop", requireJSON(s.handleProcessStop))
+	mux.HandleFunc("POST /api/processes/{project}/{service}/start", requireJSON(s.handleProcessStart))
+	mux.HandleFunc("POST /api/processes/{project}/{service}/restart", requireJSON(s.handleProcessRestart))
 	mux.HandleFunc("GET /api/processes/output", s.handleProcessOutput)
 	mux.HandleFunc("GET /api/logs", s.handleLogs)
 	mux.HandleFunc("GET /api/config", s.handleGetConfig)

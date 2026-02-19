@@ -10,6 +10,7 @@ interface ProjectListProps {
   onEdit: (name: string) => void;
   onDelete: (name: string) => void;
   onAdd: () => void;
+  onProcessRefresh: () => void;
 }
 
 export function ProjectList({
@@ -20,6 +21,7 @@ export function ProjectList({
   onEdit,
   onDelete,
   onAdd,
+  onProcessRefresh,
 }: ProjectListProps) {
   const entries = Object.entries(projects);
 
@@ -39,6 +41,7 @@ export function ProjectList({
           onToggle={onToggle}
           onEdit={onEdit}
           onDelete={onDelete}
+          onProcessRefresh={onProcessRefresh}
         />
       ))}
     </div>
