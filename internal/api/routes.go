@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/httphatch/hatch/internal/certs"
 	"github.com/httphatch/hatch/internal/config"
+	"github.com/httphatch/hatch/internal/process"
 )
 
 // maxBodySize is the maximum allowed request body (1 MB).
@@ -216,6 +218,7 @@ func (s *Server) handleProcesses(w http.ResponseWriter, r *http.Request) {
 		Service   string `json:"service"`
 		Command   string `json:"command"`
 		Running   bool   `json:"running"`
+		Stopped   bool   `json:"stopped"`
 		Restarts  int    `json:"restarts"`
 		StartedAt string `json:"started_at"`
 	}
@@ -227,6 +230,7 @@ func (s *Server) handleProcesses(w http.ResponseWriter, r *http.Request) {
 			Service:   id.Service,
 			Command:   st.Command,
 			Running:   st.Running,
+			Stopped:   st.Stopped,
 			Restarts:  st.Restarts,
 			StartedAt: st.StartedAt.Format(time.RFC3339),
 		})
@@ -238,6 +242,65 @@ func (s *Server) handleProcesses(w http.ResponseWriter, r *http.Request) {
 		return result[i].Service < result[j].Service
 	})
 	writeJSON(w, http.StatusOK, result)
+}
+
+func processErrorStatus(err error) int {
+	switch {
+	case errors.Is(err, process.ErrProcessNotFound):
+		return http.StatusNotFound
+	case errors.Is(err, process.ErrAlreadyStopped), errors.Is(err, process.ErrAlreadyRunning):
+		return http.StatusConflict
+	default:
+		return http.StatusBadRequest
+	}
+}
+
+func (s *Server) handleProcessStop(w http.ResponseWriter, r *http.Request) {
+	if s.processes == nil {
+		writeError(w, http.StatusNotImplemented, "process control not available")
+		return
+	}
+	id := process.ServiceID{
+		Project: r.PathValue("project"),
+		Service: r.PathValue("service"),
+	}
+	if err := s.processes.StopProcess(id); err != nil {
+		writeError(w, processErrorStatus(err), err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "stopped"})
+}
+
+func (s *Server) handleProcessStart(w http.ResponseWriter, r *http.Request) {
+	if s.processes == nil {
+		writeError(w, http.StatusNotImplemented, "process control not available")
+		return
+	}
+	id := process.ServiceID{
+		Project: r.PathValue("project"),
+		Service: r.PathValue("service"),
+	}
+	if err := s.processes.StartProcess(id); err != nil {
+		writeError(w, processErrorStatus(err), err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "started"})
+}
+
+func (s *Server) handleProcessRestart(w http.ResponseWriter, r *http.Request) {
+	if s.processes == nil {
+		writeError(w, http.StatusNotImplemented, "process control not available")
+		return
+	}
+	id := process.ServiceID{
+		Project: r.PathValue("project"),
+		Service: r.PathValue("service"),
+	}
+	if err := s.processes.RestartProcess(id); err != nil {
+		writeError(w, processErrorStatus(err), err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "restarted"})
 }
 
 func (s *Server) handleProcessOutput(w http.ResponseWriter, r *http.Request) {

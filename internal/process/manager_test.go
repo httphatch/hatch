@@ -1,6 +1,7 @@
 package process
 
 import (
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -327,6 +328,145 @@ func TestManager_StartedAtUpdatesOnRestart(t *testing.T) {
 		default:
 			time.Sleep(50 * time.Millisecond)
 		}
+	}
+}
+
+func TestManager_StopProcess(t *testing.T) {
+	mgr := NewManager(ManagerConfig{})
+	defer func() { _ = mgr.Stop() }()
+
+	if err := mgr.ApplyConfig(testAppConfig("sleep 60")); err != nil {
+		t.Fatal(err)
+	}
+
+	id := ServiceID{Project: "myapp", Service: "worker"}
+	waitForRunning(t, mgr, id, 5*time.Second)
+
+	if err := mgr.StopProcess(id); err != nil {
+		t.Fatalf("StopProcess: %v", err)
+	}
+
+	st := mgr.Statuses()[id]
+	if st.Running {
+		t.Error("expected process to not be running after stop")
+	}
+	if !st.Stopped {
+		t.Error("expected process to be marked as stopped")
+	}
+
+	// Verify it stays stopped (no auto-restart) by waiting a bit.
+	time.Sleep(2 * time.Second)
+	st = mgr.Statuses()[id]
+	if st.Running {
+		t.Error("expected process to remain stopped, but it restarted")
+	}
+}
+
+func TestManager_StartProcess(t *testing.T) {
+	mgr := NewManager(ManagerConfig{})
+	defer func() { _ = mgr.Stop() }()
+
+	if err := mgr.ApplyConfig(testAppConfig("sleep 60")); err != nil {
+		t.Fatal(err)
+	}
+
+	id := ServiceID{Project: "myapp", Service: "worker"}
+	waitForRunning(t, mgr, id, 5*time.Second)
+
+	if err := mgr.StopProcess(id); err != nil {
+		t.Fatalf("StopProcess: %v", err)
+	}
+
+	if err := mgr.StartProcess(id); err != nil {
+		t.Fatalf("StartProcess: %v", err)
+	}
+
+	waitForRunning(t, mgr, id, 5*time.Second)
+	st := mgr.Statuses()[id]
+	if st.Stopped {
+		t.Error("expected process to not be marked as stopped after start")
+	}
+}
+
+func TestManager_RestartProcess(t *testing.T) {
+	mgr := NewManager(ManagerConfig{})
+	defer func() { _ = mgr.Stop() }()
+
+	if err := mgr.ApplyConfig(testAppConfig("sleep 60")); err != nil {
+		t.Fatal(err)
+	}
+
+	id := ServiceID{Project: "myapp", Service: "worker"}
+	waitForRunning(t, mgr, id, 5*time.Second)
+	st1 := mgr.Statuses()[id]
+
+	if err := mgr.RestartProcess(id); err != nil {
+		t.Fatalf("RestartProcess: %v", err)
+	}
+
+	waitForRunning(t, mgr, id, 5*time.Second)
+	st2 := mgr.Statuses()[id]
+	if !st2.StartedAt.After(st1.StartedAt) {
+		t.Error("expected new start time after restart")
+	}
+}
+
+func TestManager_RestartProcess_FromStopped(t *testing.T) {
+	mgr := NewManager(ManagerConfig{})
+	defer func() { _ = mgr.Stop() }()
+
+	if err := mgr.ApplyConfig(testAppConfig("sleep 60")); err != nil {
+		t.Fatal(err)
+	}
+
+	id := ServiceID{Project: "myapp", Service: "worker"}
+	waitForRunning(t, mgr, id, 5*time.Second)
+
+	if err := mgr.StopProcess(id); err != nil {
+		t.Fatalf("StopProcess: %v", err)
+	}
+
+	if err := mgr.RestartProcess(id); err != nil {
+		t.Fatalf("RestartProcess from stopped: %v", err)
+	}
+
+	waitForRunning(t, mgr, id, 5*time.Second)
+	st := mgr.Statuses()[id]
+	if !st.Running {
+		t.Error("expected process to be running after restart from stopped")
+	}
+}
+
+func TestManager_StopProcess_NotFound(t *testing.T) {
+	mgr := NewManager(ManagerConfig{})
+
+	id := ServiceID{Project: "unknown", Service: "svc"}
+	err := mgr.StopProcess(id)
+	if err == nil {
+		t.Fatal("expected error for unknown ServiceID")
+	}
+	if !errors.Is(err, ErrProcessNotFound) {
+		t.Errorf("expected ErrProcessNotFound, got: %v", err)
+	}
+}
+
+func TestManager_StartProcess_AlreadyRunning(t *testing.T) {
+	mgr := NewManager(ManagerConfig{})
+	defer func() { _ = mgr.Stop() }()
+
+	if err := mgr.ApplyConfig(testAppConfig("sleep 60")); err != nil {
+		t.Fatal(err)
+	}
+
+	id := ServiceID{Project: "myapp", Service: "worker"}
+	waitForRunning(t, mgr, id, 5*time.Second)
+
+	err := mgr.StartProcess(id)
+	if err == nil {
+		t.Fatal("expected error when starting an already running process")
+	}
+	if !errors.Is(err, ErrAlreadyRunning) {
+		t.Errorf("expected ErrAlreadyRunning, got: %v", err)
 	}
 }
 

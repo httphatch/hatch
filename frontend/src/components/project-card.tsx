@@ -26,6 +26,7 @@ interface ProjectCardProps {
   onToggle: (name: string) => void;
   onEdit: (name: string) => void;
   onDelete: (name: string) => void;
+  onProcessRefresh: () => void;
 }
 
 export function ProjectCard({
@@ -36,6 +37,7 @@ export function ProjectCard({
   onToggle,
   onEdit,
   onDelete,
+  onProcessRefresh,
 }: ProjectCardProps) {
   const url = `https://${project.domain}`;
 
@@ -118,6 +120,7 @@ export function ProjectCard({
               domain={project.domain}
               process={processLookup(name, svcName)}
               projectName={name}
+              onRefresh={onProcessRefresh}
             />
           ))}
         </div>
