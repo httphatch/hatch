@@ -1,7 +1,6 @@
 package process
 
 import (
-	"context"
 	"strings"
 	"sync"
 	"testing"
@@ -22,7 +21,7 @@ func TestRunner_BasicExecution(t *testing.T) {
 		},
 	}}
 
-	if err := r.Start(context.Background()); err != nil {
+	if err := r.Start(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -57,7 +56,7 @@ func TestRunner_StderrCapture(t *testing.T) {
 		},
 	}}
 
-	if err := r.Start(context.Background()); err != nil {
+	if err := r.Start(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -90,7 +89,7 @@ func TestRunner_Stop(t *testing.T) {
 		Command: "sleep 60",
 	}}
 
-	if err := r.Start(context.Background()); err != nil {
+	if err := r.Start(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -111,7 +110,7 @@ func TestRunner_ExitError(t *testing.T) {
 		Command: "exit 42",
 	}}
 
-	if err := r.Start(context.Background()); err != nil {
+	if err := r.Start(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -143,7 +142,7 @@ func TestRunner_WorkingDirectory(t *testing.T) {
 		},
 	}}
 
-	if err := r.Start(context.Background()); err != nil {
+	if err := r.Start(); err != nil {
 		t.Fatal(err)
 	}
 
