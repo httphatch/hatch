@@ -1,6 +1,6 @@
 import { ProjectCard } from "@/components/project-card";
 import { EmptyState } from "@/components/empty-state";
-import type { ProcessStatus, Project, ServiceHealth } from "@/types";
+import type { ProcessStatus, Project, ServiceHealth, TunnelStatus } from "@/types";
 
 interface ProjectListProps {
   projects: Record<string, Project>;
@@ -10,7 +10,9 @@ interface ProjectListProps {
   onEdit: (name: string) => void;
   onDelete: (name: string) => void;
   onAdd: () => void;
+  tunnelLookup: (project: string, service: string) => TunnelStatus | undefined;
   onProcessRefresh: () => void;
+  onTunnelRefresh: () => void;
 }
 
 export function ProjectList({
@@ -21,7 +23,9 @@ export function ProjectList({
   onEdit,
   onDelete,
   onAdd,
+  tunnelLookup,
   onProcessRefresh,
+  onTunnelRefresh,
 }: ProjectListProps) {
   const entries = Object.entries(projects);
 
@@ -41,7 +45,9 @@ export function ProjectList({
           onToggle={onToggle}
           onEdit={onEdit}
           onDelete={onDelete}
+          tunnelLookup={tunnelLookup}
           onProcessRefresh={onProcessRefresh}
+          onTunnelRefresh={onTunnelRefresh}
         />
       ))}
     </div>

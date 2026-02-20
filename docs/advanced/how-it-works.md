@@ -119,9 +119,11 @@ A plist file is installed at `~/Library/LaunchAgents/dev.hatch.daemon.plist`. Ke
 4. Start DNS server
 5. Start Caddy with translated config
 6. Start health checker
-7. Start API server (`127.0.0.1:42824`)
-8. Start config file watcher
-9. Block until shutdown signal
+7. Start process manager (supervised commands)
+8. Start tunnel manager (Cloudflare Tunnels)
+9. Start API server (`127.0.0.1:42824`)
+10. Start config file watcher
+11. Block until shutdown signal
 
 ### Config Watching
 
@@ -131,6 +133,7 @@ The daemon watches `~/.hatch/config.yml` for changes using filesystem notificati
 2. Re-translate to Caddy JSON
 3. Push to Caddy via admin API
 4. Update health checker targets
+5. Reconcile tunnels (start new, stop removed)
 
 No daemon restart is required for config changes.
 
@@ -154,9 +157,28 @@ Key endpoints:
 | PUT | `/api/config` | Write config (YAML) |
 | GET | `/api/certs` | Certificate status |
 | GET | `/api/processes` | Process statuses |
+| GET | `/api/tunnels` | Tunnel statuses |
+| POST | `/api/tunnels/{project}/{service}/start` | Start a tunnel |
+| POST | `/api/tunnels/{project}/{service}/stop` | Stop a tunnel |
 | POST | `/api/restart` | Reload config |
 
 The API is localhost-only and used by both the CLI commands and the React dashboard.
+
+## Tunnels
+
+Hatch can expose local services to the internet via [Cloudflare Tunnels](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/). It runs cloudflared as a subprocess, one per active tunnel.
+
+**Quick tunnels** use `cloudflared tunnel --url <upstream>`. Hatch scans stdout for a `trycloudflare.com` URL and waits up to 30 seconds for it to appear. No Cloudflare account is needed.
+
+**Named tunnels** use `cloudflared tunnel run <name>` with the API token passed via the `TUNNEL_TOKEN` environment variable (never exposed in process arguments).
+
+**Rewrite proxy:** Quick tunnels route through a local rewrite proxy that sits between cloudflared and the upstream. The proxy does three things: (1) strips absolute localhost URLs from HTML responses so browsers don't block them under PNA policy, (2) discovers a secondary dev server (e.g. Vite) by finding localhost URLs on a different port than the upstream, and retries 404'd GET requests against it, (3) retries failed WebSocket upgrades against the dev server so HMR works through the tunnel. Named tunnels skip the proxy and connect directly to the upstream.
+
+**Binary discovery:** Hatch uses `exec.LookPath` to find cloudflared. On macOS, it also checks `/opt/homebrew/bin/cloudflared` and `/usr/local/bin/cloudflared` as fallbacks for launchd environments where Homebrew's bin directory is not in PATH.
+
+**Lifecycle:** The tunnel manager starts tunnels in background goroutines on daemon boot or config reload. Tunnel startup does not block the daemon. Tunnels are stopped on shutdown or when removed from config. If a tunnel process exits unexpectedly, it stays stopped. There is no automatic retry.
+
+**State persistence:** Running tunnel metadata (URLs, types, timestamps) is written to `~/.hatch/tunnels.json` for CLI status display. This is informational only; the manager does not restore tunnels from this file on startup.
 
 ## Health Checking
 
@@ -184,6 +206,7 @@ Services with a `command` field are managed as supervised processes.
 | `~/.hatch/certs/` | CA certificates and keys |
 | `~/.hatch/logs/hatch.log` | Daemon log file |
 | `~/.hatch/hatch.pid` | Daemon PID lock file |
+| `~/.hatch/tunnels.json` | Active tunnel metadata |
 | `~/.hatch/caddy/` | Caddy data (cached site certs) |
 | `/etc/resolver/<tld>` | macOS DNS resolver override |
 | `~/Library/LaunchAgents/dev.hatch.daemon.plist` | Launchd service |

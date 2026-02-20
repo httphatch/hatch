@@ -66,6 +66,9 @@
                             "Access-Control-Allow-Origin": [
                               "{http.request.header.Origin}"
                             ],
+                            "Access-Control-Allow-Private-Network": [
+                              "true"
+                            ],
                             "Access-Control-Max-Age": [
                               "3600"
                             ],
@@ -101,6 +104,9 @@
                               ],
                               "Access-Control-Allow-Origin": [
                                 "{http.request.header.Origin}"
+                              ],
+                              "Access-Control-Allow-Private-Network": [
+                                "true"
                               ],
                               "Vary": [
                                 "Origin"
@@ -165,6 +171,9 @@
                             "Access-Control-Allow-Origin": [
                               "{http.request.header.Origin}"
                             ],
+                            "Access-Control-Allow-Private-Network": [
+                              "true"
+                            ],
                             "Access-Control-Max-Age": [
                               "3600"
                             ],
@@ -200,6 +209,9 @@
                               ],
                               "Access-Control-Allow-Origin": [
                                 "{http.request.header.Origin}"
+                              ],
+                              "Access-Control-Allow-Private-Network": [
+                                "true"
                               ],
                               "Vary": [
                                 "Origin"
@@ -254,6 +266,9 @@
                             "Access-Control-Allow-Origin": [
                               "{http.request.header.Origin}"
                             ],
+                            "Access-Control-Allow-Private-Network": [
+                              "true"
+                            ],
                             "Access-Control-Max-Age": [
                               "3600"
                             ],
@@ -289,6 +304,9 @@
                               ],
                               "Access-Control-Allow-Origin": [
                                 "{http.request.header.Origin}"
+                              ],
+                              "Access-Control-Allow-Private-Network": [
+                                "true"
                               ],
                               "Vary": [
                                 "Origin"

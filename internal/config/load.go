@@ -131,6 +131,9 @@ func MergeAllProjectConfigs(cfg *Config) {
 		}
 		proj.Domain = pc.Domain
 		proj.Services = pc.Services
+		if pc.CloudflareToken != "" {
+			proj.CloudflareToken = pc.CloudflareToken
+		}
 		cfg.Projects[name] = proj
 	}
 }

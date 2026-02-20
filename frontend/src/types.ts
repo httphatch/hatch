@@ -5,6 +5,7 @@ export interface Service {
   websocket?: boolean;
   command?: string;
   env_file?: string;
+  tunnel?: string;
 }
 
 export interface ProcessStatus {
@@ -65,4 +66,15 @@ export interface CertInfo {
 export interface CertStatus {
   root_ca: CertInfo;
   intermediate_ca: CertInfo;
+}
+
+export interface TunnelStatus {
+  project: string;
+  service: string;
+  running: boolean;
+  starting: boolean;
+  url: string;
+  type: "quick" | "named";
+  started_at: string;
+  error?: string;
 }

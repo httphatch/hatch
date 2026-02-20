@@ -180,6 +180,36 @@ Complete uninstall. Stops the daemon, removes the DNS resolver, untrusts the roo
 hatch clean
 ```
 
+## Tunnels
+
+### `hatch tunnel start <project>/<service>`
+
+Start a Cloudflare Tunnel for a service. Requires cloudflared to be installed.
+
+```bash
+hatch tunnel start myapp/web
+```
+
+Prints the public tunnel URL on success. For quick tunnels, the URL is a temporary `trycloudflare.com` address.
+
+### `hatch tunnel stop <project>/<service>`
+
+Stop a running tunnel.
+
+```bash
+hatch tunnel stop myapp/web
+```
+
+### `hatch tunnel status`
+
+List all active tunnels with their type, URL, and uptime.
+
+```bash
+hatch tunnel status
+```
+
+See [Tunnels](/guide/tunnels) for setup and configuration.
+
 ## Config
 
 ### `hatch config`

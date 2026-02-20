@@ -14,6 +14,7 @@ services:
     route: <path-prefix>         # optional
     subdomain: <subdomain>       # optional
     websocket: <bool>            # optional, default: false
+    tunnel: <bool|string>        # optional
 ```
 
 ### `domain`
@@ -134,3 +135,19 @@ services:
 Produces:
 - `https://myapp.test` → `http://localhost:3000` (process managed by Hatch)
 - `worker` runs as a supervised process with no proxy route
+
+### Tunnel Support
+
+```yaml
+domain: myapp.test
+services:
+  web:
+    proxy: http://localhost:3000
+    tunnel: true
+```
+
+Produces:
+- `https://myapp.test` → `http://localhost:3000` (local)
+- `https://random-words.trycloudflare.com` → `http://localhost:3000` (public)
+
+See [Tunnels](/guide/tunnels) for quick vs named tunnels and token configuration.

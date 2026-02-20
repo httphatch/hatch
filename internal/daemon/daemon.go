@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/httphatch/hatch/internal/dns"
 	"github.com/httphatch/hatch/internal/health"
 	"github.com/httphatch/hatch/internal/process"
+	"github.com/httphatch/hatch/internal/tunnel"
 )
 
 // Daemon orchestrates all Hatch subsystems as a long-running background process.
@@ -27,6 +29,7 @@ type Daemon struct {
 	dns       *dns.Server
 	health    *health.Checker
 	processes *process.Manager
+	tunnels   *tunnel.Manager
 	watcher   *config.Watcher
 	api       *api.Server
 	pidFile   *os.File
@@ -171,11 +174,28 @@ func (d *Daemon) RunSubsystems(ctx context.Context, dashboard api.DashboardShowe
 	d.processes = procMgr
 	log.Info().Msg("process manager started")
 
+	// Start tunnel manager.
+	stateFile := filepath.Join(config.Dir(), "tunnels.json")
+	tunnelMgr := tunnel.NewManager(stateFile, func(project, service, source, line string) {
+		log.Info().
+			Str("project", project).
+			Str("service", service).
+			Str("source", source).
+			Msg(line)
+		d.outputHub.Write(project, service, source, line)
+	})
+	if err := tunnelMgr.ApplyConfig(cfg); err != nil {
+		log.Warn().Err(err).Msg("failed to apply tunnel config")
+	}
+	d.tunnels = tunnelMgr
+	log.Info().Msg("tunnel manager started")
+
 	// Start API server.
 	apiSrv := api.NewServer(api.ServerConfig{
 		Addr:      "127.0.0.1:42824",
 		Health:    d.health,
 		Processes: d.processes,
+		Tunnels:   d.tunnels,
 		Daemon:    d,
 		Dashboard: dashboard,
 		CAPaths:   d.caPaths,
@@ -262,6 +282,14 @@ func (d *Daemon) Shutdown() error {
 		log.Info().Msg("config watcher stopped")
 	}
 
+	// Tunnel manager (before process manager so tunnels disconnect first).
+	if d.tunnels != nil {
+		if err := d.tunnels.StopAll(); err != nil {
+			errs = append(errs, fmt.Errorf("stop tunnel manager: %w", err))
+		}
+		log.Info().Msg("tunnel manager stopped")
+	}
+
 	// Process manager.
 	if d.processes != nil {
 		if err := d.processes.Stop(); err != nil {
@@ -340,6 +368,12 @@ func (d *Daemon) onConfigReload(cfg config.Config) {
 		}
 	}
 
+	if d.tunnels != nil {
+		if err := d.tunnels.ApplyConfig(cfg); err != nil {
+			log.Error().Err(err).Msg("failed to apply tunnel config")
+		}
+	}
+
 	log.Info().Msg("config reloaded successfully")
 }
 
@@ -359,6 +393,9 @@ func (d *Daemon) shutdownPartial() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		_ = d.api.Shutdown(ctx)
 		cancel()
+	}
+	if d.tunnels != nil {
+		_ = d.tunnels.StopAll()
 	}
 	if d.processes != nil {
 		_ = d.processes.Stop()

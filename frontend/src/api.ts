@@ -1,4 +1,4 @@
-import type { CertStatus, DaemonStatus, ProcessStatus, Project, ServiceHealth } from "./types";
+import type { CertStatus, DaemonStatus, ProcessStatus, Project, ServiceHealth, TunnelStatus } from "./types";
 
 const BASE = "";
 
@@ -115,4 +115,22 @@ export function restartProcess(project: string, service: string): Promise<void> 
 
 export function getCerts(): Promise<CertStatus> {
   return request("/api/certs");
+}
+
+export function getTunnels(): Promise<TunnelStatus[]> {
+  return request("/api/tunnels");
+}
+
+export function startTunnel(project: string, service: string): Promise<{ url: string; status: string }> {
+  return request(`/api/tunnels/${encodeURIComponent(project)}/${encodeURIComponent(service)}/start`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+export function stopTunnel(project: string, service: string): Promise<void> {
+  return request(`/api/tunnels/${encodeURIComponent(project)}/${encodeURIComponent(service)}/stop`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
 }

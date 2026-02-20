@@ -15,17 +15,21 @@ settings:
   auto_start: true
   tray_icon: true
   log_level: info
+  cloudflare_token: "global-token"
 projects:
   myapp:
     domain: myapp.test
     path: /Users/me/projects/myapp
     enabled: true
+    cloudflare_token: "project-token"
     services:
       web:
         proxy: http://localhost:3000
+        tunnel: true
       api:
         proxy: http://localhost:8080
         subdomain: api
+        tunnel: my-api-tunnel
       docs:
         proxy: http://localhost:4000
         route: /docs
@@ -97,6 +101,13 @@ Show the Hatch tray icon and status menu (macOS only). Set to `false` to run the
 
 Controls the verbosity of daemon logs in `~/.hatch/logs/hatch.log`.
 
+### `settings.cloudflare_token`
+
+- **Type:** `string`
+- **Optional**
+
+Default Cloudflare API token for named tunnels. Can be overridden per-project. See [Tunnels](/guide/tunnels) for details.
+
 ## Projects
 
 Each key under `projects` is the project name. Projects are a map, so names must be unique.
@@ -121,6 +132,13 @@ Filesystem path to the project directory. Used by `hatch doctor` to detect stale
 - **Default:** `true`
 
 When `false`, the project's routes are excluded from the proxy config.
+
+### `projects.<name>.cloudflare_token`
+
+- **Type:** `string`
+- **Optional**
+
+Project-specific Cloudflare API token. Overrides `settings.cloudflare_token` for this project's named tunnels.
 
 ### `projects.<name>.services`
 
@@ -193,6 +211,25 @@ env_file: .env
 
 Enables WebSocket proxying for this service. Adds the necessary `Connection` and `Upgrade` headers and sets instant response flushing.
 
+### `services.<name>.tunnel`
+
+- **Type:** `string` or `boolean`
+- **Optional**
+
+Exposes this service to the internet via a Cloudflare Tunnel. Requires `proxy` to be set.
+
+- `true` — starts a quick tunnel (temporary URL, no account needed)
+- `"my-tunnel-name"` — starts a named tunnel (persistent domain, requires `cloudflare_token`)
+
+```yaml
+tunnel: true              # quick tunnel
+tunnel: my-tunnel-name    # named tunnel
+```
+
+Named tunnel values must contain only alphanumeric characters, hyphens, or underscores (max 63 characters). Named tunnels require a `cloudflare_token` at the project or settings level.
+
+See [Tunnels](/guide/tunnels) for a full guide.
+
 ## Validation Rules
 
 - `http_port` and `https_port` must be different
@@ -202,3 +239,5 @@ Enables WebSocket proxying for this service. Adds the necessary `Connection` and
 - Service `proxy` must be a valid URL
 - Service `subdomain` must be a valid DNS label
 - `route` and `subdomain` require `proxy`
+- `tunnel` requires `proxy`
+- Named tunnels require `cloudflare_token` at project or settings level
