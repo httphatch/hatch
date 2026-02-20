@@ -23,6 +23,9 @@ features:
   - title: Reverse Proxy
     details: Routes requests to your local services with path-based and subdomain-based routing.
     icon: 🔀
+  - title: Tunnels
+    details: Share local services publicly via Cloudflare Tunnels. Quick tunnels need no account; named tunnels give you a persistent domain.
+    icon: 🚇
   - title: Dashboard
     details: Visual GUI for managing projects, viewing logs, and monitoring service health.
     icon: 📊

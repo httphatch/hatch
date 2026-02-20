@@ -13,6 +13,7 @@ import (
 	"github.com/httphatch/hatch/internal/certs"
 	"github.com/httphatch/hatch/internal/health"
 	"github.com/httphatch/hatch/internal/process"
+	"github.com/httphatch/hatch/internal/tunnel"
 )
 
 // DaemonControl allows the API to trigger daemon operations.
@@ -23,6 +24,13 @@ type DaemonControl interface {
 // DashboardShower can show the GUI dashboard window.
 type DashboardShower interface {
 	ShowDashboard()
+}
+
+// TunnelController provides tunnel status and control operations.
+type TunnelController interface {
+	StartTunnel(id tunnel.TunnelID, upstream, tunnelName, token string) error
+	StopTunnel(id tunnel.TunnelID) error
+	Statuses() map[tunnel.TunnelID]tunnel.TunnelStatus
 }
 
 // ProcessController provides process status and control operations.
@@ -40,6 +48,7 @@ type Server struct {
 	dashboard DashboardShower
 	health    *health.Checker
 	processes ProcessController
+	tunnels   TunnelController
 	caPaths   certs.CAPaths
 	version   string
 	startTime time.Time
@@ -53,6 +62,7 @@ type ServerConfig struct {
 	Addr      string
 	Health    *health.Checker
 	Processes ProcessController
+	Tunnels   TunnelController
 	Daemon    DaemonControl
 	Dashboard DashboardShower
 	CAPaths   certs.CAPaths
@@ -69,6 +79,7 @@ func NewServer(cfg ServerConfig) *Server {
 		dashboard: cfg.Dashboard,
 		health:    cfg.Health,
 		processes: cfg.Processes,
+		tunnels:   cfg.Tunnels,
 		caPaths:   cfg.CAPaths,
 		version:   cfg.Version,
 		startTime: cfg.StartTime,
@@ -133,6 +144,9 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/config", s.handleGetConfig)
 	mux.HandleFunc("PUT /api/config", s.handlePutConfig)
 	mux.HandleFunc("GET /api/certs", s.handleCerts)
+	mux.HandleFunc("GET /api/tunnels", s.handleTunnels)
+	mux.HandleFunc("POST /api/tunnels/{project}/{service}/start", requireJSON(s.handleTunnelStart))
+	mux.HandleFunc("POST /api/tunnels/{project}/{service}/stop", requireJSON(s.handleTunnelStop))
 	mux.HandleFunc("POST /api/restart", requireJSON(s.handleRestart))
 	mux.HandleFunc("POST /api/dashboard/show", requireJSON(s.handleShowDashboard))
 }

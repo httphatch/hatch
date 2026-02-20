@@ -10,16 +10,18 @@ Key concepts:
 - **Services**: Each project has one or more services, each proxying to a local upstream (e.g., `http://localhost:3000`). Services can be routed by path prefix or subdomain.
 - **Certificates**: Hatch generates a local root CA and intermediate CA, trusted in the macOS Keychain. Per-domain certificates are issued automatically.
 - **DNS**: A local DNS server resolves `*.test` to localhost via a macOS resolver config in `/etc/resolver/`.
+- **Tunnels**: Expose local services to the internet via Cloudflare Tunnels. Quick tunnels (no account, temporary URL) and named tunnels (persistent domain, requires token). Includes a rewrite proxy that handles Vite/HMR compatibility.
 
 ## Guide
 
 - [What is Hatch?](https://httphatch.com/guide/what-is-hatch): Feature overview and how Hatch compares to editing /etc/hosts or using self-signed certificates.
 - [Getting Started](https://httphatch.com/guide/getting-started): Installation (Homebrew or source), first-time setup with `hatch init`, starting the daemon, and adding your first project.
+- [Tunnels](https://httphatch.com/guide/tunnels): Expose local services via Cloudflare Tunnels — quick tunnels, named tunnels, CLI commands, config-driven tunnels, and Vite/HMR compatibility.
 - [Dashboard](https://httphatch.com/guide/dashboard): Visual GUI for managing projects, viewing logs, and monitoring service health.
 
 ## Reference
 
-- [CLI](https://httphatch.com/reference/cli): Complete command reference — daemon management (`up`, `down`, `restart`, `status`, `logs`), project management (`add`, `link`, `unlink`, `list`, `remove`, `enable`, `disable`, `open`), system setup (`init`, `trust`, `doctor`, `clean`), and config commands.
+- [CLI](https://httphatch.com/reference/cli): Complete command reference — daemon management (`up`, `down`, `restart`, `status`, `logs`), project management (`add`, `link`, `unlink`, `list`, `remove`, `enable`, `disable`, `open`), tunnel management (`tunnel start`, `tunnel stop`, `tunnel status`), system setup (`init`, `trust`, `doctor`, `clean`), and config commands.
 - [Configuration](https://httphatch.com/reference/config): Global config file (`~/.hatch/config.yml`) — TLD, HTTP/HTTPS ports, auto-start, log level, and project/service definitions.
 - [.hatch.yml](https://httphatch.com/reference/hatch-yml): Per-project config file format — domain, services with proxy, route, subdomain, and websocket options.
 

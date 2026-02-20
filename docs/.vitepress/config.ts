@@ -20,6 +20,7 @@ export default defineConfig({
           { text: 'What is Hatch?', link: '/guide/what-is-hatch' },
           { text: 'Getting Started', link: '/guide/getting-started' },
           { text: 'Dashboard', link: '/guide/dashboard' },
+          { text: 'Tunnels', link: '/guide/tunnels' },
         ],
       },
       {

@@ -13,7 +13,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ServiceRow } from "@/components/service-row";
-import type { ProcessStatus, Project, ServiceHealth } from "@/types";
+import type { ProcessStatus, Project, ServiceHealth, TunnelStatus } from "@/types";
 import { Copy, ExternalLink, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Browser } from "@wailsio/runtime";
@@ -26,7 +26,9 @@ interface ProjectCardProps {
   onToggle: (name: string) => void;
   onEdit: (name: string) => void;
   onDelete: (name: string) => void;
+  tunnelLookup: (project: string, service: string) => TunnelStatus | undefined;
   onProcessRefresh: () => void;
+  onTunnelRefresh: () => void;
 }
 
 export function ProjectCard({
@@ -37,7 +39,9 @@ export function ProjectCard({
   onToggle,
   onEdit,
   onDelete,
+  tunnelLookup,
   onProcessRefresh,
+  onTunnelRefresh,
 }: ProjectCardProps) {
   const url = `https://${project.domain}`;
 
@@ -119,8 +123,10 @@ export function ProjectCard({
               health={healthLookup(name, svcName)}
               domain={project.domain}
               process={processLookup(name, svcName)}
+              tunnel={tunnelLookup(name, svcName)}
               projectName={name}
               onRefresh={onProcessRefresh}
+              onTunnelRefresh={onTunnelRefresh}
             />
           ))}
         </div>

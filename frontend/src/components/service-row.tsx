@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,9 +9,9 @@ import {
 import { HealthDot } from "@/components/health-dot";
 import { ProcessOutputDialog } from "@/components/process-output-dialog";
 import { serviceUrl } from "@/lib/service-url";
-import { stopProcess, startProcess, restartProcess } from "@/api";
-import type { ProcessStatus, Service, ServiceHealth } from "@/types";
-import { ExternalLink, Play, RotateCw, Square, Terminal } from "lucide-react";
+import { stopProcess, startProcess, restartProcess, startTunnel, stopTunnel } from "@/api";
+import type { ProcessStatus, Service, ServiceHealth, TunnelStatus } from "@/types";
+import { Cloud, CloudOff, ExternalLink, Play, RotateCw, Square, Terminal } from "lucide-react";
 import { Browser } from "@wailsio/runtime";
 
 interface ServiceRowProps {
@@ -20,14 +20,39 @@ interface ServiceRowProps {
   health?: ServiceHealth;
   domain: string;
   process?: ProcessStatus;
+  tunnel?: TunnelStatus;
   projectName: string;
   onRefresh: () => void;
+  onTunnelRefresh: () => void;
 }
 
-export function ServiceRow({ name, service, health, domain, process, projectName, onRefresh }: ServiceRowProps) {
+export function ServiceRow({ name, service, health, domain, process, tunnel, projectName, onRefresh, onTunnelRefresh }: ServiceRowProps) {
   const url = serviceUrl(domain, service);
   const [outputOpen, setOutputOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [tunnelLoading, setTunnelLoading] = useState(false);
+  const [tunnelError, setTunnelError] = useState<string | null>(null);
+
+  // Auto-clear tunnel errors after 5 seconds.
+  useEffect(() => {
+    if (!tunnelError) return;
+    const timer = setTimeout(() => setTunnelError(null), 5000);
+    return () => clearTimeout(timer);
+  }, [tunnelError]);
+
+  async function handleTunnelAction(action: "start" | "stop") {
+    setTunnelLoading(true);
+    setTunnelError(null);
+    try {
+      if (action === "start") await startTunnel(projectName, name);
+      else await stopTunnel(projectName, name);
+      onTunnelRefresh();
+    } catch (err) {
+      setTunnelError(err instanceof Error ? err.message : "Tunnel action failed");
+    } finally {
+      setTunnelLoading(false);
+    }
+  }
 
   async function handleAction(action: "stop" | "start" | "restart") {
     setActionLoading(action);
@@ -125,6 +150,61 @@ export function ServiceRow({ name, service, health, domain, process, projectName
           </TooltipTrigger>
           <TooltipContent>Start</TooltipContent>
         </Tooltip>
+      )}
+      {tunnel && tunnel.running && (
+        <>
+          {tunnel.url && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge
+                  variant="outline"
+                  className="text-xs text-muted-teal border-muted-teal cursor-pointer hover:bg-muted-teal/10"
+                  onClick={() => Browser.OpenURL(tunnel.url)}
+                >
+                  <Cloud className="mr-1 h-3 w-3" />
+                  {tunnel.url.replace(/^https?:\/\//, "")}
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>Open tunnel URL</TooltipContent>
+            </Tooltip>
+          )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                disabled={tunnelLoading}
+                onClick={() => handleTunnelAction("stop")}
+              >
+                <CloudOff className={tunnelLoading ? "animate-pulse" : ""} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Stop tunnel</TooltipContent>
+          </Tooltip>
+        </>
+      )}
+      {service.proxy && (!tunnel || (!tunnel.running && !tunnel.starting)) && !tunnelLoading && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              onClick={() => handleTunnelAction("start")}
+            >
+              <Cloud />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Start tunnel</TooltipContent>
+        </Tooltip>
+      )}
+      {(tunnelLoading || (tunnel && tunnel.starting)) && (
+        <Badge variant="outline" className="text-xs text-text-muted border-text-muted animate-pulse">
+          <Cloud className="mr-1 h-3 w-3" />
+          Starting tunnel...
+        </Badge>
+      )}
+      {tunnelError && (
+        <span className="text-xs text-destructive">{tunnelError}</span>
       )}
       <Tooltip>
         <TooltipTrigger asChild>

@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -18,6 +19,7 @@ import (
 	"github.com/httphatch/hatch/internal/certs"
 	"github.com/httphatch/hatch/internal/config"
 	"github.com/httphatch/hatch/internal/process"
+	"github.com/httphatch/hatch/internal/tunnel"
 )
 
 // maxBodySize is the maximum allowed request body (1 MB).
@@ -70,6 +72,11 @@ func (s *Server) handleListProjects(w http.ResponseWriter, r *http.Request) {
 	if projects == nil {
 		projects = make(map[string]config.Project)
 	}
+	// Strip tokens from API response to avoid leaking secrets.
+	for name, proj := range projects {
+		proj.CloudflareToken = ""
+		projects[name] = proj
+	}
 	writeJSON(w, http.StatusOK, projects)
 }
 
@@ -115,6 +122,7 @@ func (s *Server) handleAddProject(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to save config")
 		return
 	}
+	req.Project.CloudflareToken = ""
 	writeJSON(w, http.StatusCreated, req.Project)
 }
 
@@ -150,6 +158,7 @@ func (s *Server) handleUpdateProject(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to save config")
 		return
 	}
+	proj.CloudflareToken = ""
 	writeJSON(w, http.StatusOK, proj)
 }
 
@@ -249,6 +258,18 @@ func processErrorStatus(err error) int {
 	case errors.Is(err, process.ErrProcessNotFound):
 		return http.StatusNotFound
 	case errors.Is(err, process.ErrAlreadyStopped), errors.Is(err, process.ErrAlreadyRunning):
+		return http.StatusConflict
+	default:
+		return http.StatusBadRequest
+	}
+}
+
+func tunnelErrorStatus(err error) int {
+	msg := err.Error()
+	switch {
+	case strings.Contains(msg, "not found"):
+		return http.StatusNotFound
+	case strings.Contains(msg, "already running"), strings.Contains(msg, "already stopped"):
 		return http.StatusConflict
 	default:
 		return http.StatusBadRequest
@@ -456,6 +477,127 @@ func (s *Server) handleShowDashboard(w http.ResponseWriter, r *http.Request) {
 	}
 	s.dashboard.ShowDashboard()
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func (s *Server) handleTunnels(w http.ResponseWriter, r *http.Request) {
+	if s.tunnels == nil {
+		writeJSON(w, http.StatusOK, []any{})
+		return
+	}
+
+	statuses := s.tunnels.Statuses()
+
+	type tunnelInfo struct {
+		Project   string `json:"project"`
+		Service   string `json:"service"`
+		Running   bool   `json:"running"`
+		Starting  bool   `json:"starting"`
+		URL       string `json:"url"`
+		Type      string `json:"type"`
+		StartedAt string `json:"started_at"`
+		Error     string `json:"error,omitempty"`
+	}
+
+	result := make([]tunnelInfo, 0, len(statuses))
+	for id, st := range statuses {
+		startedAt := ""
+		if !st.StartedAt.IsZero() {
+			startedAt = st.StartedAt.Format(time.RFC3339)
+		}
+		result = append(result, tunnelInfo{
+			Project:   id.Project,
+			Service:   id.Service,
+			Running:   st.Running,
+			Starting:  st.Starting,
+			URL:       st.URL,
+			Type:      st.Type,
+			StartedAt: startedAt,
+			Error:     st.Error,
+		})
+	}
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].Project != result[j].Project {
+			return result[i].Project < result[j].Project
+		}
+		return result[i].Service < result[j].Service
+	})
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (s *Server) handleTunnelStart(w http.ResponseWriter, r *http.Request) {
+	limitBody(r, w)
+	if s.tunnels == nil {
+		writeError(w, http.StatusNotImplemented, "tunnel control not available")
+		return
+	}
+
+	project := r.PathValue("project")
+	service := r.PathValue("service")
+
+	cfg, err := config.LoadWithProjectConfigs()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load config")
+		return
+	}
+
+	proj, ok := cfg.Projects[project]
+	if !ok {
+		writeError(w, http.StatusNotFound, fmt.Sprintf("project %q not found", project))
+		return
+	}
+
+	svc, ok := proj.Services[service]
+	if !ok {
+		writeError(w, http.StatusNotFound, fmt.Sprintf("service %q not found in project %q", service, project))
+		return
+	}
+
+	if svc.Proxy == "" {
+		writeError(w, http.StatusBadRequest, "service has no proxy (nothing to tunnel)")
+		return
+	}
+
+	tunnelVal := string(svc.Tunnel)
+	if tunnelVal == "" {
+		tunnelVal = "true"
+	}
+
+	token := proj.CloudflareToken
+	if token == "" {
+		token = cfg.Settings.CloudflareToken
+	}
+
+	upstream := svc.Proxy
+	id := tunnel.TunnelID{Project: project, Service: service}
+	if err := s.tunnels.StartTunnel(id, upstream, tunnelVal, token); err != nil {
+		writeError(w, tunnelErrorStatus(err), err.Error())
+		return
+	}
+
+	statuses := s.tunnels.Statuses()
+	if st, ok := statuses[id]; ok {
+		writeJSON(w, http.StatusOK, map[string]string{"url": st.URL, "status": "started"})
+	} else {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "started"})
+	}
+}
+
+func (s *Server) handleTunnelStop(w http.ResponseWriter, r *http.Request) {
+	limitBody(r, w)
+	if s.tunnels == nil {
+		writeError(w, http.StatusNotImplemented, "tunnel control not available")
+		return
+	}
+
+	id := tunnel.TunnelID{
+		Project: r.PathValue("project"),
+		Service: r.PathValue("service"),
+	}
+	if err := s.tunnels.StopTunnel(id); err != nil {
+		writeError(w, tunnelErrorStatus(err), err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "stopped"})
 }
 
 func (s *Server) handleCerts(w http.ResponseWriter, r *http.Request) {

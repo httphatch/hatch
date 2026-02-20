@@ -9,6 +9,7 @@ import { SettingsDialog } from "@/components/settings-dialog";
 import { useProjects } from "@/hooks/use-projects";
 import { useHealth } from "@/hooks/use-health";
 import { useProcesses } from "@/hooks/use-processes";
+import { useTunnels } from "@/hooks/use-tunnels";
 import { useStatus } from "@/hooks/use-status";
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
     useProjects();
   const { lookup } = useHealth();
   const { lookup: processLookup, refresh: refreshProcesses } = useProcesses();
+  const { lookup: tunnelLookup, refresh: refreshTunnels } = useTunnels();
   const { status } = useStatus();
 
   const [addOpen, setAddOpen] = useState(false);
@@ -57,7 +59,9 @@ function App() {
               onEdit={setEditTarget}
               onDelete={handleDelete}
               onAdd={() => setAddOpen(true)}
+              tunnelLookup={tunnelLookup}
               onProcessRefresh={refreshProcesses}
+              onTunnelRefresh={refreshTunnels}
             />
             <RouteMap projects={projects} healthLookup={lookup} />
           </>

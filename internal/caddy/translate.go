@@ -140,11 +140,12 @@ func routeTier(info routeInfo) int {
 // requests work between .test subdomains during local development.
 func corsHeaders() map[string][]string {
 	return map[string][]string{
-		"Access-Control-Allow-Origin":      {"{http.request.header.Origin}"},
-		"Access-Control-Allow-Methods":     {"GET, POST, PUT, PATCH, DELETE, OPTIONS"},
-		"Access-Control-Allow-Headers":     {"Authorization, Content-Type, X-Requested-With, Accept, Origin"},
-		"Access-Control-Allow-Credentials": {"true"},
-		"Vary":                             {"Origin"},
+		"Access-Control-Allow-Origin":          {"{http.request.header.Origin}"},
+		"Access-Control-Allow-Methods":         {"GET, POST, PUT, PATCH, DELETE, OPTIONS"},
+		"Access-Control-Allow-Headers":         {"Authorization, Content-Type, X-Requested-With, Accept, Origin"},
+		"Access-Control-Allow-Credentials":     {"true"},
+		"Access-Control-Allow-Private-Network": {"true"},
+		"Vary":                                 {"Origin"},
 	}
 }
 

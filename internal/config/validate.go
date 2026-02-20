@@ -9,6 +9,7 @@ import (
 )
 
 var validHostnameLabel = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$`)
+var validTunnelName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_-]{0,62}$`)
 
 var allowedTLDs = map[string]bool{
 	"test":      true,
@@ -40,7 +41,7 @@ func Validate(cfg Config) []error {
 	// Projects
 	domains := make(map[string]string) // domain -> project name
 	for name, proj := range cfg.Projects {
-		errs = append(errs, validateProject(name, proj, cfg.Settings.TLD, domains)...)
+		errs = append(errs, validateProject(name, proj, cfg.Settings, domains)...)
 	}
 
 	return errs
@@ -72,9 +73,10 @@ func validateSettings(s Settings) []error {
 	return errs
 }
 
-func validateProject(name string, p Project, tld string, domains map[string]string) []error {
+func validateProject(name string, p Project, s Settings, domains map[string]string) []error {
 	var errs []error
 	prefix := fmt.Sprintf("projects.%s", name)
+	tld := s.TLD
 
 	// Domain: valid hostname ending with configured TLD
 	switch {
@@ -98,6 +100,12 @@ func validateProject(name string, p Project, tld string, domains map[string]stri
 		errs = append(errs, fmt.Errorf("%s.path must be an absolute path, got %q", prefix, p.Path))
 	}
 
+	// Resolve Cloudflare token: project-level overrides global.
+	token := s.CloudflareToken
+	if p.CloudflareToken != "" {
+		token = p.CloudflareToken
+	}
+
 	// Services — linked projects (with a Path) may have services defined in
 	// hatch.yml rather than in the central config, so empty services are
 	// allowed when a path is set.
@@ -105,19 +113,32 @@ func validateProject(name string, p Project, tld string, domains map[string]stri
 		errs = append(errs, fmt.Errorf("%s.services must have at least one entry", prefix))
 	}
 	for svcName, svc := range p.Services {
-		errs = append(errs, validateService(prefix, svcName, svc)...)
+		errs = append(errs, validateService(prefix, svcName, svc, token)...)
 	}
 
 	return errs
 }
 
-func validateService(prefix, name string, s Service) []error {
+func validateService(prefix, name string, s Service, token string) []error {
 	var errs []error
 	svcPrefix := fmt.Sprintf("%s.services.%s", prefix, name)
 
 	// At least one of command or proxy is required.
 	if s.Command == "" && s.Proxy == "" {
 		errs = append(errs, fmt.Errorf("%s: command or proxy is required", svcPrefix))
+	}
+
+	// Tunnel validation.
+	if s.Tunnel != "" && s.Proxy == "" {
+		errs = append(errs, fmt.Errorf("%s.tunnel requires proxy to be set", svcPrefix))
+	}
+	if s.Tunnel != "" && s.Tunnel != "true" {
+		if !validTunnelName.MatchString(string(s.Tunnel)) {
+			errs = append(errs, fmt.Errorf("%s.tunnel %q must contain only alphanumeric characters, hyphens, or underscores", svcPrefix, string(s.Tunnel)))
+		}
+		if token == "" {
+			errs = append(errs, fmt.Errorf("%s.tunnel: named tunnel %q requires a cloudflare_token", svcPrefix, string(s.Tunnel)))
+		}
 	}
 
 	// Proxy URL (validated only when set).
