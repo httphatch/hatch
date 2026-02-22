@@ -66,7 +66,7 @@ func TestLogHub_BufferOverflow(t *testing.T) {
 	hub := NewLogHub()
 
 	for i := 0; i < logBufferSize+50; i++ {
-		fmt.Fprintf(hub, "line %d", i)
+		_, _ = fmt.Fprintf(hub, "line %d", i)
 	}
 
 	ch, cleanup := hub.Subscribe()
@@ -94,7 +94,7 @@ func TestLogHub_SlowSubscriber(t *testing.T) {
 
 	// Fill channel beyond capacity; Write should not block.
 	for i := 0; i < logBufferSize+logChannelHeadroom+100; i++ {
-		fmt.Fprintf(hub, "line %d", i)
+		_, _ = fmt.Fprintf(hub, "line %d", i)
 	}
 
 	// Drain whatever arrived.
