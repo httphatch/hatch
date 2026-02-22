@@ -89,6 +89,8 @@ Hatch embeds [Caddy](https://caddyserver.com) as a library. Caddy handles TLS te
 
 Routes are sorted by specificity: subdomains first, then path routes, then catch-all.
 
+**Error pages:** When an upstream returns 502 or 503, Caddy intercepts the response and serves a branded HTML page showing the failing domain and upstream URL. A catch-all fallback route with no host matcher is appended as the last HTTPS route. Any request that does not match a configured domain receives a 404 HTML page listing all configured domains and their upstreams.
+
 **HTTP → HTTPS redirect:** All HTTP requests are redirected to HTTPS with a 302.
 
 **Live reload:** When `config.yml` changes, Hatch re-translates the config and loads it into Caddy via its admin API (`localhost:2019`). No process restart needed.
