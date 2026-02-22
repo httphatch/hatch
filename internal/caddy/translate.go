@@ -2,8 +2,10 @@ package caddy
 
 import (
 	"fmt"
+	"html"
 	"net/url"
 	"sort"
+	"strings"
 
 	"github.com/httphatch/hatch/internal/config"
 )
@@ -117,10 +119,15 @@ func buildRoutes(cfg config.Config) []map[string]any {
 		return infos[i].domain < infos[j].domain
 	})
 
-	routes := make([]map[string]any, 0, len(infos))
+	routes := make([]map[string]any, 0, len(infos)+1)
 	for _, info := range infos {
 		routes = append(routes, buildRoute(info.domain, info.service))
 	}
+
+	if len(routes) > 0 {
+		routes = append(routes, buildFallbackRoute(infos))
+	}
+
 	return routes
 }
 
@@ -159,7 +166,7 @@ func buildRoute(domain string, svc config.Service) map[string]any {
 		match["path"] = []string{svc.Route}
 	}
 
-	proxyHandler := buildReverseProxyHandler(svc.Proxy, svc.WebSocket)
+	proxyHandler := buildReverseProxyHandler(svc.Proxy, svc.WebSocket, domain)
 
 	cors := corsHeaders()
 
@@ -208,11 +215,12 @@ func buildRoute(domain string, svc config.Service) map[string]any {
 
 // buildReverseProxyHandler builds a reverse_proxy handler with the dial address
 // extracted from proxyURL. If websocket is true, it adds flush_interval: -1 and
-// Connection/Upgrade header forwarding.
-func buildReverseProxyHandler(proxyURL string, websocket bool) map[string]any {
+// Connection/Upgrade header forwarding. The domain is used for error response pages.
+func buildReverseProxyHandler(proxyURL string, websocket bool, domain string) map[string]any {
 	handler := map[string]any{
-		"handler":   "reverse_proxy",
-		"upstreams": []map[string]any{{"dial": extractDialAddress(proxyURL)}},
+		"handler":          "reverse_proxy",
+		"upstreams":        []map[string]any{{"dial": extractDialAddress(proxyURL)}},
+		"handle_response":  buildErrorResponse(domain, proxyURL),
 	}
 
 	if websocket {
@@ -228,6 +236,176 @@ func buildReverseProxyHandler(proxyURL string, websocket bool) map[string]any {
 	}
 
 	return handler
+}
+
+// buildFallbackRoute builds a catch-all route with no host matcher that returns
+// a branded 404 page listing all configured domains. Appended as the last HTTPS
+// route so it only matches requests that fell through all project routes.
+func buildFallbackRoute(infos []routeInfo) map[string]any {
+	sorted := make([]routeInfo, len(infos))
+	copy(sorted, infos)
+	sort.SliceStable(sorted, func(i, j int) bool {
+		return sorted[i].domain < sorted[j].domain
+	})
+
+	var rows []string
+	for _, info := range sorted {
+		safeDomain := html.EscapeString(info.domain)
+		safeProxy := html.EscapeString(info.service.Proxy)
+		rows = append(rows, fmt.Sprintf(
+			`<tr><td>%s</td><td>%s</td></tr>`,
+			safeDomain, safeProxy,
+		))
+	}
+
+	tableHTML := strings.Join(rows, "\n              ")
+
+	body := fmt.Sprintf(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>404 - Not Found</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #faf5ef; color: #2d2d2d; padding: 40px 20px; }
+    .container { max-width: 640px; margin: 0 auto; }
+    h1 { font-size: 24px; color: #5f8f8f; margin-bottom: 8px; }
+    .subtitle { font-size: 14px; color: #666; margin-bottom: 32px; }
+    .card { background: #fff; border: 1px solid #e0d8cf; border-radius: 8px; padding: 24px; margin-bottom: 24px; }
+    .card h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: #999; margin-bottom: 12px; }
+    .detail { font-size: 15px; margin-bottom: 4px; }
+    .detail strong { color: #5f8f8f; }
+    table { width: 100%%; border-collapse: collapse; margin-top: 8px; }
+    th, td { text-align: left; padding: 8px 12px; font-size: 14px; }
+    th { color: #999; font-weight: 500; border-bottom: 1px solid #e0d8cf; }
+    td { border-bottom: 1px solid #f0ebe4; }
+    ul { list-style: none; padding: 0; }
+    ul li { font-size: 14px; padding: 4px 0; color: #666; }
+    ul li::before { content: "\2022"; color: #5f8f8f; display: inline-block; width: 16px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Hatch</h1>
+    <p class="subtitle">No route matched this request.</p>
+    <div class="card">
+      <h2>Request</h2>
+      <p class="detail"><strong>Host:</strong> <span id="h"></span></p>
+      <p class="detail"><strong>URL:</strong> <span id="u"></span></p>
+    </div>
+    <div class="card">
+      <h2>Configured domains</h2>
+      <table>
+        <tr><th>Domain</th><th>Upstream</th></tr>
+        %s
+      </table>
+    </div>
+    <div class="card">
+      <h2>Common causes</h2>
+      <ul>
+        <li>The domain is not configured in ~/.hatch/config.yml</li>
+        <li>The project is disabled</li>
+        <li>The Host header does not match any configured domain</li>
+      </ul>
+    </div>
+  </div>
+  <script>document.getElementById("h").textContent=location.host;document.getElementById("u").textContent=location.pathname+location.search;</script>
+</body>
+</html>`, tableHTML)
+
+	return map[string]any{
+		"handle": []map[string]any{
+			{
+				"handler":     "static_response",
+				"status_code": "404",
+				"headers": map[string]any{
+					"Content-Type": []string{"text/html; charset=utf-8"},
+				},
+				"body": body,
+			},
+		},
+		"terminal": true,
+	}
+}
+
+// buildErrorResponse returns handle_response entries that intercept 502 and
+// 503 responses from the upstream and replace them with branded error pages
+// showing the failing domain and upstream.
+func buildErrorResponse(domain, upstream string) []map[string]any {
+	safeDomain := html.EscapeString(domain)
+	safeUpstream := html.EscapeString(upstream)
+
+	errorPage := func(statusCode int, title, subtitle string) map[string]any {
+		body := fmt.Sprintf(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>%d - %s</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #faf5ef; color: #2d2d2d; padding: 40px 20px; }
+    .container { max-width: 640px; margin: 0 auto; }
+    h1 { font-size: 24px; color: #5f8f8f; margin-bottom: 8px; }
+    .subtitle { font-size: 14px; color: #666; margin-bottom: 32px; }
+    .card { background: #fff; border: 1px solid #e0d8cf; border-radius: 8px; padding: 24px; margin-bottom: 24px; }
+    .card h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: #999; margin-bottom: 12px; }
+    .detail { font-size: 15px; margin-bottom: 4px; }
+    .detail strong { color: #5f8f8f; }
+    ul { list-style: none; padding: 0; }
+    ul li { font-size: 14px; padding: 4px 0; color: #666; }
+    ul li::before { content: "\2022"; color: #5f8f8f; display: inline-block; width: 16px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Hatch</h1>
+    <p class="subtitle">%s</p>
+    <div class="card">
+      <h2>Request</h2>
+      <p class="detail"><strong>Domain:</strong> %s</p>
+      <p class="detail"><strong>URL:</strong> <span id="u"></span></p>
+      <p class="detail"><strong>Upstream:</strong> %s</p>
+    </div>
+    <div class="card">
+      <h2>What to check</h2>
+      <ul>
+        <li>Verify the upstream service at %s is running</li>
+        <li>Check the service logs for errors</li>
+        <li>Confirm the port number in your Hatch configuration</li>
+      </ul>
+    </div>
+  </div>
+  <script>document.getElementById("u").textContent=location.pathname+location.search;</script>
+</body>
+</html>`, statusCode, title, subtitle, safeDomain, safeUpstream, safeUpstream)
+
+		return map[string]any{
+			"match": map[string]any{
+				"status_code": []int{statusCode},
+			},
+			"routes": []map[string]any{
+				{
+					"handle": []map[string]any{
+						{
+							"handler":     "static_response",
+							"status_code": fmt.Sprintf("%d", statusCode),
+							"headers": map[string]any{
+								"Content-Type": []string{"text/html; charset=utf-8"},
+							},
+							"body": body,
+						},
+					},
+				},
+			},
+		}
+	}
+
+	return []map[string]any{
+		errorPage(502, "Bad Gateway", "The upstream service is not reachable."),
+		errorPage(503, "Service Unavailable", "The upstream service is temporarily unavailable."),
+	}
 }
 
 // buildHTTPRedirectRoutes builds HTTP→HTTPS redirect routes using a static_response

@@ -110,6 +110,7 @@ hatch doctor    # check launchd plist status
 **Symptoms:** Dashboard or `hatch status` shows a red health indicator.
 
 **Fixes:**
+- Visit the domain in your browser. If the upstream is down, Hatch shows a 502 error page with the configured upstream address and a checklist of things to verify.
 - Make sure your local dev server is actually running on the configured port
 - Check the proxy URL in your config matches your dev server's address
 - View logs for details: `hatch logs -f`

@@ -116,6 +116,54 @@
                         },
                         {
                           "flush_interval": -1,
+                          "handle_response": [
+                            {
+                              "match": {
+                                "status_code": [
+                                  502
+                                ]
+                              },
+                              "routes": [
+                                {
+                                  "handle": [
+                                    {
+                                      "body": "\u003c!DOCTYPE html\u003e\n\u003chtml lang=\"en\"\u003e\n\u003chead\u003e\n  \u003cmeta charset=\"utf-8\"\u003e\n  \u003cmeta name=\"viewport\" content=\"width=device-width, initial-scale=1\"\u003e\n  \u003ctitle\u003e502 - Bad Gateway\u003c/title\u003e\n  \u003cstyle\u003e\n    * { margin: 0; padding: 0; box-sizing: border-box; }\n    body { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif; background: #faf5ef; color: #2d2d2d; padding: 40px 20px; }\n    .container { max-width: 640px; margin: 0 auto; }\n    h1 { font-size: 24px; color: #5f8f8f; margin-bottom: 8px; }\n    .subtitle { font-size: 14px; color: #666; margin-bottom: 32px; }\n    .card { background: #fff; border: 1px solid #e0d8cf; border-radius: 8px; padding: 24px; margin-bottom: 24px; }\n    .card h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: #999; margin-bottom: 12px; }\n    .detail { font-size: 15px; margin-bottom: 4px; }\n    .detail strong { color: #5f8f8f; }\n    ul { list-style: none; padding: 0; }\n    ul li { font-size: 14px; padding: 4px 0; color: #666; }\n    ul li::before { content: \"\\2022\"; color: #5f8f8f; display: inline-block; width: 16px; }\n  \u003c/style\u003e\n\u003c/head\u003e\n\u003cbody\u003e\n  \u003cdiv class=\"container\"\u003e\n    \u003ch1\u003eHatch\u003c/h1\u003e\n    \u003cp class=\"subtitle\"\u003eThe upstream service is not reachable.\u003c/p\u003e\n    \u003cdiv class=\"card\"\u003e\n      \u003ch2\u003eRequest\u003c/h2\u003e\n      \u003cp class=\"detail\"\u003e\u003cstrong\u003eDomain:\u003c/strong\u003e ws.acme.test\u003c/p\u003e\n      \u003cp class=\"detail\"\u003e\u003cstrong\u003eURL:\u003c/strong\u003e \u003cspan id=\"u\"\u003e\u003c/span\u003e\u003c/p\u003e\n      \u003cp class=\"detail\"\u003e\u003cstrong\u003eUpstream:\u003c/strong\u003e http://localhost:6001\u003c/p\u003e\n    \u003c/div\u003e\n    \u003cdiv class=\"card\"\u003e\n      \u003ch2\u003eWhat to check\u003c/h2\u003e\n      \u003cul\u003e\n        \u003cli\u003eVerify the upstream service at http://localhost:6001 is running\u003c/li\u003e\n        \u003cli\u003eCheck the service logs for errors\u003c/li\u003e\n        \u003cli\u003eConfirm the port number in your Hatch configuration\u003c/li\u003e\n      \u003c/ul\u003e\n    \u003c/div\u003e\n  \u003c/div\u003e\n  \u003cscript\u003edocument.getElementById(\"u\").textContent=location.pathname+location.search;\u003c/script\u003e\n\u003c/body\u003e\n\u003c/html\u003e",
+                                      "handler": "static_response",
+                                      "headers": {
+                                        "Content-Type": [
+                                          "text/html; charset=utf-8"
+                                        ]
+                                      },
+                                      "status_code": "502"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "match": {
+                                "status_code": [
+                                  503
+                                ]
+                              },
+                              "routes": [
+                                {
+                                  "handle": [
+                                    {
+                                      "body": "\u003c!DOCTYPE html\u003e\n\u003chtml lang=\"en\"\u003e\n\u003chead\u003e\n  \u003cmeta charset=\"utf-8\"\u003e\n  \u003cmeta name=\"viewport\" content=\"width=device-width, initial-scale=1\"\u003e\n  \u003ctitle\u003e503 - Service Unavailable\u003c/title\u003e\n  \u003cstyle\u003e\n    * { margin: 0; padding: 0; box-sizing: border-box; }\n    body { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif; background: #faf5ef; color: #2d2d2d; padding: 40px 20px; }\n    .container { max-width: 640px; margin: 0 auto; }\n    h1 { font-size: 24px; color: #5f8f8f; margin-bottom: 8px; }\n    .subtitle { font-size: 14px; color: #666; margin-bottom: 32px; }\n    .card { background: #fff; border: 1px solid #e0d8cf; border-radius: 8px; padding: 24px; margin-bottom: 24px; }\n    .card h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: #999; margin-bottom: 12px; }\n    .detail { font-size: 15px; margin-bottom: 4px; }\n    .detail strong { color: #5f8f8f; }\n    ul { list-style: none; padding: 0; }\n    ul li { font-size: 14px; padding: 4px 0; color: #666; }\n    ul li::before { content: \"\\2022\"; color: #5f8f8f; display: inline-block; width: 16px; }\n  \u003c/style\u003e\n\u003c/head\u003e\n\u003cbody\u003e\n  \u003cdiv class=\"container\"\u003e\n    \u003ch1\u003eHatch\u003c/h1\u003e\n    \u003cp class=\"subtitle\"\u003eThe upstream service is temporarily unavailable.\u003c/p\u003e\n    \u003cdiv class=\"card\"\u003e\n      \u003ch2\u003eRequest\u003c/h2\u003e\n      \u003cp class=\"detail\"\u003e\u003cstrong\u003eDomain:\u003c/strong\u003e ws.acme.test\u003c/p\u003e\n      \u003cp class=\"detail\"\u003e\u003cstrong\u003eURL:\u003c/strong\u003e \u003cspan id=\"u\"\u003e\u003c/span\u003e\u003c/p\u003e\n      \u003cp class=\"detail\"\u003e\u003cstrong\u003eUpstream:\u003c/strong\u003e http://localhost:6001\u003c/p\u003e\n    \u003c/div\u003e\n    \u003cdiv class=\"card\"\u003e\n      \u003ch2\u003eWhat to check\u003c/h2\u003e\n      \u003cul\u003e\n        \u003cli\u003eVerify the upstream service at http://localhost:6001 is running\u003c/li\u003e\n        \u003cli\u003eCheck the service logs for errors\u003c/li\u003e\n        \u003cli\u003eConfirm the port number in your Hatch configuration\u003c/li\u003e\n      \u003c/ul\u003e\n    \u003c/div\u003e\n  \u003c/div\u003e\n  \u003cscript\u003edocument.getElementById(\"u\").textContent=location.pathname+location.search;\u003c/script\u003e\n\u003c/body\u003e\n\u003c/html\u003e",
+                                      "handler": "static_response",
+                                      "headers": {
+                                        "Content-Type": [
+                                          "text/html; charset=utf-8"
+                                        ]
+                                      },
+                                      "status_code": "503"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ],
                           "handler": "reverse_proxy",
                           "headers": {
                             "request": {
@@ -220,6 +268,54 @@
                           }
                         },
                         {
+                          "handle_response": [
+                            {
+                              "match": {
+                                "status_code": [
+                                  502
+                                ]
+                              },
+                              "routes": [
+                                {
+                                  "handle": [
+                                    {
+                                      "body": "\u003c!DOCTYPE html\u003e\n\u003chtml lang=\"en\"\u003e\n\u003chead\u003e\n  \u003cmeta charset=\"utf-8\"\u003e\n  \u003cmeta name=\"viewport\" content=\"width=device-width, initial-scale=1\"\u003e\n  \u003ctitle\u003e502 - Bad Gateway\u003c/title\u003e\n  \u003cstyle\u003e\n    * { margin: 0; padding: 0; box-sizing: border-box; }\n    body { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif; background: #faf5ef; color: #2d2d2d; padding: 40px 20px; }\n    .container { max-width: 640px; margin: 0 auto; }\n    h1 { font-size: 24px; color: #5f8f8f; margin-bottom: 8px; }\n    .subtitle { font-size: 14px; color: #666; margin-bottom: 32px; }\n    .card { background: #fff; border: 1px solid #e0d8cf; border-radius: 8px; padding: 24px; margin-bottom: 24px; }\n    .card h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: #999; margin-bottom: 12px; }\n    .detail { font-size: 15px; margin-bottom: 4px; }\n    .detail strong { color: #5f8f8f; }\n    ul { list-style: none; padding: 0; }\n    ul li { font-size: 14px; padding: 4px 0; color: #666; }\n    ul li::before { content: \"\\2022\"; color: #5f8f8f; display: inline-block; width: 16px; }\n  \u003c/style\u003e\n\u003c/head\u003e\n\u003cbody\u003e\n  \u003cdiv class=\"container\"\u003e\n    \u003ch1\u003eHatch\u003c/h1\u003e\n    \u003cp class=\"subtitle\"\u003eThe upstream service is not reachable.\u003c/p\u003e\n    \u003cdiv class=\"card\"\u003e\n      \u003ch2\u003eRequest\u003c/h2\u003e\n      \u003cp class=\"detail\"\u003e\u003cstrong\u003eDomain:\u003c/strong\u003e acme.test\u003c/p\u003e\n      \u003cp class=\"detail\"\u003e\u003cstrong\u003eURL:\u003c/strong\u003e \u003cspan id=\"u\"\u003e\u003c/span\u003e\u003c/p\u003e\n      \u003cp class=\"detail\"\u003e\u003cstrong\u003eUpstream:\u003c/strong\u003e http://localhost:8000\u003c/p\u003e\n    \u003c/div\u003e\n    \u003cdiv class=\"card\"\u003e\n      \u003ch2\u003eWhat to check\u003c/h2\u003e\n      \u003cul\u003e\n        \u003cli\u003eVerify the upstream service at http://localhost:8000 is running\u003c/li\u003e\n        \u003cli\u003eCheck the service logs for errors\u003c/li\u003e\n        \u003cli\u003eConfirm the port number in your Hatch configuration\u003c/li\u003e\n      \u003c/ul\u003e\n    \u003c/div\u003e\n  \u003c/div\u003e\n  \u003cscript\u003edocument.getElementById(\"u\").textContent=location.pathname+location.search;\u003c/script\u003e\n\u003c/body\u003e\n\u003c/html\u003e",
+                                      "handler": "static_response",
+                                      "headers": {
+                                        "Content-Type": [
+                                          "text/html; charset=utf-8"
+                                        ]
+                                      },
+                                      "status_code": "502"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "match": {
+                                "status_code": [
+                                  503
+                                ]
+                              },
+                              "routes": [
+                                {
+                                  "handle": [
+                                    {
+                                      "body": "\u003c!DOCTYPE html\u003e\n\u003chtml lang=\"en\"\u003e\n\u003chead\u003e\n  \u003cmeta charset=\"utf-8\"\u003e\n  \u003cmeta name=\"viewport\" content=\"width=device-width, initial-scale=1\"\u003e\n  \u003ctitle\u003e503 - Service Unavailable\u003c/title\u003e\n  \u003cstyle\u003e\n    * { margin: 0; padding: 0; box-sizing: border-box; }\n    body { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif; background: #faf5ef; color: #2d2d2d; padding: 40px 20px; }\n    .container { max-width: 640px; margin: 0 auto; }\n    h1 { font-size: 24px; color: #5f8f8f; margin-bottom: 8px; }\n    .subtitle { font-size: 14px; color: #666; margin-bottom: 32px; }\n    .card { background: #fff; border: 1px solid #e0d8cf; border-radius: 8px; padding: 24px; margin-bottom: 24px; }\n    .card h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: #999; margin-bottom: 12px; }\n    .detail { font-size: 15px; margin-bottom: 4px; }\n    .detail strong { color: #5f8f8f; }\n    ul { list-style: none; padding: 0; }\n    ul li { font-size: 14px; padding: 4px 0; color: #666; }\n    ul li::before { content: \"\\2022\"; color: #5f8f8f; display: inline-block; width: 16px; }\n  \u003c/style\u003e\n\u003c/head\u003e\n\u003cbody\u003e\n  \u003cdiv class=\"container\"\u003e\n    \u003ch1\u003eHatch\u003c/h1\u003e\n    \u003cp class=\"subtitle\"\u003eThe upstream service is temporarily unavailable.\u003c/p\u003e\n    \u003cdiv class=\"card\"\u003e\n      \u003ch2\u003eRequest\u003c/h2\u003e\n      \u003cp class=\"detail\"\u003e\u003cstrong\u003eDomain:\u003c/strong\u003e acme.test\u003c/p\u003e\n      \u003cp class=\"detail\"\u003e\u003cstrong\u003eURL:\u003c/strong\u003e \u003cspan id=\"u\"\u003e\u003c/span\u003e\u003c/p\u003e\n      \u003cp class=\"detail\"\u003e\u003cstrong\u003eUpstream:\u003c/strong\u003e http://localhost:8000\u003c/p\u003e\n    \u003c/div\u003e\n    \u003cdiv class=\"card\"\u003e\n      \u003ch2\u003eWhat to check\u003c/h2\u003e\n      \u003cul\u003e\n        \u003cli\u003eVerify the upstream service at http://localhost:8000 is running\u003c/li\u003e\n        \u003cli\u003eCheck the service logs for errors\u003c/li\u003e\n        \u003cli\u003eConfirm the port number in your Hatch configuration\u003c/li\u003e\n      \u003c/ul\u003e\n    \u003c/div\u003e\n  \u003c/div\u003e\n  \u003cscript\u003edocument.getElementById(\"u\").textContent=location.pathname+location.search;\u003c/script\u003e\n\u003c/body\u003e\n\u003c/html\u003e",
+                                      "handler": "static_response",
+                                      "headers": {
+                                        "Content-Type": [
+                                          "text/html; charset=utf-8"
+                                        ]
+                                      },
+                                      "status_code": "503"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ],
                           "handler": "reverse_proxy",
                           "upstreams": [
                             {
@@ -315,6 +411,54 @@
                           }
                         },
                         {
+                          "handle_response": [
+                            {
+                              "match": {
+                                "status_code": [
+                                  502
+                                ]
+                              },
+                              "routes": [
+                                {
+                                  "handle": [
+                                    {
+                                      "body": "\u003c!DOCTYPE html\u003e\n\u003chtml lang=\"en\"\u003e\n\u003chead\u003e\n  \u003cmeta charset=\"utf-8\"\u003e\n  \u003cmeta name=\"viewport\" content=\"width=device-width, initial-scale=1\"\u003e\n  \u003ctitle\u003e502 - Bad Gateway\u003c/title\u003e\n  \u003cstyle\u003e\n    * { margin: 0; padding: 0; box-sizing: border-box; }\n    body { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif; background: #faf5ef; color: #2d2d2d; padding: 40px 20px; }\n    .container { max-width: 640px; margin: 0 auto; }\n    h1 { font-size: 24px; color: #5f8f8f; margin-bottom: 8px; }\n    .subtitle { font-size: 14px; color: #666; margin-bottom: 32px; }\n    .card { background: #fff; border: 1px solid #e0d8cf; border-radius: 8px; padding: 24px; margin-bottom: 24px; }\n    .card h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: #999; margin-bottom: 12px; }\n    .detail { font-size: 15px; margin-bottom: 4px; }\n    .detail strong { color: #5f8f8f; }\n    ul { list-style: none; padding: 0; }\n    ul li { font-size: 14px; padding: 4px 0; color: #666; }\n    ul li::before { content: \"\\2022\"; color: #5f8f8f; display: inline-block; width: 16px; }\n  \u003c/style\u003e\n\u003c/head\u003e\n\u003cbody\u003e\n  \u003cdiv class=\"container\"\u003e\n    \u003ch1\u003eHatch\u003c/h1\u003e\n    \u003cp class=\"subtitle\"\u003eThe upstream service is not reachable.\u003c/p\u003e\n    \u003cdiv class=\"card\"\u003e\n      \u003ch2\u003eRequest\u003c/h2\u003e\n      \u003cp class=\"detail\"\u003e\u003cstrong\u003eDomain:\u003c/strong\u003e acme.test\u003c/p\u003e\n      \u003cp class=\"detail\"\u003e\u003cstrong\u003eURL:\u003c/strong\u003e \u003cspan id=\"u\"\u003e\u003c/span\u003e\u003c/p\u003e\n      \u003cp class=\"detail\"\u003e\u003cstrong\u003eUpstream:\u003c/strong\u003e http://localhost:3000\u003c/p\u003e\n    \u003c/div\u003e\n    \u003cdiv class=\"card\"\u003e\n      \u003ch2\u003eWhat to check\u003c/h2\u003e\n      \u003cul\u003e\n        \u003cli\u003eVerify the upstream service at http://localhost:3000 is running\u003c/li\u003e\n        \u003cli\u003eCheck the service logs for errors\u003c/li\u003e\n        \u003cli\u003eConfirm the port number in your Hatch configuration\u003c/li\u003e\n      \u003c/ul\u003e\n    \u003c/div\u003e\n  \u003c/div\u003e\n  \u003cscript\u003edocument.getElementById(\"u\").textContent=location.pathname+location.search;\u003c/script\u003e\n\u003c/body\u003e\n\u003c/html\u003e",
+                                      "handler": "static_response",
+                                      "headers": {
+                                        "Content-Type": [
+                                          "text/html; charset=utf-8"
+                                        ]
+                                      },
+                                      "status_code": "502"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "match": {
+                                "status_code": [
+                                  503
+                                ]
+                              },
+                              "routes": [
+                                {
+                                  "handle": [
+                                    {
+                                      "body": "\u003c!DOCTYPE html\u003e\n\u003chtml lang=\"en\"\u003e\n\u003chead\u003e\n  \u003cmeta charset=\"utf-8\"\u003e\n  \u003cmeta name=\"viewport\" content=\"width=device-width, initial-scale=1\"\u003e\n  \u003ctitle\u003e503 - Service Unavailable\u003c/title\u003e\n  \u003cstyle\u003e\n    * { margin: 0; padding: 0; box-sizing: border-box; }\n    body { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif; background: #faf5ef; color: #2d2d2d; padding: 40px 20px; }\n    .container { max-width: 640px; margin: 0 auto; }\n    h1 { font-size: 24px; color: #5f8f8f; margin-bottom: 8px; }\n    .subtitle { font-size: 14px; color: #666; margin-bottom: 32px; }\n    .card { background: #fff; border: 1px solid #e0d8cf; border-radius: 8px; padding: 24px; margin-bottom: 24px; }\n    .card h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: #999; margin-bottom: 12px; }\n    .detail { font-size: 15px; margin-bottom: 4px; }\n    .detail strong { color: #5f8f8f; }\n    ul { list-style: none; padding: 0; }\n    ul li { font-size: 14px; padding: 4px 0; color: #666; }\n    ul li::before { content: \"\\2022\"; color: #5f8f8f; display: inline-block; width: 16px; }\n  \u003c/style\u003e\n\u003c/head\u003e\n\u003cbody\u003e\n  \u003cdiv class=\"container\"\u003e\n    \u003ch1\u003eHatch\u003c/h1\u003e\n    \u003cp class=\"subtitle\"\u003eThe upstream service is temporarily unavailable.\u003c/p\u003e\n    \u003cdiv class=\"card\"\u003e\n      \u003ch2\u003eRequest\u003c/h2\u003e\n      \u003cp class=\"detail\"\u003e\u003cstrong\u003eDomain:\u003c/strong\u003e acme.test\u003c/p\u003e\n      \u003cp class=\"detail\"\u003e\u003cstrong\u003eURL:\u003c/strong\u003e \u003cspan id=\"u\"\u003e\u003c/span\u003e\u003c/p\u003e\n      \u003cp class=\"detail\"\u003e\u003cstrong\u003eUpstream:\u003c/strong\u003e http://localhost:3000\u003c/p\u003e\n    \u003c/div\u003e\n    \u003cdiv class=\"card\"\u003e\n      \u003ch2\u003eWhat to check\u003c/h2\u003e\n      \u003cul\u003e\n        \u003cli\u003eVerify the upstream service at http://localhost:3000 is running\u003c/li\u003e\n        \u003cli\u003eCheck the service logs for errors\u003c/li\u003e\n        \u003cli\u003eConfirm the port number in your Hatch configuration\u003c/li\u003e\n      \u003c/ul\u003e\n    \u003c/div\u003e\n  \u003c/div\u003e\n  \u003cscript\u003edocument.getElementById(\"u\").textContent=location.pathname+location.search;\u003c/script\u003e\n\u003c/body\u003e\n\u003c/html\u003e",
+                                      "handler": "static_response",
+                                      "headers": {
+                                        "Content-Type": [
+                                          "text/html; charset=utf-8"
+                                        ]
+                                      },
+                                      "status_code": "503"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ],
                           "handler": "reverse_proxy",
                           "upstreams": [
                             {
@@ -332,6 +476,21 @@
                   "host": [
                     "acme.test"
                   ]
+                }
+              ],
+              "terminal": true
+            },
+            {
+              "handle": [
+                {
+                  "body": "\u003c!DOCTYPE html\u003e\n\u003chtml lang=\"en\"\u003e\n\u003chead\u003e\n  \u003cmeta charset=\"utf-8\"\u003e\n  \u003cmeta name=\"viewport\" content=\"width=device-width, initial-scale=1\"\u003e\n  \u003ctitle\u003e404 - Not Found\u003c/title\u003e\n  \u003cstyle\u003e\n    * { margin: 0; padding: 0; box-sizing: border-box; }\n    body { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif; background: #faf5ef; color: #2d2d2d; padding: 40px 20px; }\n    .container { max-width: 640px; margin: 0 auto; }\n    h1 { font-size: 24px; color: #5f8f8f; margin-bottom: 8px; }\n    .subtitle { font-size: 14px; color: #666; margin-bottom: 32px; }\n    .card { background: #fff; border: 1px solid #e0d8cf; border-radius: 8px; padding: 24px; margin-bottom: 24px; }\n    .card h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: #999; margin-bottom: 12px; }\n    .detail { font-size: 15px; margin-bottom: 4px; }\n    .detail strong { color: #5f8f8f; }\n    table { width: 100%; border-collapse: collapse; margin-top: 8px; }\n    th, td { text-align: left; padding: 8px 12px; font-size: 14px; }\n    th { color: #999; font-weight: 500; border-bottom: 1px solid #e0d8cf; }\n    td { border-bottom: 1px solid #f0ebe4; }\n    ul { list-style: none; padding: 0; }\n    ul li { font-size: 14px; padding: 4px 0; color: #666; }\n    ul li::before { content: \"\\2022\"; color: #5f8f8f; display: inline-block; width: 16px; }\n  \u003c/style\u003e\n\u003c/head\u003e\n\u003cbody\u003e\n  \u003cdiv class=\"container\"\u003e\n    \u003ch1\u003eHatch\u003c/h1\u003e\n    \u003cp class=\"subtitle\"\u003eNo route matched this request.\u003c/p\u003e\n    \u003cdiv class=\"card\"\u003e\n      \u003ch2\u003eRequest\u003c/h2\u003e\n      \u003cp class=\"detail\"\u003e\u003cstrong\u003eHost:\u003c/strong\u003e \u003cspan id=\"h\"\u003e\u003c/span\u003e\u003c/p\u003e\n      \u003cp class=\"detail\"\u003e\u003cstrong\u003eURL:\u003c/strong\u003e \u003cspan id=\"u\"\u003e\u003c/span\u003e\u003c/p\u003e\n    \u003c/div\u003e\n    \u003cdiv class=\"card\"\u003e\n      \u003ch2\u003eConfigured domains\u003c/h2\u003e\n      \u003ctable\u003e\n        \u003ctr\u003e\u003cth\u003eDomain\u003c/th\u003e\u003cth\u003eUpstream\u003c/th\u003e\u003c/tr\u003e\n        \u003ctr\u003e\u003ctd\u003eacme.test\u003c/td\u003e\u003ctd\u003ehttp://localhost:8000\u003c/td\u003e\u003c/tr\u003e\n              \u003ctr\u003e\u003ctd\u003eacme.test\u003c/td\u003e\u003ctd\u003ehttp://localhost:3000\u003c/td\u003e\u003c/tr\u003e\n              \u003ctr\u003e\u003ctd\u003ews.acme.test\u003c/td\u003e\u003ctd\u003ehttp://localhost:6001\u003c/td\u003e\u003c/tr\u003e\n      \u003c/table\u003e\n    \u003c/div\u003e\n    \u003cdiv class=\"card\"\u003e\n      \u003ch2\u003eCommon causes\u003c/h2\u003e\n      \u003cul\u003e\n        \u003cli\u003eThe domain is not configured in ~/.hatch/config.yml\u003c/li\u003e\n        \u003cli\u003eThe project is disabled\u003c/li\u003e\n        \u003cli\u003eThe Host header does not match any configured domain\u003c/li\u003e\n      \u003c/ul\u003e\n    \u003c/div\u003e\n  \u003c/div\u003e\n  \u003cscript\u003edocument.getElementById(\"h\").textContent=location.host;document.getElementById(\"u\").textContent=location.pathname+location.search;\u003c/script\u003e\n\u003c/body\u003e\n\u003c/html\u003e",
+                  "handler": "static_response",
+                  "headers": {
+                    "Content-Type": [
+                      "text/html; charset=utf-8"
+                    ]
+                  },
+                  "status_code": "404"
                 }
               ],
               "terminal": true

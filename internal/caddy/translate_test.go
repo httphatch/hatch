@@ -2,8 +2,10 @@ package caddy
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/httphatch/hatch/internal/config"
@@ -60,8 +62,9 @@ func TestTranslate_SingleService(t *testing.T) {
 	httpsServer := servers["hatch_https"].(map[string]any)
 	routes := httpsServer["routes"].([]map[string]any)
 
-	if len(routes) != 1 {
-		t.Fatalf("expected 1 route, got %d", len(routes))
+	// 1 project route + 1 fallback route.
+	if len(routes) != 2 {
+		t.Fatalf("expected 2 routes, got %d", len(routes))
 	}
 
 	route := routes[0]
@@ -136,8 +139,9 @@ func TestTranslate_PathRouting(t *testing.T) {
 	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
 	routes := servers["hatch_https"].(map[string]any)["routes"].([]map[string]any)
 
-	if len(routes) != 1 {
-		t.Fatalf("expected 1 route, got %d", len(routes))
+	// 1 project route + 1 fallback route.
+	if len(routes) != 2 {
+		t.Fatalf("expected 2 routes, got %d", len(routes))
 	}
 
 	match := routes[0]["match"].([]map[string]any)[0]
@@ -174,8 +178,9 @@ func TestTranslate_SubdomainRouting(t *testing.T) {
 	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
 	routes := servers["hatch_https"].(map[string]any)["routes"].([]map[string]any)
 
-	if len(routes) != 1 {
-		t.Fatalf("expected 1 route, got %d", len(routes))
+	// 1 project route + 1 fallback route.
+	if len(routes) != 2 {
+		t.Fatalf("expected 2 routes, got %d", len(routes))
 	}
 
 	match := routes[0]["match"].([]map[string]any)[0]
@@ -209,8 +214,9 @@ func TestTranslate_WebSocket(t *testing.T) {
 	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
 	routes := servers["hatch_https"].(map[string]any)["routes"].([]map[string]any)
 
-	if len(routes) != 1 {
-		t.Fatalf("expected 1 route, got %d", len(routes))
+	// 1 project route + 1 fallback route.
+	if len(routes) != 2 {
+		t.Fatalf("expected 2 routes, got %d", len(routes))
 	}
 
 	subroute := routes[0]["handle"].([]map[string]any)[0]
@@ -253,8 +259,9 @@ func TestTranslate_RouteOrdering(t *testing.T) {
 	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
 	routes := servers["hatch_https"].(map[string]any)["routes"].([]map[string]any)
 
-	if len(routes) != 3 {
-		t.Fatalf("expected 3 routes, got %d", len(routes))
+	// 3 project routes + 1 fallback route.
+	if len(routes) != 4 {
+		t.Fatalf("expected 4 routes, got %d", len(routes))
 	}
 
 	// Route 0: subdomain (ws.acme.test)
@@ -282,6 +289,11 @@ func TestTranslate_RouteOrdering(t *testing.T) {
 	}
 	if _, hasPath := match2["path"]; hasPath {
 		t.Error("route 2: catch-all should not have path matcher")
+	}
+
+	// Route 3: fallback (no match key).
+	if _, hasMatch := routes[3]["match"]; hasMatch {
+		t.Error("route 3: fallback should not have match key")
 	}
 }
 
@@ -346,8 +358,9 @@ func TestTranslate_MultipleProjects(t *testing.T) {
 	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
 	routes := servers["hatch_https"].(map[string]any)["routes"].([]map[string]any)
 
-	if len(routes) != 2 {
-		t.Fatalf("expected 2 routes, got %d", len(routes))
+	// 2 project routes + 1 fallback route.
+	if len(routes) != 3 {
+		t.Fatalf("expected 3 routes, got %d", len(routes))
 	}
 
 	// Routes should be alphabetical (both are catch-all tier).
@@ -682,8 +695,9 @@ func TestTranslate_CommandOnlyServiceSkipped(t *testing.T) {
 	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
 	routes := servers["hatch_https"].(map[string]any)["routes"].([]map[string]any)
 
-	if len(routes) != 1 {
-		t.Fatalf("expected 1 route (command-only skipped), got %d", len(routes))
+	// 1 project route + 1 fallback route.
+	if len(routes) != 2 {
+		t.Fatalf("expected 2 routes (command-only skipped), got %d", len(routes))
 	}
 
 	host := routes[0]["match"].([]map[string]any)[0]["host"].([]string)[0]
@@ -735,6 +749,154 @@ func TestTranslate_AllCommandOnlyProject(t *testing.T) {
 	policies := tls["automation"].(map[string]any)["policies"].([]map[string]any)
 	if len(policies) != 0 {
 		t.Errorf("expected 0 TLS policies, got %d", len(policies))
+	}
+}
+
+func TestTranslate_FallbackRoute(t *testing.T) {
+	cfg := fullConfig()
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy")
+
+	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
+	routes := servers["hatch_https"].(map[string]any)["routes"].([]map[string]any)
+
+	// Last route should be the fallback with no match key.
+	fallback := routes[len(routes)-1]
+	if _, hasMatch := fallback["match"]; hasMatch {
+		t.Error("fallback route should not have a match key")
+	}
+
+	handlers := fallback["handle"].([]map[string]any)
+	if len(handlers) != 1 {
+		t.Fatalf("expected 1 handler, got %d", len(handlers))
+	}
+
+	handler := handlers[0]
+	if handler["handler"] != "static_response" {
+		t.Errorf("expected static_response handler, got %s", handler["handler"])
+	}
+	if handler["status_code"] != "404" {
+		t.Errorf("expected status 404, got %v", handler["status_code"])
+	}
+
+	body := handler["body"].(string)
+	if !strings.Contains(body, "acme.test") {
+		t.Error("fallback body should contain configured domain acme.test")
+	}
+	if !strings.Contains(body, "ws.acme.test") {
+		t.Error("fallback body should contain configured domain ws.acme.test")
+	}
+	if !strings.Contains(body, "http://localhost:3000") {
+		t.Error("fallback body should contain upstream http://localhost:3000")
+	}
+	if !strings.Contains(body, "location.host") {
+		t.Error("fallback body should use JS location.host for safe display")
+	}
+	if !strings.Contains(body, "location.pathname") {
+		t.Error("fallback body should use JS location.pathname for safe display")
+	}
+
+	headers := handler["headers"].(map[string]any)
+	ct := headers["Content-Type"].([]string)
+	if ct[0] != "text/html; charset=utf-8" {
+		t.Errorf("expected Content-Type text/html; charset=utf-8, got %s", ct[0])
+	}
+}
+
+func TestTranslate_FallbackRoute_EmptyConfig(t *testing.T) {
+	cfg := config.Config{
+		Version: 1,
+		Settings: config.Settings{
+			HTTPPort:  80,
+			HTTPSPort: 443,
+		},
+		Projects: map[string]config.Project{},
+	}
+
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy")
+
+	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
+	routes := servers["hatch_https"].(map[string]any)["routes"].([]map[string]any)
+
+	// No routes at all when config is empty (no fallback either).
+	if len(routes) != 0 {
+		t.Errorf("expected 0 routes for empty config, got %d", len(routes))
+	}
+}
+
+func TestTranslate_ErrorResponse(t *testing.T) {
+	cfg := config.Config{
+		Version: 1,
+		Settings: config.Settings{
+			HTTPPort:  80,
+			HTTPSPort: 443,
+		},
+		Projects: map[string]config.Project{
+			"myapp": {
+				Domain:  "myapp.test",
+				Path:    "/path/to/myapp",
+				Enabled: true,
+				Services: map[string]config.Service{
+					"web": {Proxy: "http://localhost:3000"},
+				},
+			},
+		},
+	}
+
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy")
+
+	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
+	routes := servers["hatch_https"].(map[string]any)["routes"].([]map[string]any)
+
+	// First route is the project route.
+	subroute := routes[0]["handle"].([]map[string]any)[0]
+	subRoutes := subroute["routes"].([]map[string]any)
+	proxyHandler := subRoutes[1]["handle"].([]map[string]any)[1]
+
+	if proxyHandler["handler"] != "reverse_proxy" {
+		t.Fatalf("expected reverse_proxy handler, got %s", proxyHandler["handler"])
+	}
+
+	handleResponse, ok := proxyHandler["handle_response"].([]map[string]any)
+	if !ok {
+		t.Fatal("expected handle_response on reverse_proxy handler")
+	}
+	if len(handleResponse) != 2 {
+		t.Fatalf("expected 2 handle_response entries (502 + 503), got %d", len(handleResponse))
+	}
+
+	// Check each entry has the correct status code.
+	for i, wantCode := range []int{502, 503} {
+		entry := handleResponse[i]
+		matcher := entry["match"].(map[string]any)
+		statusCodes := matcher["status_code"].([]int)
+		if len(statusCodes) != 1 || statusCodes[0] != wantCode {
+			t.Errorf("entry %d: expected status_code [%d], got %v", i, wantCode, statusCodes)
+		}
+
+		respRoutes := entry["routes"].([]map[string]any)
+		if len(respRoutes) != 1 {
+			t.Fatalf("entry %d: expected 1 response route, got %d", i, len(respRoutes))
+		}
+
+		respHandler := respRoutes[0]["handle"].([]map[string]any)[0]
+		if respHandler["handler"] != "static_response" {
+			t.Errorf("entry %d: expected static_response handler, got %s", i, respHandler["handler"])
+		}
+		wantStatus := fmt.Sprintf("%d", wantCode)
+		if respHandler["status_code"] != wantStatus {
+			t.Errorf("entry %d: expected status %s, got %v", i, wantStatus, respHandler["status_code"])
+		}
+
+		body := respHandler["body"].(string)
+		if !strings.Contains(body, "myapp.test") {
+			t.Errorf("entry %d: error response body should contain domain myapp.test", i)
+		}
+		if !strings.Contains(body, "http://localhost:3000") {
+			t.Errorf("entry %d: error response body should contain upstream http://localhost:3000", i)
+		}
+		if !strings.Contains(body, "location.pathname") {
+			t.Errorf("entry %d: error response body should use JS location.pathname for safe display", i)
+		}
 	}
 }
 
