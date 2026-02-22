@@ -3,7 +3,9 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -61,6 +63,7 @@ jobs:
         working-directory: frontend
 
   build:
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     runs-on: macos-latest
     needs: [test, lint, frontend]
     steps:
