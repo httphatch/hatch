@@ -1,4 +1,4 @@
-import type { CertStatus, DaemonStatus, ProcessStatus, Project, ServiceHealth, TunnelStatus } from "./types";
+import type { CertStatus, DaemonStatus, ProcessStatus, Project, ServiceHealth, Settings, TunnelStatus } from "./types";
 
 const BASE = "";
 
@@ -64,7 +64,10 @@ export function getHealth(): Promise<ServiceHealth[]> {
 }
 
 export function restartDaemon(): Promise<{ status: string }> {
-  return request("/api/restart", { method: "POST" });
+  return request("/api/restart", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
 export async function getConfig(): Promise<string> {
@@ -86,6 +89,18 @@ export async function updateConfig(yaml: string): Promise<void> {
     const text = await res.text().catch(() => res.statusText);
     throw new Error(`${res.status}: ${text}`);
   }
+}
+
+export function getSettings(): Promise<Settings> {
+  return request("/api/settings");
+}
+
+export function updateSettings(settings: Settings): Promise<void> {
+  return request("/api/settings", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(settings),
+  });
 }
 
 export function getProcesses(): Promise<ProcessStatus[]> {

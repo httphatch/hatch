@@ -70,6 +70,10 @@ func validateSettings(s Settings) []error {
 		errs = append(errs, fmt.Errorf("settings.log_level must be one of: debug, info, warn, error; got %q", s.LogLevel))
 	}
 
+	if len(s.CloudflareToken) > 512 {
+		errs = append(errs, fmt.Errorf("settings.cloudflare_token must not exceed 512 characters"))
+	}
+
 	return errs
 }
 

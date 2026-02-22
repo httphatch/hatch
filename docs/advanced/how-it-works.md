@@ -153,6 +153,8 @@ Key endpoints:
 | PATCH | `/api/projects/{name}/toggle` | Toggle enabled state |
 | GET | `/api/health` | Service health statuses |
 | GET | `/api/logs` | Live log stream (SSE) |
+| GET | `/api/settings` | Read global settings (JSON) |
+| PUT | `/api/settings` | Write global settings (JSON) |
 | GET | `/api/config` | Read config (YAML) |
 | PUT | `/api/config` | Write config (YAML) |
 | GET | `/api/certs` | Certificate status |
