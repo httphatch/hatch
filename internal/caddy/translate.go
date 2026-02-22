@@ -520,11 +520,27 @@ func buildServerErrorRoutes(infos []routeInfo) map[string]any {
 }
 
 // buildHTTPRedirectRoutes builds HTTP→HTTPS redirect routes using a static_response
-// handler with a 302 redirect for all project domains.
+// handler with a 302 redirect. A catch-all redirect (no host matcher) is appended
+// after the domain-specific routes so that unconfigured domains also redirect to
+// HTTPS, where the on-demand TLS and fallback 404 route handle them.
 func buildHTTPRedirectRoutes(cfg config.Config) []map[string]any {
+	redirectHandler := []map[string]any{
+		{
+			"handler":     "static_response",
+			"status_code": "302",
+			"headers": map[string]any{
+				"Location": []string{"https://{http.request.host}{http.request.uri}"},
+			},
+		},
+	}
+
 	domains := collectDomains(cfg)
 	if len(domains) == 0 {
-		return []map[string]any{}
+		return []map[string]any{
+			{
+				"handle": redirectHandler,
+			},
+		}
 	}
 
 	return []map[string]any{
@@ -532,15 +548,11 @@ func buildHTTPRedirectRoutes(cfg config.Config) []map[string]any {
 			"match": []map[string]any{
 				{"host": domains},
 			},
-			"handle": []map[string]any{
-				{
-					"handler":     "static_response",
-					"status_code": "302",
-					"headers": map[string]any{
-						"Location": []string{"https://{http.request.host}{http.request.uri}"},
-					},
-				},
-			},
+			"handle":   redirectHandler,
+			"terminal": true,
+		},
+		{
+			"handle": redirectHandler,
 		},
 	}
 }

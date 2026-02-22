@@ -382,8 +382,8 @@ func TestTranslate_HTTPRedirects(t *testing.T) {
 	httpServer := servers["hatch_http"].(map[string]any)
 	routes := httpServer["routes"].([]map[string]any)
 
-	if len(routes) != 1 {
-		t.Fatalf("expected 1 redirect route, got %d", len(routes))
+	if len(routes) != 2 {
+		t.Fatalf("expected 2 redirect routes (domain-specific + catch-all), got %d", len(routes))
 	}
 
 	match := routes[0]["match"].([]map[string]any)[0]
@@ -406,6 +406,16 @@ func TestTranslate_HTTPRedirects(t *testing.T) {
 	}
 	if handler["status_code"] != "302" {
 		t.Errorf("expected status 302, got %s", handler["status_code"])
+	}
+
+	// Second route: catch-all redirect with no host matcher.
+	catchAll := routes[1]
+	if _, hasMatch := catchAll["match"]; hasMatch {
+		t.Error("catch-all redirect should have no match field")
+	}
+	catchAllHandler := catchAll["handle"].([]map[string]any)[0]
+	if catchAllHandler["status_code"] != "302" {
+		t.Errorf("expected catch-all status 302, got %s", catchAllHandler["status_code"])
 	}
 }
 
@@ -494,8 +504,8 @@ func TestTranslate_EmptyConfig(t *testing.T) {
 	}
 
 	httpRoutes := servers["hatch_http"].(map[string]any)["routes"].([]map[string]any)
-	if len(httpRoutes) != 0 {
-		t.Errorf("expected 0 HTTP routes, got %d", len(httpRoutes))
+	if len(httpRoutes) != 1 {
+		t.Errorf("expected 1 HTTP route (catch-all redirect), got %d", len(httpRoutes))
 	}
 
 	tls := result["apps"].(map[string]any)["tls"].(map[string]any)
