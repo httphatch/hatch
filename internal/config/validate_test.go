@@ -308,6 +308,47 @@ func TestValidate_CloudflareTokenLength(t *testing.T) {
 	requireError(t, errs, "must not exceed 512 characters")
 }
 
+func TestValidate_NamedTunnelWithoutToken(t *testing.T) {
+	cfg := validConfig()
+	p := cfg.Projects["myapp"]
+	p.Services = map[string]Service{"web": {
+		Proxy:  "http://localhost:3000",
+		Tunnel: "my-tunnel",
+	}}
+	cfg.Projects["myapp"] = p
+	errs := Validate(cfg)
+	if len(errs) != 0 {
+		t.Errorf("named tunnel without token should be valid, got %v", errs)
+	}
+}
+
+func TestValidate_CloudflareAccountID(t *testing.T) {
+	tests := []struct {
+		name      string
+		accountID string
+		wantErr   string
+	}{
+		{"empty (optional)", "", ""},
+		{"valid 32-char hex", "abcdef0123456789abcdef0123456789", ""},
+		{"valid uppercase hex", "ABCDEF0123456789ABCDEF0123456789", ""},
+		{"too short", "abcdef", "must be a 32-character hex string"},
+		{"too long", "abcdef0123456789abcdef0123456789aa", "must be a 32-character hex string"},
+		{"non-hex chars", "ghijkl0123456789abcdef0123456789", "must be a 32-character hex string"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := validConfig()
+			cfg.Settings.CloudflareAccountID = tt.accountID
+			errs := Validate(cfg)
+			if tt.wantErr != "" {
+				requireError(t, errs, tt.wantErr)
+			} else if len(errs) != 0 {
+				t.Errorf("expected no errors, got %v", errs)
+			}
+		})
+	}
+}
+
 func TestValidate_NoProjects(t *testing.T) {
 	cfg := validConfig()
 	cfg.Projects = map[string]Project{}

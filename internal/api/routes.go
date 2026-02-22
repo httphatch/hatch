@@ -569,7 +569,7 @@ func (s *Server) handleTunnelStart(w http.ResponseWriter, r *http.Request) {
 
 	upstream := svc.Proxy
 	id := tunnel.TunnelID{Project: project, Service: service}
-	if err := s.tunnels.StartTunnel(id, upstream, tunnelVal, token); err != nil {
+	if err := s.tunnels.StartTunnel(id, upstream, tunnelVal, token, cfg.Settings.CloudflareAccountID); err != nil {
 		writeError(w, tunnelErrorStatus(err), err.Error())
 		return
 	}
@@ -606,6 +606,7 @@ func (s *Server) handleGetSettings(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to load config")
 		return
 	}
+	cfg.Settings.CloudflareToken = ""
 	writeJSON(w, http.StatusOK, cfg.Settings)
 }
 
@@ -625,6 +626,12 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to load config")
 		return
+	}
+
+	// Preserve existing token when the submitted value is empty (the GET
+	// endpoint redacts it, so the dashboard sends back an empty string).
+	if settings.CloudflareToken == "" {
+		settings.CloudflareToken = cfg.Settings.CloudflareToken
 	}
 
 	cfg.Settings = settings

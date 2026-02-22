@@ -24,7 +24,7 @@ type RunnerConfig struct {
 	Upstream string
 	// TunnelName is the named tunnel ID. Empty for quick tunnels.
 	TunnelName string
-	// Token is the Cloudflare API token for named tunnels.
+	// Token is the tunnel JWT for named tunnels (resolved from API or empty).
 	Token string
 	// CloudflaredPath is the path to the cloudflared binary.
 	CloudflaredPath string
@@ -75,8 +75,12 @@ func (r *Runner) Start() error {
 		cmd = exec.Command(r.cfg.CloudflaredPath, "tunnel", "--url", cfUpstream)
 	} else {
 		cmd = exec.Command(r.cfg.CloudflaredPath, "tunnel", "run", r.cfg.TunnelName)
-		// Pass token via environment to avoid exposing it in process args.
-		cmd.Env = append(os.Environ(), "TUNNEL_TOKEN="+r.cfg.Token)
+		if r.cfg.Token != "" {
+			// Build a minimal environment with only what cloudflared needs,
+			// plus the tunnel JWT. Avoids leaking other credentials from the
+			// daemon's environment.
+			cmd.Env = minimalEnv("TUNNEL_TOKEN=" + r.cfg.Token)
+		}
 	}
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
@@ -213,4 +217,16 @@ func (r *Runner) URL() string {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	return r.url
+}
+
+// minimalEnv builds a restricted environment for cloudflared containing only
+// HOME, PATH, USER, TMPDIR, and any extra entries passed as arguments.
+func minimalEnv(extra ...string) []string {
+	env := make([]string, 0, 4+len(extra))
+	for _, key := range []string{"HOME", "PATH", "USER", "TMPDIR"} {
+		if val := os.Getenv(key); val != "" {
+			env = append(env, key+"="+val)
+		}
+	}
+	return append(env, extra...)
 }

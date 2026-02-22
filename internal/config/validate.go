@@ -10,6 +10,8 @@ import (
 
 var validHostnameLabel = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$`)
 var validTunnelName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_-]{0,62}$`)
+var validCloudflareAccountID = regexp.MustCompile(`^[a-fA-F0-9]{32}$`)
+var validTokenChars = regexp.MustCompile(`^[\x21-\x7E]+$`)
 
 var allowedTLDs = map[string]bool{
 	"test":      true,
@@ -73,6 +75,13 @@ func validateSettings(s Settings) []error {
 	if len(s.CloudflareToken) > 512 {
 		errs = append(errs, fmt.Errorf("settings.cloudflare_token must not exceed 512 characters"))
 	}
+	if s.CloudflareToken != "" && !validTokenChars.MatchString(s.CloudflareToken) {
+		errs = append(errs, fmt.Errorf("settings.cloudflare_token must contain only printable ASCII characters"))
+	}
+
+	if s.CloudflareAccountID != "" && !validCloudflareAccountID.MatchString(s.CloudflareAccountID) {
+		errs = append(errs, fmt.Errorf("settings.cloudflare_account_id must be a 32-character hex string"))
+	}
 
 	return errs
 }
@@ -104,12 +113,6 @@ func validateProject(name string, p Project, s Settings, domains map[string]stri
 		errs = append(errs, fmt.Errorf("%s.path must be an absolute path, got %q", prefix, p.Path))
 	}
 
-	// Resolve Cloudflare token: project-level overrides global.
-	token := s.CloudflareToken
-	if p.CloudflareToken != "" {
-		token = p.CloudflareToken
-	}
-
 	// Services — linked projects (with a Path) may have services defined in
 	// hatch.yml rather than in the central config, so empty services are
 	// allowed when a path is set.
@@ -117,13 +120,13 @@ func validateProject(name string, p Project, s Settings, domains map[string]stri
 		errs = append(errs, fmt.Errorf("%s.services must have at least one entry", prefix))
 	}
 	for svcName, svc := range p.Services {
-		errs = append(errs, validateService(prefix, svcName, svc, token)...)
+		errs = append(errs, validateService(prefix, svcName, svc)...)
 	}
 
 	return errs
 }
 
-func validateService(prefix, name string, s Service, token string) []error {
+func validateService(prefix, name string, s Service) []error {
 	var errs []error
 	svcPrefix := fmt.Sprintf("%s.services.%s", prefix, name)
 
@@ -139,9 +142,6 @@ func validateService(prefix, name string, s Service, token string) []error {
 	if s.Tunnel != "" && s.Tunnel != "true" {
 		if !validTunnelName.MatchString(string(s.Tunnel)) {
 			errs = append(errs, fmt.Errorf("%s.tunnel %q must contain only alphanumeric characters, hyphens, or underscores", svcPrefix, string(s.Tunnel)))
-		}
-		if token == "" {
-			errs = append(errs, fmt.Errorf("%s.tunnel: named tunnel %q requires a cloudflare_token", svcPrefix, string(s.Tunnel)))
 		}
 	}
 

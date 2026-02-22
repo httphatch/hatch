@@ -203,6 +203,15 @@ export function SettingsForm() {
               </button>
             </div>
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="cf-account-id">Account ID</Label>
+            <Input
+              id="cf-account-id"
+              value={form.cloudflare_account_id ?? ""}
+              onChange={(e) => set("cloudflare_account_id", e.target.value)}
+              placeholder="Optional (auto-detected from token)"
+            />
+          </div>
         </CardContent>
       </Card>
 

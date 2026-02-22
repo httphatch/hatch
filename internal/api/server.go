@@ -31,7 +31,7 @@ type DashboardShower interface {
 
 // TunnelController provides tunnel status and control operations.
 type TunnelController interface {
-	StartTunnel(id tunnel.TunnelID, upstream, tunnelName, token string) error
+	StartTunnel(id tunnel.TunnelID, upstream, tunnelName, token, accountID string) error
 	StopTunnel(id tunnel.TunnelID) error
 	Statuses() map[tunnel.TunnelID]tunnel.TunnelStatus
 }

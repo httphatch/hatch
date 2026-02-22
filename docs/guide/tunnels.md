@@ -44,15 +44,13 @@ Quick tunnel URLs are temporary. They change each time the tunnel is started.
 
 ## Named Tunnels
 
-Named tunnels give you a persistent domain through your Cloudflare account. You need a Cloudflare API token and a pre-configured tunnel in the Cloudflare dashboard.
-
-Set the token globally or per-project:
+Named tunnels give you a persistent domain through your Cloudflare account. Create a tunnel in the Cloudflare dashboard, then set your API token and tunnel name in Hatch:
 
 ```yaml
 # ~/.hatch/config.yml
 version: 1
 settings:
-  cloudflare_token: "your-global-token"
+  cloudflare_token: "your-api-token"
 projects:
   myapp:
     domain: myapp.test
@@ -64,7 +62,28 @@ projects:
         tunnel: my-tunnel-name
 ```
 
-The tunnel name must match a tunnel configured in your Cloudflare dashboard. Tokens are never exposed in process arguments or API responses.
+When a named tunnel starts, Hatch uses the API token to resolve the tunnel JWT automatically:
+
+1. Looks up your Cloudflare account ID (or uses `cloudflare_account_id` if configured)
+2. Finds the tunnel by name in your account
+3. Fetches the tunnel-specific JWT
+4. Passes the JWT to cloudflared
+
+The tunnel name must match a tunnel configured in your Cloudflare dashboard. Tokens and JWTs are never exposed in process arguments or API responses.
+
+You can also run named tunnels without an API token. In this case, cloudflared falls back to credential files in `~/.cloudflared/` (created by `cloudflared tunnel login`).
+
+### Account ID
+
+If your API token has access to multiple Cloudflare accounts, Hatch uses the first one. To target a specific account, set `cloudflare_account_id` in settings:
+
+```yaml
+settings:
+  cloudflare_token: "your-api-token"
+  cloudflare_account_id: "abcdef0123456789abcdef0123456789"
+```
+
+The account ID must be a 32-character hexadecimal string. You can find it in the Cloudflare dashboard under your account overview.
 
 ## CLI Commands
 
