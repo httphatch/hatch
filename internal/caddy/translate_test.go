@@ -422,14 +422,15 @@ func TestTranslate_TLSAutomation(t *testing.T) {
 	}
 
 	subjects := policies[0]["subjects"].([]string)
-	if len(subjects) != 2 {
-		t.Fatalf("expected 2 TLS subjects, got %d", len(subjects))
+	// Includes *.test wildcard for fallback route TLS handshake.
+	want := []string{"*.test", "acme.test", "ws.acme.test"}
+	if len(subjects) != len(want) {
+		t.Fatalf("expected %d TLS subjects, got %d: %v", len(want), len(subjects), subjects)
 	}
-	if subjects[0] != "acme.test" {
-		t.Errorf("expected acme.test, got %s", subjects[0])
-	}
-	if subjects[1] != "ws.acme.test" {
-		t.Errorf("expected ws.acme.test, got %s", subjects[1])
+	for i, w := range want {
+		if subjects[i] != w {
+			t.Errorf("subject %d: expected %s, got %s", i, w, subjects[i])
+		}
 	}
 
 	issuers := policies[0]["issuers"].([]map[string]any)
@@ -896,6 +897,97 @@ func TestTranslate_ErrorResponse(t *testing.T) {
 		}
 		if !strings.Contains(body, "location.pathname") {
 			t.Errorf("entry %d: error response body should use JS location.pathname for safe display", i)
+		}
+	}
+}
+
+func TestTranslate_ServerErrorRoutes(t *testing.T) {
+	cfg := fullConfig()
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy")
+
+	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
+	httpsServer := servers["hatch_https"].(map[string]any)
+
+	errors, ok := httpsServer["errors"].(map[string]any)
+	if !ok {
+		t.Fatal("expected errors config on HTTPS server")
+	}
+
+	routes := errors["routes"].([]map[string]any)
+	if len(routes) != 1 {
+		t.Fatalf("expected 1 error route, got %d", len(routes))
+	}
+
+	handler := routes[0]["handle"].([]map[string]any)[0]
+	if handler["handler"] != "static_response" {
+		t.Errorf("expected static_response handler, got %s", handler["handler"])
+	}
+	if handler["status_code"] != "502" {
+		t.Errorf("expected status 502, got %v", handler["status_code"])
+	}
+
+	body := handler["body"].(string)
+	if !strings.Contains(body, "acme.test") {
+		t.Error("server error page should contain configured domain acme.test")
+	}
+	if !strings.Contains(body, "http://localhost:3000") {
+		t.Error("server error page should contain upstream http://localhost:3000")
+	}
+	if !strings.Contains(body, "location.host") {
+		t.Error("server error page should use JS location.host for safe display")
+	}
+}
+
+func TestTranslate_ServerErrorRoutes_EmptyConfig(t *testing.T) {
+	cfg := config.Config{
+		Version: 1,
+		Settings: config.Settings{
+			HTTPPort:  80,
+			HTTPSPort: 443,
+		},
+		Projects: map[string]config.Project{},
+	}
+
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy")
+
+	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
+	httpsServer := servers["hatch_https"].(map[string]any)
+
+	if _, ok := httpsServer["errors"]; ok {
+		t.Error("expected no errors config on HTTPS server when config is empty")
+	}
+}
+
+func TestTranslate_TLSWildcard_NoTLD(t *testing.T) {
+	cfg := config.Config{
+		Version: 1,
+		Settings: config.Settings{
+			HTTPPort:  80,
+			HTTPSPort: 443,
+			// TLD not set.
+		},
+		Projects: map[string]config.Project{
+			"myapp": {
+				Domain:  "myapp.test",
+				Path:    "/path/to/myapp",
+				Enabled: true,
+				Services: map[string]config.Service{
+					"web": {Proxy: "http://localhost:3000"},
+				},
+			},
+		},
+	}
+
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy")
+
+	tls := result["apps"].(map[string]any)["tls"].(map[string]any)
+	policies := tls["automation"].(map[string]any)["policies"].([]map[string]any)
+	subjects := policies[0]["subjects"].([]string)
+
+	// No wildcard when TLD is empty.
+	for _, s := range subjects {
+		if strings.HasPrefix(s, "*.") {
+			t.Errorf("expected no wildcard subject when TLD is empty, got %s", s)
 		}
 	}
 }
