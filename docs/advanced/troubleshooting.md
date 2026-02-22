@@ -46,23 +46,33 @@ hatch doctor    # check "Root CA trusted" status
 
 ### Port Conflicts
 
-**Symptoms:** `hatch up` fails or `hatch doctor` reports ports unavailable.
-
-**Diagnosis:**
-```bash
-# Check what's using port 80 or 443
-sudo lsof -i :80
-sudo lsof -i :443
-```
+**Symptoms:** `hatch up` fails with a message like `port 80 is already in use by nginx (PID 1234); stop that process first`. Or `hatch doctor` reports ports unavailable.
 
 **Fixes:**
-- Stop the conflicting process (Apache, Nginx, another proxy)
+- Stop the process named in the error, then run `hatch up` again
 - Or change Hatch's ports in `~/.hatch/config.yml`:
   ```yaml
   settings:
     http_port: 8080
     https_port: 8443
   ```
+
+**Manual diagnosis** (if needed):
+```bash
+sudo lsof -i :80
+sudo lsof -i :443
+```
+
+### Daemon Failed to Start
+
+**Symptoms:** `hatch up` prints `daemon failed to start; check logs with: hatch logs` and exits.
+
+The daemon process was launched but did not respond within 5 seconds.
+
+**Fixes:**
+- Run `hatch logs` to see what went wrong
+- Run `hatch doctor` to check for port conflicts or config errors
+- If logs show a port conflict, stop the conflicting process and run `hatch up` again
 
 ### Stale PID File
 

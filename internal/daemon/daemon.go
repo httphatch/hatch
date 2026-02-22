@@ -192,7 +192,7 @@ func (d *Daemon) RunSubsystems(ctx context.Context, dashboard api.DashboardShowe
 
 	// Start API server.
 	apiSrv := api.NewServer(api.ServerConfig{
-		Addr:      "127.0.0.1:42824",
+		Addr:      api.DefaultAddr,
 		Health:    d.health,
 		Processes: d.processes,
 		Tunnels:   d.tunnels,
@@ -209,7 +209,7 @@ func (d *Daemon) RunSubsystems(ctx context.Context, dashboard api.DashboardShowe
 		return fmt.Errorf("start api server: %w", err)
 	}
 	d.api = apiSrv
-	log.Info().Str("addr", "127.0.0.1:42824").Msg("api server started")
+	log.Info().Str("addr", api.DefaultAddr).Msg("api server started")
 
 	// Start config watcher.
 	watcher, err := config.NewWatcher(d.cfg, d.onConfigReload)

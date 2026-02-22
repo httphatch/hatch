@@ -57,7 +57,7 @@ This makes it easy to understand complex multi-service setups at a glance.
 
 ### Log Viewer
 
-The log viewer streams daemon logs in real time via server-sent events. Each entry shows:
+The log viewer streams daemon logs in real time via server-sent events. When you open the panel, it pre-fills with up to 200 recent log entries so you have immediate context. Each entry shows:
 
 - Timestamp
 - Log level
