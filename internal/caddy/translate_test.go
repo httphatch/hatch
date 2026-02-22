@@ -417,25 +417,34 @@ func TestTranslate_TLSAutomation(t *testing.T) {
 	automation := tls["automation"].(map[string]any)
 	policies := automation["policies"].([]map[string]any)
 
-	if len(policies) != 1 {
-		t.Fatalf("expected 1 TLS policy, got %d", len(policies))
+	// First policy: explicit subjects. Second policy: on-demand catch-all.
+	if len(policies) != 2 {
+		t.Fatalf("expected 2 TLS policies, got %d", len(policies))
 	}
 
 	subjects := policies[0]["subjects"].([]string)
-	// Includes *.test wildcard for fallback route TLS handshake.
-	want := []string{"*.test", "acme.test", "ws.acme.test"}
-	if len(subjects) != len(want) {
-		t.Fatalf("expected %d TLS subjects, got %d: %v", len(want), len(subjects), subjects)
+	if len(subjects) != 2 {
+		t.Fatalf("expected 2 TLS subjects, got %d", len(subjects))
 	}
-	for i, w := range want {
-		if subjects[i] != w {
-			t.Errorf("subject %d: expected %s, got %s", i, w, subjects[i])
-		}
+	if subjects[0] != "acme.test" {
+		t.Errorf("expected acme.test, got %s", subjects[0])
+	}
+	if subjects[1] != "ws.acme.test" {
+		t.Errorf("expected ws.acme.test, got %s", subjects[1])
 	}
 
 	issuers := policies[0]["issuers"].([]map[string]any)
 	if issuers[0]["module"] != "internal" {
 		t.Errorf("expected internal issuer, got %s", issuers[0]["module"])
+	}
+
+	// On-demand catch-all policy for unconfigured domains.
+	onDemand := policies[1]
+	if onDemand["on_demand"] != true {
+		t.Error("expected on_demand: true on catch-all policy")
+	}
+	if _, hasSubjects := onDemand["subjects"]; hasSubjects {
+		t.Error("catch-all policy should not have subjects")
 	}
 }
 
@@ -491,8 +500,12 @@ func TestTranslate_EmptyConfig(t *testing.T) {
 
 	tls := result["apps"].(map[string]any)["tls"].(map[string]any)
 	policies := tls["automation"].(map[string]any)["policies"].([]map[string]any)
-	if len(policies) != 0 {
-		t.Errorf("expected 0 TLS policies, got %d", len(policies))
+	// Always has the on-demand catch-all policy.
+	if len(policies) != 1 {
+		t.Errorf("expected 1 TLS policy (on-demand catch-all), got %d", len(policies))
+	}
+	if policies[0]["on_demand"] != true {
+		t.Error("expected on_demand: true on catch-all policy")
 	}
 }
 
@@ -709,8 +722,8 @@ func TestTranslate_CommandOnlyServiceSkipped(t *testing.T) {
 	// Domains should only include myapp.test (not a domain for the worker).
 	tls := result["apps"].(map[string]any)["tls"].(map[string]any)
 	policies := tls["automation"].(map[string]any)["policies"].([]map[string]any)
-	if len(policies) != 1 {
-		t.Fatalf("expected 1 TLS policy, got %d", len(policies))
+	if len(policies) != 2 {
+		t.Fatalf("expected 2 TLS policies, got %d", len(policies))
 	}
 	subjects := policies[0]["subjects"].([]string)
 	if len(subjects) != 1 || subjects[0] != "myapp.test" {
@@ -748,8 +761,9 @@ func TestTranslate_AllCommandOnlyProject(t *testing.T) {
 
 	tls := result["apps"].(map[string]any)["tls"].(map[string]any)
 	policies := tls["automation"].(map[string]any)["policies"].([]map[string]any)
-	if len(policies) != 0 {
-		t.Errorf("expected 0 TLS policies, got %d", len(policies))
+	// Only the on-demand catch-all policy (no explicit subjects).
+	if len(policies) != 1 {
+		t.Errorf("expected 1 TLS policy (on-demand catch-all), got %d", len(policies))
 	}
 }
 
@@ -955,40 +969,6 @@ func TestTranslate_ServerErrorRoutes_EmptyConfig(t *testing.T) {
 
 	if _, ok := httpsServer["errors"]; ok {
 		t.Error("expected no errors config on HTTPS server when config is empty")
-	}
-}
-
-func TestTranslate_TLSWildcard_NoTLD(t *testing.T) {
-	cfg := config.Config{
-		Version: 1,
-		Settings: config.Settings{
-			HTTPPort:  80,
-			HTTPSPort: 443,
-			// TLD not set.
-		},
-		Projects: map[string]config.Project{
-			"myapp": {
-				Domain:  "myapp.test",
-				Path:    "/path/to/myapp",
-				Enabled: true,
-				Services: map[string]config.Service{
-					"web": {Proxy: "http://localhost:3000"},
-				},
-			},
-		},
-	}
-
-	result := Translate(cfg, PKIPaths{}, "/test/data/caddy")
-
-	tls := result["apps"].(map[string]any)["tls"].(map[string]any)
-	policies := tls["automation"].(map[string]any)["policies"].([]map[string]any)
-	subjects := policies[0]["subjects"].([]string)
-
-	// No wildcard when TLD is empty.
-	for _, s := range subjects {
-		if strings.HasPrefix(s, "*.") {
-			t.Errorf("expected no wildcard subject when TLD is empty, got %s", s)
-		}
 	}
 }
 

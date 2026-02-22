@@ -530,10 +530,17 @@
               }
             ],
             "subjects": [
-              "*.test",
               "acme.test",
               "ws.acme.test"
             ]
+          },
+          {
+            "issuers": [
+              {
+                "module": "internal"
+              }
+            ],
+            "on_demand": true
           }
         ]
       }

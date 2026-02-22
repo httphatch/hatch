@@ -547,28 +547,11 @@ func buildHTTPRedirectRoutes(cfg config.Config) []map[string]any {
 
 // buildTLSConfig builds the TLS automation config with internal issuer.
 // When rootCACert is non-empty, the issuer references the "hatch" CA.
-// A wildcard cert for the TLD is included so that requests to unconfigured
-// domains pass the TLS handshake and reach the fallback route.
+// A catch-all on-demand policy is appended so that requests to unconfigured
+// domains still get a valid certificate during the TLS handshake, allowing
+// the HTTP fallback route to serve the 404 debug page.
 func buildTLSConfig(cfg config.Config, rootCACert string) map[string]any {
 	domains := collectDomains(cfg)
-
-	// Add wildcard for the TLD so unconfigured domains still get a valid
-	// certificate during the TLS handshake, allowing the HTTP fallback
-	// route to serve the 404 debug page.
-	if len(domains) > 0 && cfg.Settings.TLD != "" {
-		wildcard := "*." + cfg.Settings.TLD
-		found := false
-		for _, d := range domains {
-			if d == wildcard {
-				found = true
-				break
-			}
-		}
-		if !found {
-			domains = append(domains, wildcard)
-			sort.Strings(domains)
-		}
-	}
 
 	issuer := map[string]any{"module": "internal"}
 	if rootCACert != "" {
@@ -582,6 +565,14 @@ func buildTLSConfig(cfg config.Config, rootCACert string) map[string]any {
 			"issuers":  []map[string]any{issuer},
 		})
 	}
+
+	// On-demand catch-all policy: issues certs at TLS handshake time for
+	// any domain not matched above. This lets unconfigured .test domains
+	// complete the TLS handshake and reach the fallback 404 route.
+	policies = append(policies, map[string]any{
+		"on_demand":  true,
+		"issuers":    []map[string]any{issuer},
+	})
 
 	return map[string]any{
 		"automation": map[string]any{
