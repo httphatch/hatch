@@ -68,6 +68,16 @@ export interface CertStatus {
   intermediate_ca: CertInfo;
 }
 
+export interface Settings {
+  tld: string;
+  http_port: number;
+  https_port: number;
+  auto_start: boolean;
+  tray_icon: boolean;
+  log_level: string;
+  cloudflare_token?: string;
+}
+
 export interface TunnelStatus {
   project: string;
   service: string;

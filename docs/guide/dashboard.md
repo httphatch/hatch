@@ -68,7 +68,8 @@ Toggle the log panel with the button in the header.
 
 ### Settings
 
-The settings dialog provides:
+The settings dialog has three tabs:
 
-- **Config editor** - edit the full `config.yml` directly with a YAML editor
-- **Certificate status** - view root CA and intermediate CA details including subject, expiry, and trust status
+- **Settings** — form-based editing of TLD, HTTP/HTTPS ports, auto-start, tray icon, log level, and Cloudflare token. Changes are saved to `config.yml` and the daemon reloads automatically.
+- **Advanced** — raw YAML editor for `config.yml`, for direct editing of the full config including projects.
+- **Certificates** — root CA and intermediate CA details including subject, expiry, and trust status.

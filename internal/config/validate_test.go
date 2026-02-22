@@ -295,6 +295,19 @@ func TestValidate_DuplicateDomains(t *testing.T) {
 	requireError(t, errs, "duplicate domain")
 }
 
+func TestValidate_CloudflareTokenLength(t *testing.T) {
+	cfg := validConfig()
+	cfg.Settings.CloudflareToken = strings.Repeat("a", 512)
+	errs := Validate(cfg)
+	if len(errs) != 0 {
+		t.Errorf("512-char token should be valid, got %v", errs)
+	}
+
+	cfg.Settings.CloudflareToken = strings.Repeat("a", 513)
+	errs = Validate(cfg)
+	requireError(t, errs, "must not exceed 512 characters")
+}
+
 func TestValidate_NoProjects(t *testing.T) {
 	cfg := validConfig()
 	cfg.Projects = map[string]Project{}

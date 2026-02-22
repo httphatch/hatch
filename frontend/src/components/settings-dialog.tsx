@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { SettingsForm } from "@/components/settings-form";
 import { ConfigEditor } from "@/components/config-editor";
 import { CertStatus } from "@/components/cert-status";
 
@@ -15,10 +16,10 @@ interface SettingsDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-type Tab = "config" | "certificates";
+type Tab = "settings" | "advanced" | "certificates";
 
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
-  const [tab, setTab] = useState<Tab>("config");
+  const [tab, setTab] = useState<Tab>("settings");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -30,13 +31,24 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => setTab("config")}
+            onClick={() => setTab("settings")}
             className={cn(
               "rounded-b-none",
-              tab === "config" && "bg-secondary"
+              tab === "settings" && "bg-secondary"
             )}
           >
-            Config
+            Settings
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setTab("advanced")}
+            className={cn(
+              "rounded-b-none",
+              tab === "advanced" && "bg-secondary"
+            )}
+          >
+            Advanced
           </Button>
           <Button
             size="sm"
@@ -51,7 +63,8 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           </Button>
         </div>
         <div className="min-h-[300px] overflow-y-auto flex-1">
-          {tab === "config" && <ConfigEditor />}
+          {tab === "settings" && <SettingsForm />}
+          {tab === "advanced" && <ConfigEditor />}
           {tab === "certificates" && <CertStatus />}
         </div>
       </DialogContent>

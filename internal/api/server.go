@@ -144,6 +144,8 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/processes/{project}/{service}/restart", requireJSON(s.handleProcessRestart))
 	mux.HandleFunc("GET /api/processes/output", s.handleProcessOutput)
 	mux.HandleFunc("GET /api/logs", s.handleLogs)
+	mux.HandleFunc("GET /api/settings", s.handleGetSettings)
+	mux.HandleFunc("PUT /api/settings", requireJSON(s.handlePutSettings))
 	mux.HandleFunc("GET /api/config", s.handleGetConfig)
 	mux.HandleFunc("PUT /api/config", s.handlePutConfig)
 	mux.HandleFunc("GET /api/certs", s.handleCerts)

@@ -600,6 +600,46 @@ func (s *Server) handleTunnelStop(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "stopped"})
 }
 
+func (s *Server) handleGetSettings(w http.ResponseWriter, r *http.Request) {
+	cfg, err := config.Load()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load config")
+		return
+	}
+	writeJSON(w, http.StatusOK, cfg.Settings)
+}
+
+func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
+	limitBody(r, w)
+
+	var settings config.Settings
+	if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON body")
+		return
+	}
+
+	s.cfgMu.Lock()
+	defer s.cfgMu.Unlock()
+
+	cfg, err := config.Load()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load config")
+		return
+	}
+
+	cfg.Settings = settings
+
+	if errs := config.Validate(cfg); len(errs) > 0 {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid config: %v", errs))
+		return
+	}
+	if err := config.Save(cfg); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to save config")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (s *Server) handleCerts(w http.ResponseWriter, r *http.Request) {
 	type certInfo struct {
 		Exists  bool   `json:"exists"`

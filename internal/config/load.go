@@ -52,7 +52,7 @@ func Save(cfg Config) error {
 
 	tmp := path + ".tmp"
 
-	if err := os.WriteFile(tmp, data, 0644); err != nil {
+	if err := os.WriteFile(tmp, data, 0600); err != nil {
 		return fmt.Errorf("writing temp config: %w", err)
 	}
 
@@ -77,7 +77,7 @@ func backupConfig(path string) error {
 	defer func() { _ = src.Close() }()
 
 	bakPath := path + ".bak"
-	dst, err := os.OpenFile(bakPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	dst, err := os.OpenFile(bakPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}
@@ -193,7 +193,7 @@ func EnsureConfigFile() error {
 		return fmt.Errorf("marshaling default config: %w", err)
 	}
 
-	return os.WriteFile(path, data, 0644)
+	return os.WriteFile(path, data, 0600)
 }
 
 // Init ensures the config directory structure and default config file exist.
