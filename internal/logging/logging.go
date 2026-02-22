@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -60,24 +61,26 @@ func Setup(cfg Config) (*Writer, error) {
 	// Set zerolog global logger to write JSON to lumberjack (and optional extra writer).
 	var w io.Writer = lj
 	if cfg.ExtraWriter != nil {
-		w = zerolog.MultiLevelWriter(lj, cfg.ExtraWriter)
+		w = io.MultiWriter(lj, cfg.ExtraWriter)
 	}
 	log.Logger = zerolog.New(w).Level(parseLevel(cfg.Level)).With().Timestamp().Logger()
 
-	// Capture os.Stderr via os.Pipe so Caddy's stderr output reaches lumberjack.
+	// Capture os.Stderr via os.Pipe so Caddy's stderr output reaches the
+	// same combined writer, ensuring Caddy logs appear in both the file and
+	// the SSE log hub.
 	pr, pw, err := os.Pipe()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating stderr pipe: %w", err)
 	}
 
 	origStderr := os.Stderr
 	os.Stderr = pw
 
 	done := make(chan struct{})
-	go func() {
-		_, _ = io.Copy(lj, pr)
+	go func(dst io.Writer) {
+		_, _ = io.Copy(dst, pr)
 		close(done)
-	}()
+	}(w)
 
 	return &Writer{
 		lj:         lj,

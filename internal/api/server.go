@@ -16,6 +16,9 @@ import (
 	"github.com/httphatch/hatch/internal/tunnel"
 )
 
+// DefaultAddr is the default listen address for the API server.
+const DefaultAddr = "127.0.0.1:42824"
+
 // DaemonControl allows the API to trigger daemon operations.
 type DaemonControl interface {
 	ReloadConfig() error

@@ -9,9 +9,11 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
+
+	"github.com/httphatch/hatch/internal/api"
 )
 
-const daemonBaseURL = "http://127.0.0.1:42824"
+var daemonBaseURL = "http://" + api.DefaultAddr
 
 var processCmd = &cobra.Command{
 	Use:   "process",
