@@ -27,23 +27,23 @@ var localhostRe = regexp.MustCompile(
 	`(?:https?|wss?)://(?:localhost|127\.0\.0\.1|\[::1\]):\d+`,
 )
 
-// rewriteProxy sits between cloudflared and the upstream app server.
+// RewriteProxy sits between cloudflared and the upstream app server.
 // It does two things:
 //  1. Rewrites absolute localhost URLs in HTML responses to relative paths,
 //     preventing PNA (Private Network Access) browser blocks.
 //  2. Falls back to a discovered dev server (e.g. Vite) for asset requests
 //     that 404 on the upstream. The dev server address is extracted from
 //     localhost URLs found in the first HTML response.
-type rewriteProxy struct {
+type RewriteProxy struct {
 	server   *http.Server
 	listener net.Listener
 	addr     string
 }
 
-// startRewriteProxy starts a local HTTP proxy that forwards requests to
+// StartRewriteProxy starts a local HTTP proxy that forwards requests to
 // upstream, rewrites HTML responses, and falls back to a discovered dev
 // server for 404'd assets. Returns the proxy's listen address for cloudflared.
-func startRewriteProxy(upstream string) (*rewriteProxy, error) {
+func StartRewriteProxy(upstream string) (*RewriteProxy, error) {
 	target, err := url.Parse(upstream)
 	if err != nil {
 		return nil, fmt.Errorf("parsing upstream URL: %w", err)
@@ -99,14 +99,19 @@ func startRewriteProxy(upstream string) (*rewriteProxy, error) {
 	}
 
 	addr := fmt.Sprintf("http://127.0.0.1:%d", tcpAddr.Port)
-	return &rewriteProxy{
+	return &RewriteProxy{
 		server:   srv,
 		listener: listener,
 		addr:     addr,
 	}, nil
 }
 
-func (p *rewriteProxy) Close() {
+// Addr returns the proxy's listen address (e.g. "http://127.0.0.1:12345").
+func (p *RewriteProxy) Addr() string {
+	return p.addr
+}
+
+func (p *RewriteProxy) Close() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_ = p.server.Shutdown(ctx)
