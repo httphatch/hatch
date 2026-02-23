@@ -16,6 +16,7 @@ settings:
   tray_icon: true
   log_level: info
   cloudflare_token: "your-api-token"
+  cloudflare_account_id: "abcdef0123456789abcdef0123456789"
 projects:
   myapp:
     domain: myapp.test
@@ -106,7 +107,7 @@ Controls the verbosity of daemon logs in `~/.hatch/logs/hatch.log`.
 - **Type:** `string`
 - **Optional**
 
-Cloudflare API token used to resolve tunnel JWTs for named tunnels. When a named tunnel is configured, Hatch uses this token to call the Cloudflare API and fetch the tunnel-specific JWT that cloudflared needs. Can be overridden per-project. See [Tunnels](/guide/tunnels) for details.
+Cloudflare API token used to resolve tunnel JWTs for named tunnels. When a named tunnel is configured, Hatch uses this token to call the Cloudflare API and fetch the tunnel-specific JWT that cloudflared needs. Hatch also queries each tunnel's ingress rules to auto-detect external hostnames and add Caddy routes for them, so requests arriving through the tunnel are routed correctly. Can be overridden per-project. See [Tunnels](/guide/tunnels) for details.
 
 ### `settings.cloudflare_account_id`
 

@@ -145,6 +145,76 @@ func (c *Client) getTunnelToken(apiToken, accountID, tunnelID string) (string, e
 	return token, nil
 }
 
+// GetTunnelHostnames returns the hostnames configured in a named tunnel's
+// ingress rules. If accountID is empty, it auto-detects the account.
+func (c *Client) GetTunnelHostnames(apiToken, accountID, tunnelName string) ([]string, error) {
+	if apiToken == "" {
+		return nil, fmt.Errorf("cloudflare API token is required")
+	}
+	if accountID != "" && !validAccountID.MatchString(accountID) {
+		return nil, fmt.Errorf("invalid cloudflare account ID format: %q", accountID)
+	}
+
+	var err error
+	if accountID == "" {
+		accountID, err = c.getAccountID(apiToken)
+		if err != nil {
+			return nil, fmt.Errorf("looking up cloudflare account: %w", err)
+		}
+	}
+
+	tunnelID, err := c.findTunnelByName(apiToken, accountID, tunnelName)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.getTunnelHostnames(apiToken, accountID, tunnelID)
+}
+
+// maxTunnelHostnames caps the number of hostnames accepted from a single
+// tunnel's ingress rules to prevent unbounded Caddy config growth.
+const maxTunnelHostnames = 100
+
+// validHostname matches a valid FQDN (no wildcards, no IP addresses).
+var validHostname = regexp.MustCompile(`^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$`)
+
+func (c *Client) getTunnelHostnames(apiToken, accountID, tunnelID string) ([]string, error) {
+	u := fmt.Sprintf("%s/accounts/%s/cfd_tunnel/%s/configurations",
+		c.baseURL, url.PathEscape(accountID), url.PathEscape(tunnelID))
+
+	body, err := c.doGet(apiToken, u)
+	if err != nil {
+		return nil, err
+	}
+
+	var result struct {
+		Config struct {
+			Ingress []struct {
+				Hostname string `json:"hostname"`
+				Service  string `json:"service"`
+			} `json:"ingress"`
+		} `json:"config"`
+	}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("parsing tunnel config response: %w", err)
+	}
+
+	var hostnames []string
+	for _, rule := range result.Config.Ingress {
+		if rule.Hostname == "" {
+			continue
+		}
+		if !validHostname.MatchString(rule.Hostname) {
+			continue
+		}
+		hostnames = append(hostnames, rule.Hostname)
+		if len(hostnames) >= maxTunnelHostnames {
+			break
+		}
+	}
+	return hostnames, nil
+}
+
 func (c *Client) doGet(apiToken, rawURL string) (json.RawMessage, error) {
 	req, err := http.NewRequest("GET", rawURL, nil)
 	if err != nil {

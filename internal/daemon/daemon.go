@@ -16,6 +16,7 @@ import (
 	"github.com/httphatch/hatch/internal/api"
 	"github.com/httphatch/hatch/internal/caddy"
 	"github.com/httphatch/hatch/internal/certs"
+	"github.com/httphatch/hatch/internal/cloudflare"
 	"github.com/httphatch/hatch/internal/config"
 	"github.com/httphatch/hatch/internal/dns"
 	"github.com/httphatch/hatch/internal/health"
@@ -134,13 +135,23 @@ func (d *Daemon) RunSubsystems(ctx context.Context, dashboard api.DashboardShowe
 	d.caddy = caddySrv
 	log.Info().Msg("caddy server started")
 
+	// Resolve tunnel domains from Cloudflare API before building Caddy config.
+	tunnelDomains := tunnel.ResolveTunnelDomains(cfg, cloudflare.NewClient())
+	if len(tunnelDomains) > 0 {
+		total := 0
+		for _, hs := range tunnelDomains {
+			total += len(hs)
+		}
+		log.Info().Int("domains", total).Int("services", len(tunnelDomains)).Msg("resolved tunnel domains")
+	}
+
 	// Load translated config into Caddy.
 	caddyCfg := caddy.Translate(cfg, caddy.PKIPaths{
 		RootCert:         d.caPaths.Cert,
 		RootKey:          d.caPaths.Key,
 		IntermediateCert: d.caPaths.IntermediateCert,
 		IntermediateKey:  d.caPaths.IntermediateKey,
-	}, caddy.DataDir())
+	}, caddy.DataDir(), tunnelDomains)
 	if err := caddySrv.LoadConfig(ctx, caddyCfg); err != nil {
 		d.shutdownPartial()
 		return fmt.Errorf("load caddy config: %w", err)
@@ -349,12 +360,14 @@ func (d *Daemon) onConfigReload(cfg config.Config) {
 	d.cfg = cfg
 	d.mu.Unlock()
 
+	tunnelDomains := tunnel.ResolveTunnelDomains(cfg, cloudflare.NewClient())
+
 	caddyCfg := caddy.Translate(cfg, caddy.PKIPaths{
 		RootCert:         d.caPaths.Cert,
 		RootKey:          d.caPaths.Key,
 		IntermediateCert: d.caPaths.IntermediateCert,
 		IntermediateKey:  d.caPaths.IntermediateKey,
-	}, caddy.DataDir())
+	}, caddy.DataDir(), tunnelDomains)
 	if err := d.caddy.LoadConfig(context.Background(), caddyCfg); err != nil {
 		log.Error().Err(err).Msg("failed to reload caddy config")
 		return

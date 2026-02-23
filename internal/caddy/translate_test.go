@@ -56,7 +56,7 @@ func TestTranslate_SingleService(t *testing.T) {
 		},
 	}
 
-	result := Translate(cfg, PKIPaths{}, "/test/data/caddy")
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy", nil)
 
 	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
 	httpsServer := servers["hatch_https"].(map[string]any)
@@ -134,7 +134,7 @@ func TestTranslate_PathRouting(t *testing.T) {
 		},
 	}
 
-	result := Translate(cfg, PKIPaths{}, "/test/data/caddy")
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy", nil)
 
 	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
 	routes := servers["hatch_https"].(map[string]any)["routes"].([]map[string]any)
@@ -173,7 +173,7 @@ func TestTranslate_SubdomainRouting(t *testing.T) {
 		},
 	}
 
-	result := Translate(cfg, PKIPaths{}, "/test/data/caddy")
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy", nil)
 
 	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
 	routes := servers["hatch_https"].(map[string]any)["routes"].([]map[string]any)
@@ -209,7 +209,7 @@ func TestTranslate_WebSocket(t *testing.T) {
 		},
 	}
 
-	result := Translate(cfg, PKIPaths{}, "/test/data/caddy")
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy", nil)
 
 	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
 	routes := servers["hatch_https"].(map[string]any)["routes"].([]map[string]any)
@@ -254,7 +254,7 @@ func TestTranslate_WebSocket(t *testing.T) {
 
 func TestTranslate_RouteOrdering(t *testing.T) {
 	cfg := fullConfig()
-	result := Translate(cfg, PKIPaths{}, "/test/data/caddy")
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy", nil)
 
 	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
 	routes := servers["hatch_https"].(map[string]any)["routes"].([]map[string]any)
@@ -316,7 +316,7 @@ func TestTranslate_DisabledSkipped(t *testing.T) {
 		},
 	}
 
-	result := Translate(cfg, PKIPaths{}, "/test/data/caddy")
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy", nil)
 
 	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
 	routes := servers["hatch_https"].(map[string]any)["routes"].([]map[string]any)
@@ -353,7 +353,7 @@ func TestTranslate_MultipleProjects(t *testing.T) {
 		},
 	}
 
-	result := Translate(cfg, PKIPaths{}, "/test/data/caddy")
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy", nil)
 
 	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
 	routes := servers["hatch_https"].(map[string]any)["routes"].([]map[string]any)
@@ -376,7 +376,7 @@ func TestTranslate_MultipleProjects(t *testing.T) {
 
 func TestTranslate_HTTPRedirects(t *testing.T) {
 	cfg := fullConfig()
-	result := Translate(cfg, PKIPaths{}, "/test/data/caddy")
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy", nil)
 
 	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
 	httpServer := servers["hatch_http"].(map[string]any)
@@ -421,7 +421,7 @@ func TestTranslate_HTTPRedirects(t *testing.T) {
 
 func TestTranslate_TLSAutomation(t *testing.T) {
 	cfg := fullConfig()
-	result := Translate(cfg, PKIPaths{}, "/test/data/caddy")
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy", nil)
 
 	tls := result["apps"].(map[string]any)["tls"].(map[string]any)
 	automation := tls["automation"].(map[string]any)
@@ -468,7 +468,7 @@ func TestTranslate_CustomPorts(t *testing.T) {
 		Projects: map[string]config.Project{},
 	}
 
-	result := Translate(cfg, PKIPaths{}, "/test/data/caddy")
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy", nil)
 
 	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
 
@@ -493,7 +493,7 @@ func TestTranslate_EmptyConfig(t *testing.T) {
 		Projects: map[string]config.Project{},
 	}
 
-	result := Translate(cfg, PKIPaths{}, "/test/data/caddy")
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy", nil)
 
 	// Should still produce valid structure.
 	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
@@ -545,7 +545,7 @@ func TestTranslate_PKIConfig(t *testing.T) {
 		IntermediateKey:  "/home/user/.hatch/certs/intermediateCA-key.pem",
 	}
 
-	result := Translate(cfg, pkiPaths, "/test/data/caddy")
+	result := Translate(cfg, pkiPaths, "/test/data/caddy", nil)
 
 	apps := result["apps"].(map[string]any)
 
@@ -612,7 +612,7 @@ func TestTranslate_PKIConfig_RootOnlyNoIntermediate(t *testing.T) {
 		RootKey:  "/home/user/.hatch/certs/rootCA-key.pem",
 	}
 
-	result := Translate(cfg, pkiPaths, "/test/data/caddy")
+	result := Translate(cfg, pkiPaths, "/test/data/caddy", nil)
 
 	apps := result["apps"].(map[string]any)
 	pki := apps["pki"].(map[string]any)
@@ -649,7 +649,7 @@ func TestTranslate_PKIConfig_NoPKIWhenEmpty(t *testing.T) {
 		},
 	}
 
-	result := Translate(cfg, PKIPaths{}, "/test/data/caddy")
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy", nil)
 
 	apps := result["apps"].(map[string]any)
 
@@ -669,7 +669,7 @@ func TestTranslate_PKIConfig_NoPKIWhenEmpty(t *testing.T) {
 
 func TestTranslate_GoldenFile(t *testing.T) {
 	cfg := fullConfig()
-	result := Translate(cfg, PKIPaths{}, "/test/data/caddy")
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy", nil)
 
 	got, err := json.MarshalIndent(result, "", "  ")
 	if err != nil {
@@ -714,7 +714,7 @@ func TestTranslate_CommandOnlyServiceSkipped(t *testing.T) {
 		},
 	}
 
-	result := Translate(cfg, PKIPaths{}, "/test/data/caddy")
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy", nil)
 
 	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
 	routes := servers["hatch_https"].(map[string]any)["routes"].([]map[string]any)
@@ -760,7 +760,7 @@ func TestTranslate_AllCommandOnlyProject(t *testing.T) {
 		},
 	}
 
-	result := Translate(cfg, PKIPaths{}, "/test/data/caddy")
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy", nil)
 
 	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
 	routes := servers["hatch_https"].(map[string]any)["routes"].([]map[string]any)
@@ -779,7 +779,7 @@ func TestTranslate_AllCommandOnlyProject(t *testing.T) {
 
 func TestTranslate_FallbackRoute(t *testing.T) {
 	cfg := fullConfig()
-	result := Translate(cfg, PKIPaths{}, "/test/data/caddy")
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy", nil)
 
 	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
 	routes := servers["hatch_https"].(map[string]any)["routes"].([]map[string]any)
@@ -837,7 +837,7 @@ func TestTranslate_FallbackRoute_EmptyConfig(t *testing.T) {
 		Projects: map[string]config.Project{},
 	}
 
-	result := Translate(cfg, PKIPaths{}, "/test/data/caddy")
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy", nil)
 
 	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
 	routes := servers["hatch_https"].(map[string]any)["routes"].([]map[string]any)
@@ -867,7 +867,7 @@ func TestTranslate_ErrorResponse(t *testing.T) {
 		},
 	}
 
-	result := Translate(cfg, PKIPaths{}, "/test/data/caddy")
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy", nil)
 
 	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
 	routes := servers["hatch_https"].(map[string]any)["routes"].([]map[string]any)
@@ -927,7 +927,7 @@ func TestTranslate_ErrorResponse(t *testing.T) {
 
 func TestTranslate_ServerErrorRoutes(t *testing.T) {
 	cfg := fullConfig()
-	result := Translate(cfg, PKIPaths{}, "/test/data/caddy")
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy", nil)
 
 	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
 	httpsServer := servers["hatch_https"].(map[string]any)
@@ -972,7 +972,7 @@ func TestTranslate_ServerErrorRoutes_EmptyConfig(t *testing.T) {
 		Projects: map[string]config.Project{},
 	}
 
-	result := Translate(cfg, PKIPaths{}, "/test/data/caddy")
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy", nil)
 
 	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
 	httpsServer := servers["hatch_https"].(map[string]any)
@@ -1003,5 +1003,125 @@ func TestExtractDialAddress(t *testing.T) {
 				t.Errorf("extractDialAddress(%q) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestTranslate_TunnelDomains(t *testing.T) {
+	cfg := config.Config{
+		Version: 1,
+		Settings: config.Settings{
+			HTTPPort:  80,
+			HTTPSPort: 443,
+		},
+		Projects: map[string]config.Project{
+			"myapp": {
+				Domain:  "myapp.test",
+				Path:    "/path/to/myapp",
+				Enabled: true,
+				Services: map[string]config.Service{
+					"web": {Proxy: "http://localhost:3000", Tunnel: "my-tunnel"},
+				},
+			},
+		},
+	}
+
+	tunnelDomains := map[string][]string{
+		"myapp/web": {"myapp.example.com", "app.example.com"},
+	}
+
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy", tunnelDomains)
+
+	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
+	routes := servers["hatch_https"].(map[string]any)["routes"].([]map[string]any)
+
+	// 1 .test route + 2 tunnel domain routes + 1 fallback = 4 routes.
+	if len(routes) != 4 {
+		t.Fatalf("expected 4 routes, got %d", len(routes))
+	}
+
+	// Collect all host matchers (excluding fallback which has no match).
+	var hosts []string
+	for _, route := range routes {
+		matchRaw, ok := route["match"]
+		if !ok {
+			continue
+		}
+		match := matchRaw.([]map[string]any)[0]
+		hosts = append(hosts, match["host"].([]string)...)
+	}
+
+	expected := map[string]bool{
+		"myapp.test":        false,
+		"myapp.example.com": false,
+		"app.example.com":   false,
+	}
+	for _, h := range hosts {
+		if _, ok := expected[h]; ok {
+			expected[h] = true
+		}
+	}
+	for domain, found := range expected {
+		if !found {
+			t.Errorf("expected route for domain %s, not found", domain)
+		}
+	}
+
+	// All matched routes should proxy to the same upstream.
+	for _, route := range routes {
+		if _, ok := route["match"]; !ok {
+			continue // skip fallback
+		}
+		subroute := route["handle"].([]map[string]any)[0]
+		subRoutes := subroute["routes"].([]map[string]any)
+		proxyHandler := subRoutes[1]["handle"].([]map[string]any)[1]
+		upstreams := proxyHandler["upstreams"].([]map[string]any)
+		if upstreams[0]["dial"] != "localhost:3000" {
+			t.Errorf("expected dial localhost:3000, got %s", upstreams[0]["dial"])
+		}
+	}
+
+	// TLS subjects should include tunnel domains.
+	tls := result["apps"].(map[string]any)["tls"].(map[string]any)
+	policies := tls["automation"].(map[string]any)["policies"].([]map[string]any)
+	subjects := policies[0]["subjects"].([]string)
+
+	subjectSet := make(map[string]bool)
+	for _, s := range subjects {
+		subjectSet[s] = true
+	}
+	for _, domain := range []string{"myapp.test", "myapp.example.com", "app.example.com"} {
+		if !subjectSet[domain] {
+			t.Errorf("expected TLS subject %s, not found in %v", domain, subjects)
+		}
+	}
+}
+
+func TestTranslate_TunnelDomains_NilMap(t *testing.T) {
+	cfg := config.Config{
+		Version: 1,
+		Settings: config.Settings{
+			HTTPPort:  80,
+			HTTPSPort: 443,
+		},
+		Projects: map[string]config.Project{
+			"myapp": {
+				Domain:  "myapp.test",
+				Path:    "/path/to/myapp",
+				Enabled: true,
+				Services: map[string]config.Service{
+					"web": {Proxy: "http://localhost:3000"},
+				},
+			},
+		},
+	}
+
+	// nil tunnelDomains should work the same as before.
+	result := Translate(cfg, PKIPaths{}, "/test/data/caddy", nil)
+
+	servers := result["apps"].(map[string]any)["http"].(map[string]any)["servers"].(map[string]any)
+	routes := servers["hatch_https"].(map[string]any)["routes"].([]map[string]any)
+
+	if len(routes) != 2 {
+		t.Fatalf("expected 2 routes with nil tunnelDomains, got %d", len(routes))
 	}
 }
