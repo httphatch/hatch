@@ -28,8 +28,8 @@ export function ProjectsView() {
   const editProject = editTarget ? projects[editTarget] : null;
 
   return (
-    <div className="mx-auto w-full max-w-5xl p-4">
-      <div className="mb-4 flex items-center justify-between">
+    <div className="mx-auto w-full max-w-5xl">
+      <div className="mb-4 flex items-center justify-between px-4 pt-4">
         <h2 className="text-lg font-semibold text-foreground">Projects</h2>
         <Button size="sm" onClick={() => setAddOpen(true)}>
           <Plus />

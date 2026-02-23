@@ -86,7 +86,7 @@ export function ProjectCard({
       </div>
 
       {/* Services */}
-      <div className="ml-9 mt-3 pl-3 py-1">
+      <div className="ml-6 mt-2 pl-2 py-1">
         {Object.entries(project.services).map(([svcName, svc]) => (
           <ServiceRow
             key={svcName}
