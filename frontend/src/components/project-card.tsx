@@ -16,7 +16,7 @@ import { ServiceRow } from "@/components/service-row";
 import type { ProcessStatus, Project, ServiceHealth, TunnelStatus } from "@/types";
 import { Copy, ExternalLink, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Browser } from "@wailsio/runtime";
+import { safeOpenURL } from "@/lib/utils";
 
 interface ProjectCardProps {
   name: string;
@@ -50,14 +50,14 @@ export function ProjectCard({
   }
 
   function openInBrowser() {
-    Browser.OpenURL(url);
+    safeOpenURL(url);
   }
 
   return (
     <Card className={cn(!project.enabled && "opacity-60")}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <span className="text-lg font-semibold text-muted-teal">{name}</span>
+          <span className="text-lg font-semibold text-primary">{name}</span>
           <Switch
             checked={project.enabled}
             onCheckedChange={() => onToggle(name)}
@@ -95,7 +95,7 @@ export function ProjectCard({
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-text-muted truncate">{project.domain}</span>
+          <span className="font-mono text-muted-foreground truncate">{project.domain}</span>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon-xs" onClick={copyDomain}>
@@ -113,7 +113,7 @@ export function ProjectCard({
             <TooltipContent>Open in browser</TooltipContent>
           </Tooltip>
         </div>
-        <p className="text-xs text-text-muted truncate">{project.path}</p>
+        <p className="text-xs font-mono text-muted-foreground truncate">{project.path}</p>
         <div>
           {Object.entries(project.services).map(([svcName, svc]) => (
             <ServiceRow

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +23,6 @@ export function SettingsForm() {
   const { settings, loading, saving, error, save } = useSettings();
   const [form, setForm] = useState<Settings | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
   const [showToken, setShowToken] = useState(false);
 
   useEffect(() => {
@@ -33,7 +33,7 @@ export function SettingsForm() {
 
   if (loading) {
     return (
-      <p className="py-8 text-center text-text-muted">Loading settings…</p>
+      <p className="py-8 text-center text-muted-foreground">Loading settings...</p>
     );
   }
 
@@ -57,7 +57,6 @@ export function SettingsForm() {
   async function handleSave() {
     if (!form) return;
     setSaveError(null);
-    setSaved(false);
 
     if (form.http_port < 1 || form.http_port > 65535) {
       setSaveError("HTTP port must be between 1 and 65535");
@@ -74,10 +73,9 @@ export function SettingsForm() {
 
     try {
       await save(form);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      toast.success("Settings saved. Daemon reloaded.");
     } catch (err) {
-      setSaveError(
+      toast.error(
         err instanceof Error ? err.message : "Failed to save settings"
       );
     }
@@ -218,14 +216,9 @@ export function SettingsForm() {
       {(error || saveError) && (
         <p className="text-sm text-destructive">{saveError || error}</p>
       )}
-      {saved && (
-        <p className="text-sm text-emerald-600">
-          Settings saved — daemon reloaded.
-        </p>
-      )}
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={saving}>
-          {saving ? "Saving…" : "Save & Reload"}
+          {saving ? "Saving..." : "Save & Reload"}
         </Button>
       </div>
     </div>

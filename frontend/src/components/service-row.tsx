@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,7 +13,7 @@ import { serviceUrl } from "@/lib/service-url";
 import { stopProcess, startProcess, restartProcess, startTunnel, stopTunnel } from "@/api";
 import type { ProcessStatus, Service, ServiceHealth, TunnelStatus } from "@/types";
 import { Cloud, CloudOff, ExternalLink, Play, RotateCw, Square, Terminal } from "lucide-react";
-import { Browser } from "@wailsio/runtime";
+import { safeOpenURL } from "@/lib/utils";
 
 interface ServiceRowProps {
   name: string;
@@ -31,24 +32,15 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
   const [outputOpen, setOutputOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [tunnelLoading, setTunnelLoading] = useState(false);
-  const [tunnelError, setTunnelError] = useState<string | null>(null);
-
-  // Auto-clear tunnel errors after 5 seconds.
-  useEffect(() => {
-    if (!tunnelError) return;
-    const timer = setTimeout(() => setTunnelError(null), 5000);
-    return () => clearTimeout(timer);
-  }, [tunnelError]);
 
   async function handleTunnelAction(action: "start" | "stop") {
     setTunnelLoading(true);
-    setTunnelError(null);
     try {
       if (action === "start") await startTunnel(projectName, name);
       else await stopTunnel(projectName, name);
       onTunnelRefresh();
     } catch (err) {
-      setTunnelError(err instanceof Error ? err.message : "Tunnel action failed");
+      toast.error(err instanceof Error ? err.message : "Tunnel action failed");
     } finally {
       setTunnelLoading(false);
     }
@@ -61,6 +53,8 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
       else if (action === "start") await startProcess(projectName, name);
       else await restartProcess(projectName, name);
       onRefresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : `Failed to ${action} process`);
     } finally {
       setActionLoading(null);
     }
@@ -69,40 +63,40 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
   return (
     <div className="flex items-center gap-2 text-sm py-1">
       <HealthDot health={health} />
-      <span className="font-medium text-text-primary">{name}</span>
+      <span className="font-medium text-foreground">{name}</span>
       {service.proxy && (
-        <span className="text-text-muted">{service.proxy}</span>
+        <span className="font-mono text-muted-foreground">{service.proxy}</span>
       )}
       {!service.proxy && service.command && (
-        <span className="text-text-muted truncate max-w-48" title={service.command}>
+        <span className="font-mono text-muted-foreground truncate max-w-48" title={service.command}>
           {service.command}
         </span>
       )}
       {service.route && (
-        <Badge variant="outline" className="text-xs">
+        <Badge variant="outline" className="font-mono text-xs">
           {service.route}
         </Badge>
       )}
       {service.subdomain && (
-        <Badge variant="secondary" className="text-xs">
+        <Badge variant="secondary" className="font-mono text-xs">
           {service.subdomain}.*
         </Badge>
       )}
       {service.websocket && (
-        <Badge variant="outline" className="text-xs">
+        <Badge variant="outline" className="font-mono text-xs">
           WS
         </Badge>
       )}
       {process && (
         <Badge
           variant="outline"
-          className={`text-xs ${process.running ? "text-muted-teal border-muted-teal" : "text-light-coral border-light-coral"}`}
+          className={`font-mono text-xs ${process.running ? "text-status-healthy border-status-healthy" : "text-status-error border-status-error"}`}
         >
           {process.running ? "Running" : "Stopped"}
         </Badge>
       )}
       {process && process.restarts > 0 && (
-        <Badge variant="outline" className="text-xs">
+        <Badge variant="outline" className="font-mono text-xs">
           {process.restarts} restart{process.restarts !== 1 ? "s" : ""}
         </Badge>
       )}
@@ -158,10 +152,10 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
               <TooltipTrigger asChild>
                 <Badge
                   variant="outline"
-                  className="text-xs text-muted-teal border-muted-teal cursor-pointer hover:bg-muted-teal/10"
-                  onClick={() => Browser.OpenURL(tunnel.url)}
+                  className="font-mono text-xs text-primary border-primary cursor-pointer hover:bg-primary/10"
+                  onClick={() => safeOpenURL(tunnel.url)}
                 >
-                  <Cloud className="mr-1 h-3 w-3" />
+                  <Cloud className="mr-1 size-3" />
                   {tunnel.url.replace(/^https?:\/\//, "")}
                 </Badge>
               </TooltipTrigger>
@@ -198,13 +192,10 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
         </Tooltip>
       )}
       {(tunnelLoading || (tunnel && tunnel.starting)) && (
-        <Badge variant="outline" className="text-xs text-text-muted border-text-muted animate-pulse">
-          <Cloud className="mr-1 h-3 w-3" />
+        <Badge variant="outline" className="font-mono text-xs text-muted-foreground border-muted-foreground animate-pulse">
+          <Cloud className="mr-1 size-3" />
           Starting tunnel...
         </Badge>
-      )}
-      {tunnelError && (
-        <span className="text-xs text-destructive">{tunnelError}</span>
       )}
       <Tooltip>
         <TooltipTrigger asChild>
@@ -224,7 +215,7 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
             <Button
               variant="ghost"
               size="icon-xs"
-              onClick={() => Browser.OpenURL(url)}
+              onClick={() => safeOpenURL(url)}
             >
               <ExternalLink />
             </Button>

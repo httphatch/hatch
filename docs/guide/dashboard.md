@@ -10,9 +10,19 @@ hatch app
 
 This opens the Hatch dashboard as a native macOS window.
 
-## Features
+## Navigation
 
-### Project Management
+The dashboard uses a tab bar across the top with five tabs:
+
+- **Projects** — project management grid
+- **Routes** — full route table for all enabled projects
+- **Logs** — real-time log table with filtering
+- **Certs** — certificate status for root CA and intermediate CA
+- **Settings** — settings form and raw YAML config editor
+
+A status bar at the bottom of the window shows the daemon state (running/stopped), version, and uptime.
+
+## Projects Tab
 
 The main view shows all your projects in a grid layout. Each project card displays:
 
@@ -21,14 +31,14 @@ The main view shows all your projects in a grid layout. Each project card displa
 - Service list with proxy targets
 - Health indicators (green = healthy, red = unreachable)
 
-You can **add**, **edit**, and **delete** projects directly from the dashboard using the dialog forms. The add and edit dialogs support `command` and `env_file` fields for process management — proxy is optional when a command is set.
+You can **add**, **edit**, and **delete** projects directly from the dashboard using dialog forms. The add and edit dialogs support `command` and `env_file` fields for process management. Proxy is optional when a command is set.
 
 ### Process Status
 
 Services configured with a `command` show a process status indicator:
 
-- **Running** (teal) — the process is alive
-- **Stopped** (coral) — the process has exited
+- **Running** (green) — the process is alive
+- **Stopped** (red) — the process has exited
 
 A restart count badge appears when the process has been restarted automatically.
 
@@ -39,34 +49,52 @@ Services with a `proxy` can be exposed to the internet via Cloudflare Tunnels. E
 - **Start** (cloud icon) — starts a quick tunnel for the service
 - **Starting** — pulsing badge while cloudflared initializes (can take up to 30 seconds)
 - **Running** — displays the public URL as a clickable link, with a stop button (cloud-off icon)
-- **Error** — brief error message if the action fails (auto-clears after 5 seconds)
 
 Tunnel output from cloudflared appears in the service's terminal viewer alongside process output. Tunnel status updates automatically via polling. See [Tunnels](/guide/tunnels) for setup.
 
-### Route Map
+## Routes Tab
 
-Each project shows a visual route map of how requests are routed:
+A full-width table of all active routes across all enabled projects. Each row shows:
 
-```
-myapp.test → http://localhost:3000
-api.myapp.test → http://localhost:8080
-myapp.test/docs → http://localhost:4000
-```
+- Domain
+- Route path
+- Proxy target
+- Health status
 
-This makes it easy to understand complex multi-service setups at a glance.
+Click any domain to open it in your browser.
 
-### Log Viewer
+## Logs Tab
 
-The log viewer streams daemon logs in real time via server-sent events. When you open the panel, it pre-fills with up to 200 recent log entries so you have immediate context. Each entry shows:
+The log viewer streams daemon logs in real time via server-sent events. When you switch to the Logs tab, it pre-fills with up to 200 recent log entries so you have immediate context.
 
-- Timestamp
-- Log level
-- Message
-- Structured fields
+The table has four columns:
 
-Toggle the log panel with the button in the header.
+- **Time** — timestamp formatted as HH:MM:SS.mmm
+- **Level** — colored indicator (debug, info, warn, error)
+- **Source** — the component or module that emitted the log entry
+- **Message** — the log message with any structured key=value fields
 
-### Tray Icon Menu
+Use the toolbar to filter by log level, search across log messages, or clear the log buffer. The view auto-scrolls to the latest entry; scroll up to pause, then click "Jump to latest" to resume.
+
+## Certs Tab
+
+Displays root CA and intermediate CA certificate details:
+
+- Installed/missing status
+- Trust status (root CA only)
+- Subject (CN)
+- Expiry date
+
+Run `hatch trust` to update certificate trust if the root CA shows as not trusted.
+
+## Settings Tab
+
+The Settings tab has two sections:
+
+- **Settings form** — TLD, HTTP/HTTPS ports, auto-start, tray icon, log level, and Cloudflare token. Changes are saved to `config.yml` and the daemon reloads automatically.
+- **Advanced configuration** — raw YAML editor for `config.yml`, for direct editing of the full config including projects.
+
+## Tray Icon Menu
 
 The tray icon in the macOS menu bar provides quick access to all running projects and daemon controls.
 
@@ -76,11 +104,3 @@ The tray icon in the macOS menu bar provides quick access to all running project
 - **Stop Hatch** — removes the launchd plist and stops the daemon; it will not restart on boot until you run `hatch up` again
 
 Each project appears as a submenu with its domain, an enable/disable toggle, and per-service health indicators.
-
-### Settings
-
-The settings dialog has three tabs:
-
-- **Settings** — form-based editing of TLD, HTTP/HTTPS ports, auto-start, tray icon, log level, and Cloudflare token. Changes are saved to `config.yml` and the daemon reloads automatically.
-- **Advanced** — raw YAML editor for `config.yml`, for direct editing of the full config including projects.
-- **Certificates** — root CA and intermediate CA details including subject, expiry, and trust status.

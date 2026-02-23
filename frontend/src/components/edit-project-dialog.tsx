@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -90,6 +91,12 @@ export function EditProjectDialog({
     setSubmitting(true);
     setError(null);
 
+    if (!/^[a-z0-9.-]+$/i.test(domain)) {
+      setError("Domain must contain only letters, numbers, dots, and hyphens");
+      setSubmitting(false);
+      return;
+    }
+
     const svcMap: Record<string, Service> = {};
     for (const s of services) {
       if (!s.name) {
@@ -99,6 +106,16 @@ export function EditProjectDialog({
       }
       if (!s.proxy && !s.command) {
         setError(`Service "${s.name}" must have at least one of proxy or command`);
+        setSubmitting(false);
+        return;
+      }
+      if (s.route && !s.route.startsWith("/")) {
+        setError(`Route for "${s.name}" must start with /`);
+        setSubmitting(false);
+        return;
+      }
+      if (s.subdomain && !/^[a-z0-9-]+$/i.test(s.subdomain)) {
+        setError(`Subdomain for "${s.name}" must contain only letters, numbers, and hyphens`);
         setSubmitting(false);
         return;
       }
@@ -121,7 +138,7 @@ export function EditProjectDialog({
       });
       onOpenChange(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save project");
+      toast.error(err instanceof Error ? err.message : "Failed to save project");
     } finally {
       setSubmitting(false);
     }
@@ -131,9 +148,7 @@ export function EditProjectDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-muted-teal">
-            Edit {name}
-          </DialogTitle>
+          <DialogTitle>Edit {name}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -173,7 +188,7 @@ export function EditProjectDialog({
             {services.map((svc, idx) => (
               <fieldset
                 key={idx}
-                className="space-y-3 rounded-md border border-border p-3"
+                className="space-y-3 border border-border p-3"
               >
                 <div className="flex items-center justify-between">
                   <Input
@@ -273,7 +288,7 @@ export function EditProjectDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={submitting}>
-              {submitting ? "Saving…" : "Save"}
+              {submitting ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>
         </form>

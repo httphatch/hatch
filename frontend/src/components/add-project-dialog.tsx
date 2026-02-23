@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -65,8 +66,23 @@ export function AddProjectDialog({
     setError(null);
 
     const domain = form.domain || `${form.name}.test`;
+    if (!/^[a-z0-9.-]+$/i.test(domain)) {
+      setError("Domain must contain only letters, numbers, dots, and hyphens");
+      setSubmitting(false);
+      return;
+    }
     if (!form.proxy && !form.command) {
       setError("Each service must have at least one of proxy or command");
+      setSubmitting(false);
+      return;
+    }
+    if (form.route && !form.route.startsWith("/")) {
+      setError("Route must start with /");
+      setSubmitting(false);
+      return;
+    }
+    if (form.subdomain && !/^[a-z0-9-]+$/i.test(form.subdomain)) {
+      setError("Subdomain must contain only letters, numbers, and hyphens");
       setSubmitting(false);
       return;
     }
@@ -92,7 +108,7 @@ export function AddProjectDialog({
       setForm(emptyForm());
       onOpenChange(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add project");
+      toast.error(err instanceof Error ? err.message : "Failed to add project");
     } finally {
       setSubmitting(false);
     }
@@ -102,9 +118,7 @@ export function AddProjectDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-muted-teal">
-            Add Project
-          </DialogTitle>
+          <DialogTitle>Add Project</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -136,7 +150,7 @@ export function AddProjectDialog({
               required
             />
           </div>
-          <fieldset className="space-y-3 rounded-md border border-border p-3">
+          <fieldset className="space-y-3 border border-border p-3">
             <legend className="px-1 text-sm font-medium">
               Initial service
             </legend>
@@ -219,7 +233,7 @@ export function AddProjectDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={submitting}>
-              {submitting ? "Adding…" : "Add Project"}
+              {submitting ? "Adding..." : "Add Project"}
             </Button>
           </DialogFooter>
         </form>

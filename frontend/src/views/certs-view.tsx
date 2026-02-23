@@ -26,7 +26,7 @@ function CertCard({
         <CardTitle className="flex items-center gap-2 text-sm">
           {label}
           {info.exists ? (
-            <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">
+            <Badge variant="default" className="bg-status-healthy text-background">
               Installed
             </Badge>
           ) : (
@@ -34,7 +34,7 @@ function CertCard({
           )}
           {showTrust && info.trusted !== undefined && (
             info.trusted ? (
-              <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">
+              <Badge variant="default" className="bg-status-healthy text-background">
                 Trusted
               </Badge>
             ) : (
@@ -47,12 +47,13 @@ function CertCard({
         <CardContent className="space-y-1 text-sm">
           {info.subject && (
             <p>
-              <span className="text-text-muted">Subject:</span> {info.subject}
+              <span className="text-muted-foreground">Subject:</span>{" "}
+              <span className="font-mono">{info.subject}</span>
             </p>
           )}
           {info.not_after && (
             <p>
-              <span className="text-text-muted">Expires:</span>{" "}
+              <span className="text-muted-foreground">Expires:</span>{" "}
               {formatDate(info.not_after)}
             </p>
           )}
@@ -62,31 +63,29 @@ function CertCard({
   );
 }
 
-export function CertStatus() {
+export function CertsView() {
   const { certs, loading, error } = useCerts();
 
-  if (loading) {
-    return (
-      <p className="py-8 text-center text-text-muted">
-        Loading certificates…
-      </p>
-    );
-  }
-
-  if (error) {
-    return <p className="py-8 text-center text-destructive">{error}</p>;
-  }
-
-  if (!certs) return null;
-
   return (
-    <div className="space-y-3">
-      <CertCard label="Root CA" info={certs.root_ca} showTrust />
-      <CertCard label="Intermediate CA" info={certs.intermediate_ca} />
-      <p className="text-xs text-text-muted">
-        Run <code className="rounded bg-secondary px-1 py-0.5">hatch trust</code> to
-        update certificate trust (requires admin privileges).
-      </p>
+    <div className="mx-auto w-full max-w-5xl p-4">
+      <h2 className="mb-4 text-lg font-semibold text-foreground">Certificates</h2>
+      {loading && (
+        <p className="py-16 text-center text-muted-foreground">
+          Loading certificates...
+        </p>
+      )}
+      {error && <p className="py-16 text-center text-destructive">{error}</p>}
+      {!loading && !error && certs && (
+        <div className="space-y-3">
+          <CertCard label="Root CA" info={certs.root_ca} showTrust />
+          <CertCard label="Intermediate CA" info={certs.intermediate_ca} />
+          <p className="text-xs text-muted-foreground">
+            Run{" "}
+            <code className="bg-secondary px-1 py-0.5 font-mono">hatch trust</code>{" "}
+            to update certificate trust (requires admin privileges).
+          </p>
+        </div>
+      )}
     </div>
   );
 }
