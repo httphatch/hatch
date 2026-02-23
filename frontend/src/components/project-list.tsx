@@ -34,7 +34,7 @@ export function ProjectList({
   }
 
   return (
-    <div className="divide-y divide-border">
+    <div className="space-y-4">
       {entries.map(([name, project]) => (
         <ProjectCard
           key={name}

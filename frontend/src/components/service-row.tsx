@@ -81,7 +81,7 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
 
   return (
     <>
-      <div className="grid grid-cols-[auto_minmax(0,1fr)_3rem_minmax(0,1.5fr)_5.5rem_5rem_auto] items-center gap-x-3 py-2 text-xs border-b border-border/50 last:border-b-0">
+      <div className="grid grid-cols-[auto_minmax(0,1fr)_4.5rem_minmax(0,1.5fr)_6.5rem_5.5rem_auto] items-center gap-x-3 py-2 text-xs border-b border-border/50 last:border-b-0">
         {/* Health */}
         <HealthDot health={health} />
 
@@ -95,10 +95,10 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
 
         {/* Upstream label */}
         <span className={cn(
-          "text-[10px] font-medium uppercase tracking-wider text-center px-1 py-0.5 rounded",
+          "text-[10px] font-medium uppercase tracking-wider text-center px-1.5 py-0.5 rounded inline-flex items-center justify-center gap-1",
           isProxy ? "text-blue-400 bg-blue-400/10" : "text-amber-400 bg-amber-400/10"
         )}>
-          {upstreamLabel}
+          {upstreamLabel} <span className="opacity-60">&rarr;</span>
         </span>
 
         {/* Target */}
@@ -130,7 +130,14 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
             </button>
           )}
           {tunnel && tunnel.running && !tunnel.url && (
-            <span className="text-primary">tunnel up</span>
+            <button
+              type="button"
+              onClick={() => handleTunnelAction("stop")}
+              className="text-primary hover:underline cursor-pointer"
+              title="Tunnel active (click to stop)"
+            >
+              tunnel active
+            </button>
           )}
           {(tunnelLoading || (tunnel && tunnel.starting)) && !tunnel?.running && (
             <span className="animate-pulse">starting</span>
@@ -179,14 +186,14 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
               <TooltipContent>Stop tunnel</TooltipContent>
             </Tooltip>
           )}
-          {service.proxy && (!tunnel || (!tunnel.running && !tunnel.starting)) && !tunnelLoading && (
+          {service.proxy && (!tunnel || (!tunnel.running && !tunnel.starting)) && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon-xs" onClick={() => handleTunnelAction("start")}>
-                  <Cloud className="size-3.5" />
+                <Button variant="ghost" size="icon-xs" disabled={tunnelLoading} onClick={() => handleTunnelAction("start")}>
+                  <Cloud className={cn("size-3.5", tunnelLoading && "animate-pulse")} />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Start tunnel</TooltipContent>
+              <TooltipContent>{tunnelLoading ? "Starting tunnel..." : "Start tunnel"}</TooltipContent>
             </Tooltip>
           )}
           <Tooltip>

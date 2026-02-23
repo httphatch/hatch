@@ -38,9 +38,9 @@ export function ProjectCard({
   const url = `https://${project.domain}`;
 
   return (
-    <div className={cn("py-3", !project.enabled && "opacity-50")}>
+    <div className={cn(!project.enabled && "opacity-50")}>
       {/* Project header */}
-      <div className="flex items-center gap-3 mb-1">
+      <div className="flex items-center gap-3 border-y border-border bg-surface/50 px-3 py-2">
         <Switch
           size="sm"
           checked={project.enabled}
@@ -86,7 +86,7 @@ export function ProjectCard({
       </div>
 
       {/* Services */}
-      <div className="ml-9 mt-2 bg-surface/50 border-l border-border pl-3 py-1">
+      <div className="ml-9 mt-3 pl-3 py-1">
         {Object.entries(project.services).map(([svcName, svc]) => (
           <ServiceRow
             key={svcName}
