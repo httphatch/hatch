@@ -41,7 +41,7 @@ func (cfg RunnerConfig) IsQuick() bool {
 type Runner struct {
 	cfg   RunnerConfig
 	cmd   *exec.Cmd
-	proxy *rewriteProxy
+	proxy *RewriteProxy
 	done  chan struct{}
 	err   error
 	url   string
@@ -57,7 +57,7 @@ func (r *Runner) Start() error {
 	// URLs from HTML responses. This prevents PNA (Private Network Access)
 	// errors when frameworks like Vite inject absolute localhost script tags.
 	if r.cfg.IsQuick() {
-		proxy, err := startRewriteProxy(r.cfg.Upstream)
+		proxy, err := StartRewriteProxy(r.cfg.Upstream)
 		if err != nil {
 			r.mu.Unlock()
 			return fmt.Errorf("starting rewrite proxy: %w", err)
@@ -67,7 +67,7 @@ func (r *Runner) Start() error {
 
 	cfUpstream := r.cfg.Upstream
 	if r.proxy != nil {
-		cfUpstream = r.proxy.addr
+		cfUpstream = r.proxy.Addr()
 	}
 
 	var cmd *exec.Cmd

@@ -40,7 +40,7 @@ func TestRewriteProxy(t *testing.T) {
 	}))
 	defer appServer.Close()
 
-	proxy, err := startRewriteProxy(appServer.URL)
+	proxy, err := StartRewriteProxy(appServer.URL)
 	if err != nil {
 		t.Fatalf("starting proxy: %v", err)
 	}
@@ -48,7 +48,7 @@ func TestRewriteProxy(t *testing.T) {
 
 	// First request: HTML page. URLs should be rewritten to relative paths
 	// and the dev server should be discovered.
-	resp, err := http.Get(proxy.addr + "/")
+	resp, err := http.Get(proxy.Addr() + "/")
 	if err != nil {
 		t.Fatalf("GET /: %v", err)
 	}
@@ -68,7 +68,7 @@ func TestRewriteProxy(t *testing.T) {
 
 	// Second request: asset that 404s on app server. Should fall back to
 	// the discovered Vite dev server.
-	resp, err = http.Get(proxy.addr + "/@vite/client")
+	resp, err = http.Get(proxy.Addr() + "/@vite/client")
 	if err != nil {
 		t.Fatalf("GET /@vite/client: %v", err)
 	}
@@ -83,7 +83,7 @@ func TestRewriteProxy(t *testing.T) {
 	}
 
 	// Third request: another asset path.
-	resp, err = http.Get(proxy.addr + "/resources/js/app.tsx")
+	resp, err = http.Get(proxy.Addr() + "/resources/js/app.tsx")
 	if err != nil {
 		t.Fatalf("GET /resources/js/app.tsx: %v", err)
 	}
@@ -131,14 +131,14 @@ func TestRewriteProxyWebSocketFallback(t *testing.T) {
 	}))
 	defer appServer.Close()
 
-	proxy, err := startRewriteProxy(appServer.URL)
+	proxy, err := StartRewriteProxy(appServer.URL)
 	if err != nil {
 		t.Fatalf("starting proxy: %v", err)
 	}
 	defer proxy.Close()
 
 	// Load HTML to discover the dev server.
-	resp, err := http.Get(proxy.addr + "/")
+	resp, err := http.Get(proxy.Addr() + "/")
 	if err != nil {
 		t.Fatalf("GET /: %v", err)
 	}
@@ -146,7 +146,7 @@ func TestRewriteProxyWebSocketFallback(t *testing.T) {
 
 	// Simulate a WebSocket upgrade request. The upstream returns 200 (not 101),
 	// so the fallback should retry against the Vite dev server.
-	req, _ := http.NewRequest("GET", proxy.addr+"/?token=abc", nil)
+	req, _ := http.NewRequest("GET", proxy.Addr()+"/?token=abc", nil)
 	req.Header.Set("Connection", "Upgrade")
 	req.Header.Set("Upgrade", "websocket")
 
@@ -174,13 +174,13 @@ func TestRewriteProxyNonHTML(t *testing.T) {
 	u, _ := url.Parse(upstream.URL)
 	port = u.Port()
 
-	proxy, err := startRewriteProxy(upstream.URL)
+	proxy, err := StartRewriteProxy(upstream.URL)
 	if err != nil {
 		t.Fatalf("starting proxy: %v", err)
 	}
 	defer proxy.Close()
 
-	resp, err := http.Get(proxy.addr + "/test.js")
+	resp, err := http.Get(proxy.Addr() + "/test.js")
 	if err != nil {
 		t.Fatalf("GET proxy: %v", err)
 	}
@@ -217,21 +217,21 @@ func TestRewriteProxySamePort(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	proxy, err := startRewriteProxy(upstream.URL)
+	proxy, err := StartRewriteProxy(upstream.URL)
 	if err != nil {
 		t.Fatalf("starting proxy: %v", err)
 	}
 	defer proxy.Close()
 
 	// Load HTML to trigger rewriting.
-	resp, err := http.Get(proxy.addr + "/")
+	resp, err := http.Get(proxy.Addr() + "/")
 	if err != nil {
 		t.Fatalf("GET /: %v", err)
 	}
 	_ = resp.Body.Close()
 
 	// Asset request should succeed directly from upstream (no fallback needed).
-	resp, err = http.Get(proxy.addr + "/@vite/client")
+	resp, err = http.Get(proxy.Addr() + "/@vite/client")
 	if err != nil {
 		t.Fatalf("GET /@vite/client: %v", err)
 	}

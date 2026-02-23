@@ -25,8 +25,8 @@ type PKIPaths struct {
 // provided CA for issuing leaf certificates. dataDir controls where Caddy
 // stores certificates and PKI data. tunnelDomains maps "project/service"
 // keys to external hostnames resolved from Cloudflare tunnel ingress rules.
-func Translate(cfg config.Config, pki PKIPaths, dataDir string, tunnelDomains map[string][]string) map[string]any {
-	infos := collectRouteInfos(cfg, tunnelDomains)
+func Translate(cfg config.Config, pki PKIPaths, dataDir string, tunnelDomains map[string][]string, tunnelProxies map[string]string) map[string]any {
+	infos := collectRouteInfos(cfg, tunnelDomains, tunnelProxies)
 	httpsRoutes := buildRoutes(infos)
 	httpRedirectRoutes := buildHTTPRedirectRoutes(cfg, tunnelDomains)
 	tlsConfig := buildTLSConfig(cfg, pki.RootCert, tunnelDomains)
@@ -82,14 +82,17 @@ func Translate(cfg config.Config, pki PKIPaths, dataDir string, tunnelDomains ma
 
 // routeInfo holds metadata for sorting routes by specificity.
 type routeInfo struct {
-	domain  string
-	service config.Service
+	domain        string
+	service       config.Service
+	proxyOverride string // rewrite proxy address for tunnel domain routes
 }
 
 // collectRouteInfos gathers all enabled proxy services from the config.
 // When tunnelDomains is non-nil, additional routeInfo entries are created
 // for each external hostname attached to a service's named tunnel.
-func collectRouteInfos(cfg config.Config, tunnelDomains map[string][]string) []routeInfo {
+// When tunnelProxies is non-nil, tunnel domain routes use the rewrite proxy
+// address instead of the original upstream.
+func collectRouteInfos(cfg config.Config, tunnelDomains map[string][]string, tunnelProxies map[string]string) []routeInfo {
 	var infos []routeInfo
 
 	for projName, proj := range cfg.Projects {
@@ -110,10 +113,12 @@ func collectRouteInfos(cfg config.Config, tunnelDomains map[string][]string) []r
 			})
 
 			key := projName + "/" + svcName
+			proxyAddr := tunnelProxies[key]
 			for _, td := range tunnelDomains[key] {
 				infos = append(infos, routeInfo{
-					domain:  td,
-					service: svc,
+					domain:        td,
+					service:       svc,
+					proxyOverride: proxyAddr,
 				})
 			}
 		}
@@ -147,7 +152,11 @@ func buildRoutes(infos []routeInfo) []map[string]any {
 
 	routes := make([]map[string]any, 0, len(sorted)+1)
 	for _, info := range sorted {
-		routes = append(routes, buildRoute(info.domain, info.service))
+		proxyURL := info.service.Proxy
+		if info.proxyOverride != "" {
+			proxyURL = info.proxyOverride
+		}
+		routes = append(routes, buildRoute(info.domain, info.service, proxyURL))
 	}
 
 	if len(routes) > 0 {
@@ -184,7 +193,9 @@ func corsHeaders() map[string][]string {
 
 // buildRoute builds a single HTTPS route with host matcher, optional path matcher,
 // and a subroute that handles CORS preflight and adds CORS headers to responses.
-func buildRoute(domain string, svc config.Service) map[string]any {
+// proxyURL is the upstream address to proxy to (may differ from svc.Proxy when
+// a rewrite proxy is in use for tunnel domain routes).
+func buildRoute(domain string, svc config.Service, proxyURL string) map[string]any {
 	match := map[string]any{
 		"host": []string{domain},
 	}
@@ -192,7 +203,7 @@ func buildRoute(domain string, svc config.Service) map[string]any {
 		match["path"] = []string{svc.Route}
 	}
 
-	proxyHandler := buildReverseProxyHandler(svc.Proxy, svc.WebSocket, domain)
+	proxyHandler := buildReverseProxyHandler(proxyURL, svc.WebSocket, domain, svc.Proxy)
 
 	cors := corsHeaders()
 
@@ -242,11 +253,13 @@ func buildRoute(domain string, svc config.Service) map[string]any {
 // buildReverseProxyHandler builds a reverse_proxy handler with the dial address
 // extracted from proxyURL. If websocket is true, it adds flush_interval: -1 and
 // Connection/Upgrade header forwarding. The domain is used for error response pages.
-func buildReverseProxyHandler(proxyURL string, websocket bool, domain string) map[string]any {
+// displayUpstream is shown on error pages and may differ from proxyURL when a
+// rewrite proxy sits between Caddy and the real upstream.
+func buildReverseProxyHandler(proxyURL string, websocket bool, domain, displayUpstream string) map[string]any {
 	handler := map[string]any{
 		"handler":          "reverse_proxy",
 		"upstreams":        []map[string]any{{"dial": extractDialAddress(proxyURL)}},
-		"handle_response":  buildErrorResponse(domain, proxyURL),
+		"handle_response":  buildErrorResponse(domain, displayUpstream),
 	}
 
 	if websocket {

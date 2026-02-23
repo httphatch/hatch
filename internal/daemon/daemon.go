@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -26,22 +27,23 @@ import (
 
 // Daemon orchestrates all Hatch subsystems as a long-running background process.
 type Daemon struct {
-	caddy     *caddy.Server
-	dns       *dns.Server
-	health    *health.Checker
-	processes *process.Manager
-	tunnels   *tunnel.Manager
-	watcher   *config.Watcher
-	api       *api.Server
-	pidFile   *os.File
-	caPaths   certs.CAPaths
-	cfg       config.Config
-	mu        sync.Mutex
-	running   bool
-	version   string
-	startTime time.Time
-	logHub    *api.LogHub
-	outputHub *api.ProcessOutputHub
+	caddy          *caddy.Server
+	dns            *dns.Server
+	health         *health.Checker
+	processes      *process.Manager
+	tunnels        *tunnel.Manager
+	watcher        *config.Watcher
+	api            *api.Server
+	pidFile        *os.File
+	caPaths        certs.CAPaths
+	cfg            config.Config
+	rewriteProxies map[string]*tunnel.RewriteProxy
+	mu             sync.Mutex
+	running        bool
+	version        string
+	startTime      time.Time
+	logHub         *api.LogHub
+	outputHub      *api.ProcessOutputHub
 }
 
 // New creates a new Daemon instance with the given version and log hub.
@@ -145,13 +147,17 @@ func (d *Daemon) RunSubsystems(ctx context.Context, dashboard api.DashboardShowe
 		log.Info().Int("domains", total).Int("services", len(tunnelDomains)).Msg("resolved tunnel domains")
 	}
 
+	// Start rewrite proxies for services with tunnel domains so that
+	// named tunnel traffic through Caddy gets localhost URLs rewritten.
+	tunnelProxies := d.startTunnelProxies(cfg, tunnelDomains)
+
 	// Load translated config into Caddy.
 	caddyCfg := caddy.Translate(cfg, caddy.PKIPaths{
 		RootCert:         d.caPaths.Cert,
 		RootKey:          d.caPaths.Key,
 		IntermediateCert: d.caPaths.IntermediateCert,
 		IntermediateKey:  d.caPaths.IntermediateKey,
-	}, caddy.DataDir(), tunnelDomains)
+	}, caddy.DataDir(), tunnelDomains, tunnelProxies)
 	if err := caddySrv.LoadConfig(ctx, caddyCfg); err != nil {
 		d.shutdownPartial()
 		return fmt.Errorf("load caddy config: %w", err)
@@ -293,6 +299,9 @@ func (d *Daemon) Shutdown() error {
 		log.Info().Msg("config watcher stopped")
 	}
 
+	// Rewrite proxies (before tunnel manager).
+	d.stopTunnelProxies()
+
 	// Tunnel manager (before process manager so tunnels disconnect first).
 	if d.tunnels != nil {
 		if err := d.tunnels.StopAll(); err != nil {
@@ -362,15 +371,33 @@ func (d *Daemon) onConfigReload(cfg config.Config) {
 
 	tunnelDomains := tunnel.ResolveTunnelDomains(cfg, cloudflare.NewClient())
 
+	// Start new proxies before stopping old ones so Caddy always has a
+	// valid upstream to route to. Old proxies are stopped after Caddy
+	// switches to the new config.
+	oldProxies := d.swapTunnelProxies(cfg, tunnelDomains)
+
+	d.mu.Lock()
+	tunnelProxies := make(map[string]string, len(d.rewriteProxies))
+	for k, p := range d.rewriteProxies {
+		tunnelProxies[k] = p.Addr()
+	}
+	d.mu.Unlock()
+
 	caddyCfg := caddy.Translate(cfg, caddy.PKIPaths{
 		RootCert:         d.caPaths.Cert,
 		RootKey:          d.caPaths.Key,
 		IntermediateCert: d.caPaths.IntermediateCert,
 		IntermediateKey:  d.caPaths.IntermediateKey,
-	}, caddy.DataDir(), tunnelDomains)
+	}, caddy.DataDir(), tunnelDomains, tunnelProxies)
 	if err := d.caddy.LoadConfig(context.Background(), caddyCfg); err != nil {
 		log.Error().Err(err).Msg("failed to reload caddy config")
 		return
+	}
+
+	// Stop old proxies now that Caddy has switched to the new ones.
+	for key, proxy := range oldProxies {
+		proxy.Close()
+		log.Info().Str("service", key).Msg("old rewrite proxy stopped")
 	}
 
 	d.health.UpdateConfig(cfg)
@@ -407,6 +434,7 @@ func (d *Daemon) shutdownPartial() {
 		_ = d.api.Shutdown(ctx)
 		cancel()
 	}
+	d.stopTunnelProxies()
 	if d.tunnels != nil {
 		_ = d.tunnels.StopAll()
 	}
@@ -425,4 +453,78 @@ func (d *Daemon) shutdownPartial() {
 	if d.pidFile != nil {
 		_ = RemovePID(d.pidFile)
 	}
+}
+
+// startTunnelProxies starts rewrite proxies for services that have tunnel
+// domains. Returns a map of "project/service" keys to proxy addresses.
+func (d *Daemon) startTunnelProxies(cfg config.Config, tunnelDomains map[string][]string) map[string]string {
+	if len(tunnelDomains) == 0 {
+		return nil
+	}
+
+	newProxies := make(map[string]*tunnel.RewriteProxy, len(tunnelDomains))
+	addrs := make(map[string]string, len(tunnelDomains))
+
+	for key := range tunnelDomains {
+		upstream := upstreamForKey(cfg, key)
+		if upstream == "" {
+			continue
+		}
+		proxy, err := tunnel.StartRewriteProxy(upstream)
+		if err != nil {
+			log.Warn().Err(err).Str("service", key).Msg("failed to start rewrite proxy")
+			continue
+		}
+		newProxies[key] = proxy
+		addrs[key] = proxy.Addr()
+		log.Info().Str("service", key).Str("addr", proxy.Addr()).Msg("rewrite proxy started")
+	}
+
+	d.mu.Lock()
+	d.rewriteProxies = newProxies
+	d.mu.Unlock()
+
+	return addrs
+}
+
+// swapTunnelProxies starts new rewrite proxies and returns the old ones for
+// the caller to close after Caddy has switched to the new config.
+func (d *Daemon) swapTunnelProxies(cfg config.Config, tunnelDomains map[string][]string) map[string]*tunnel.RewriteProxy {
+	d.mu.Lock()
+	old := d.rewriteProxies
+	d.rewriteProxies = nil
+	d.mu.Unlock()
+
+	d.startTunnelProxies(cfg, tunnelDomains)
+	return old
+}
+
+// stopTunnelProxies shuts down all running rewrite proxies.
+func (d *Daemon) stopTunnelProxies() {
+	d.mu.Lock()
+	proxies := d.rewriteProxies
+	d.rewriteProxies = nil
+	d.mu.Unlock()
+
+	for key, proxy := range proxies {
+		proxy.Close()
+		log.Info().Str("service", key).Msg("rewrite proxy stopped")
+	}
+}
+
+// upstreamForKey returns the proxy URL for a "project/service" key.
+func upstreamForKey(cfg config.Config, key string) string {
+	parts := strings.SplitN(key, "/", 2)
+	if len(parts) != 2 {
+		return ""
+	}
+	proj, ok := cfg.Projects[parts[0]]
+	if !ok {
+		return ""
+	}
+	svc, ok := proj.Services[parts[1]]
+	if !ok {
+		return ""
+	}
+	return svc.Proxy
 }
