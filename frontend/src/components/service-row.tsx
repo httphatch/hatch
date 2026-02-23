@@ -60,7 +60,9 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
     }
   }
 
+  const isProxy = Boolean(service.proxy);
   const target = service.proxy || service.command || "";
+  const upstreamLabel = isProxy ? "proxy" : "cmd";
   const route = [
     service.route,
     service.websocket ? "ws" : null,
@@ -79,7 +81,7 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
 
   return (
     <>
-      <div className="grid grid-cols-[auto_7rem_1rem_minmax(0,1fr)_5.5rem_5rem_auto] items-center gap-x-3 py-1 text-xs">
+      <div className="grid grid-cols-[auto_minmax(0,1fr)_3rem_minmax(0,1.5fr)_5.5rem_5rem_auto] items-center gap-x-3 py-2 text-xs border-b border-border/50 last:border-b-0">
         {/* Health */}
         <HealthDot health={health} />
 
@@ -87,12 +89,17 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
         <div className="min-w-0">
           <span className="font-medium text-foreground truncate block">{name}</span>
           {service.subdomain && (
-            <span className="text-[10px] text-muted-foreground/70 truncate block">{service.subdomain}.*</span>
+            <span className="text-[10px] text-muted-foreground/70 truncate block">{service.subdomain}.{domain}</span>
           )}
         </div>
 
-        {/* Arrow */}
-        <span className="text-muted-foreground/40 text-center">&rarr;</span>
+        {/* Upstream label */}
+        <span className={cn(
+          "text-[10px] font-medium uppercase tracking-wider text-center px-1 py-0.5 rounded",
+          isProxy ? "text-blue-400 bg-blue-400/10" : "text-amber-400 bg-amber-400/10"
+        )}>
+          {upstreamLabel}
+        </span>
 
         {/* Target */}
         <span className="font-mono text-muted-foreground truncate" title={target}>
@@ -123,7 +130,7 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
             </button>
           )}
           {tunnel && tunnel.running && !tunnel.url && (
-            <span className="text-primary">connected</span>
+            <span className="text-primary">tunnel up</span>
           )}
           {(tunnelLoading || (tunnel && tunnel.starting)) && !tunnel?.running && (
             <span className="animate-pulse">starting</span>
