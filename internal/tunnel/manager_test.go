@@ -182,7 +182,7 @@ func TestStartTunnel_ResolutionError(t *testing.T) {
 
 func TestStartTunnel_QuickTunnelSkipsResolver(t *testing.T) {
 	dir := t.TempDir()
-	script := filepath.Join(dir, "mock-cloudflared")
+	script := filepath.Join(dir, "cloudflared")
 	err := os.WriteFile(script, []byte(`#!/bin/sh
 echo "https://test-abc.trycloudflare.com"
 sleep 60

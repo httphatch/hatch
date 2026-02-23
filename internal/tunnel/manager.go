@@ -78,11 +78,6 @@ func (m *Manager) StartTunnel(id TunnelID, upstream, tunnelName, token, accountI
 	}
 	m.mu.Unlock()
 
-	cfPath, err := FindCloudflared()
-	if err != nil {
-		return err
-	}
-
 	if upstream == "" {
 		return fmt.Errorf("service has no upstream to tunnel")
 	}
@@ -102,6 +97,11 @@ func (m *Manager) StartTunnel(id TunnelID, upstream, tunnelName, token, accountI
 			return fmt.Errorf("resolving tunnel token for %s: %w", id, err)
 		}
 		token = jwt
+	}
+
+	cfPath, err := FindCloudflared()
+	if err != nil {
+		return err
 	}
 
 	// Register as "starting" so the dashboard can show a loading state
