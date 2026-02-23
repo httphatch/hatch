@@ -26,6 +26,8 @@ import (
 type DaemonControl interface {
 	ReloadConfig() error
 	HealthChecker() *health.Checker
+	StopDaemon()
+	RestartDaemon()
 }
 
 // ManagerConfig holds the dependencies for a Manager.
@@ -194,9 +196,18 @@ func (m *Manager) populateMenu() {
 
 	m.menu.AddSeparator()
 
-	// Quit Hatch (triggers full daemon + tray shutdown).
-	m.menu.Add("Quit Hatch").OnClick(func(_ *application.Context) {
-		m.app.Quit()
+	// Restart Hatch (kill + relaunch via launchd).
+	m.menu.Add("Restart Hatch").OnClick(func(_ *application.Context) {
+		if m.daemon != nil {
+			m.daemon.RestartDaemon()
+		}
+	})
+
+	// Stop Hatch (remove plist + unload via launchd).
+	m.menu.Add("Stop Hatch").OnClick(func(_ *application.Context) {
+		if m.daemon != nil {
+			m.daemon.StopDaemon()
+		}
 	})
 }
 
