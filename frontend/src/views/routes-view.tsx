@@ -39,60 +39,63 @@ function buildRoutes(projects: Record<string, Project>): RouteEntry[] {
 }
 
 export function RoutesView() {
-  const { projects } = useProjects();
+  const { projects, loading, error } = useProjects();
   const { lookup } = useHealth();
   const routes = useMemo(() => buildRoutes(projects), [projects]);
 
-  return (
-    <div className="mx-auto w-full max-w-5xl">
-      <div className="flex items-center border-b border-border bg-surface/50 px-4 py-2">
-        <h2 className="text-lg font-semibold text-foreground">Routes</h2>
-      </div>
-      {routes.length === 0 ? (
-        <p className="py-16 text-center text-muted-foreground">
-          No active routes. Enable a project to see its routes here.
-        </p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                <th className="px-4 py-2 font-medium">Domain</th>
-                <th className="px-4 py-2 font-medium">Route</th>
-                <th className="px-4 py-2 font-medium">Target</th>
-                <th className="px-4 py-2 font-medium w-8">Health</th>
-              </tr>
-            </thead>
-            <tbody>
-              {routes.map((r) => (
-                <tr
-                  key={`${r.domain}-${r.route}-${r.service}`}
-                  className="border-b border-border/50 last:border-0"
+  if (loading) {
+    return (
+      <p className="py-16 text-center text-muted-foreground">Loading routes...</p>
+    );
+  }
+
+  if (error) {
+    return <p className="py-16 text-center text-destructive">{error}</p>;
+  }
+
+  return routes.length === 0 ? (
+    <p className="py-16 text-center text-muted-foreground">
+      No active routes. Enable a project to see its routes here.
+    </p>
+  ) : (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-border text-left text-xs text-muted-foreground">
+            <th className="px-4 py-2 font-medium">Domain</th>
+            <th className="px-4 py-2 font-medium">Route</th>
+            <th className="px-4 py-2 font-medium">Target</th>
+            <th className="px-4 py-2 font-medium w-8">Health</th>
+          </tr>
+        </thead>
+        <tbody>
+          {routes.map((r) => (
+            <tr
+              key={`${r.project}-${r.service}`}
+              className="border-b border-border/50 last:border-0"
+            >
+              <td className="px-4 py-2 font-mono">
+                <button
+                  type="button"
+                  onClick={() => safeOpenURL(r.url)}
+                  className="hover:text-primary hover:underline cursor-pointer"
                 >
-                  <td className="px-4 py-2 font-mono">
-                    <button
-                      type="button"
-                      onClick={() => safeOpenURL(r.url)}
-                      className="hover:text-primary hover:underline cursor-pointer"
-                    >
-                      {r.domain}
-                    </button>
-                  </td>
-                  <td className="px-4 py-2 font-mono text-muted-foreground">
-                    {r.route}
-                  </td>
-                  <td className="px-4 py-2 font-mono text-muted-foreground">
-                    {r.target}
-                  </td>
-                  <td className="px-4 py-2">
-                    <HealthDot health={lookup(r.project, r.service)} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                  {r.domain}
+                </button>
+              </td>
+              <td className="px-4 py-2 font-mono text-muted-foreground">
+                {r.route}
+              </td>
+              <td className="px-4 py-2 font-mono text-muted-foreground">
+                {r.target}
+              </td>
+              <td className="px-4 py-2">
+                <HealthDot health={lookup(r.project, r.service)} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

@@ -3,9 +3,7 @@ import { Toaster } from "sonner";
 import { TabNav, type Tab } from "@/components/tab-nav";
 import { StatusBar } from "@/components/status-bar";
 import { ProjectsView } from "@/views/projects-view";
-import { RoutesView } from "@/views/routes-view";
 import { LogsView } from "@/views/logs-view";
-import { CertsView } from "@/views/certs-view";
 import { SettingsView } from "@/views/settings-view";
 import { useStatus } from "@/hooks/use-status";
 
@@ -18,9 +16,7 @@ function App() {
       <TabNav active={tab} onChange={setTab} />
       <main className="flex-1 overflow-y-auto">
         {tab === "projects" && <ProjectsView />}
-        {tab === "routes" && <RoutesView />}
         {tab === "logs" && <LogsView />}
-        {tab === "certs" && <CertsView />}
         {tab === "settings" && <SettingsView />}
       </main>
       <StatusBar status={status} />

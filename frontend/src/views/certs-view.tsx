@@ -64,10 +64,7 @@ export function CertsView() {
   const { certs, loading, error } = useCerts();
 
   return (
-    <div className="mx-auto w-full max-w-5xl">
-      <div className="flex items-center border-b border-border bg-surface/50 px-4 py-2">
-        <h2 className="text-lg font-semibold text-foreground">Certificates</h2>
-      </div>
+    <>
       {loading && (
         <p className="py-16 text-center text-muted-foreground">
           Loading certificates...
@@ -85,6 +82,6 @@ export function CertsView() {
           </p>
         </>
       )}
-    </div>
+    </>
   );
 }

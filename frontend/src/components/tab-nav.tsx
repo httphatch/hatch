@@ -1,12 +1,10 @@
 import { cn } from "@/lib/utils";
 
-export type Tab = "projects" | "routes" | "logs" | "certs" | "settings";
+export type Tab = "projects" | "logs" | "settings";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "projects", label: "Projects" },
-  { id: "routes", label: "Routes" },
   { id: "logs", label: "Logs" },
-  { id: "certs", label: "Certs" },
   { id: "settings", label: "Settings" },
 ];
 

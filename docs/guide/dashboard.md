@@ -12,13 +12,11 @@ This opens the Hatch dashboard as a native macOS window.
 
 ## Navigation
 
-The dashboard uses a tab bar across the top with five tabs:
+The dashboard uses a tab bar across the top with three tabs:
 
 - **Projects** — project management grid
-- **Routes** — full route table for all enabled projects
 - **Logs** — real-time log table with filtering
-- **Certs** — certificate status for root CA and intermediate CA
-- **Settings** — settings form and raw YAML config editor
+- **Settings** — routes, certificates, settings form, and raw YAML config editor
 
 A status bar at the bottom of the window shows the daemon state (running/stopped), version, and uptime.
 
@@ -52,17 +50,6 @@ Services with a `proxy` can be exposed to the internet via Cloudflare Tunnels. E
 
 Tunnel output from cloudflared appears in the service's terminal viewer alongside process output. Tunnel status updates automatically via polling. See [Tunnels](/guide/tunnels) for setup.
 
-## Routes Tab
-
-A full-width table of all active routes across all enabled projects. Each row shows:
-
-- Domain
-- Route path
-- Proxy target
-- Health status
-
-Click any domain to open it in your browser.
-
 ## Logs Tab
 
 The log viewer streams daemon logs in real time via server-sent events. When you switch to the Logs tab, it pre-fills with up to 200 recent log entries so you have immediate context.
@@ -76,23 +63,14 @@ The table has four columns:
 
 Use the toolbar to filter by log level, search across log messages, or clear the log buffer. The view auto-scrolls to the latest entry; scroll up to pause, then click "Jump to latest" to resume.
 
-## Certs Tab
-
-Displays root CA and intermediate CA certificate details:
-
-- Installed/missing status
-- Trust status (root CA only)
-- Subject (CN)
-- Expiry date
-
-Run `hatch trust` to update certificate trust if the root CA shows as not trusted.
-
 ## Settings Tab
 
-The Settings tab has two sections:
+The Settings tab uses a sidebar with four sections:
 
-- **Settings form** — TLD, HTTP/HTTPS ports, auto-start, tray icon, log level, and Cloudflare token. Changes are saved to `config.yml` and the daemon reloads automatically.
-- **Advanced configuration** — raw YAML editor for `config.yml`, for direct editing of the full config including projects.
+- **Routes** — full table of all active routes across enabled projects. Each row shows domain, route path, proxy target, and health status. Click any domain to open it in your browser.
+- **Certificates** — root CA and intermediate CA certificate details including installed/missing status, trust status, subject, and expiry date. Run `hatch trust` to update certificate trust if the root CA shows as not trusted.
+- **General** — TLD, HTTP/HTTPS ports, auto-start, tray icon, log level, and Cloudflare token. Changes are saved to `config.yml` and the daemon reloads automatically.
+- **Advanced** — raw YAML editor for `config.yml`, for direct editing of the full config including projects.
 
 ## Tray Icon Menu
 
