@@ -23,12 +23,13 @@ type PKIPaths struct {
 // It skips disabled projects and returns a map suitable for JSON marshaling.
 // When pki.RootCert is non-empty, a PKI app is added so Caddy uses the
 // provided CA for issuing leaf certificates. dataDir controls where Caddy
-// stores certificates and PKI data.
-func Translate(cfg config.Config, pki PKIPaths, dataDir string) map[string]any {
-	infos := collectRouteInfos(cfg)
+// stores certificates and PKI data. tunnelDomains maps "project/service"
+// keys to external hostnames resolved from Cloudflare tunnel ingress rules.
+func Translate(cfg config.Config, pki PKIPaths, dataDir string, tunnelDomains map[string][]string) map[string]any {
+	infos := collectRouteInfos(cfg, tunnelDomains)
 	httpsRoutes := buildRoutes(infos)
-	httpRedirectRoutes := buildHTTPRedirectRoutes(cfg)
-	tlsConfig := buildTLSConfig(cfg, pki.RootCert)
+	httpRedirectRoutes := buildHTTPRedirectRoutes(cfg, tunnelDomains)
+	tlsConfig := buildTLSConfig(cfg, pki.RootCert, tunnelDomains)
 
 	httpsPort := fmt.Sprintf(":%d", cfg.Settings.HTTPSPort)
 	httpPort := fmt.Sprintf(":%d", cfg.Settings.HTTPPort)
@@ -86,14 +87,16 @@ type routeInfo struct {
 }
 
 // collectRouteInfos gathers all enabled proxy services from the config.
-func collectRouteInfos(cfg config.Config) []routeInfo {
+// When tunnelDomains is non-nil, additional routeInfo entries are created
+// for each external hostname attached to a service's named tunnel.
+func collectRouteInfos(cfg config.Config, tunnelDomains map[string][]string) []routeInfo {
 	var infos []routeInfo
 
-	for _, proj := range cfg.Projects {
+	for projName, proj := range cfg.Projects {
 		if !proj.Enabled {
 			continue
 		}
-		for _, svc := range proj.Services {
+		for svcName, svc := range proj.Services {
 			if svc.Proxy == "" {
 				continue
 			}
@@ -105,6 +108,14 @@ func collectRouteInfos(cfg config.Config) []routeInfo {
 				domain:  domain,
 				service: svc,
 			})
+
+			key := projName + "/" + svcName
+			for _, td := range tunnelDomains[key] {
+				infos = append(infos, routeInfo{
+					domain:  td,
+					service: svc,
+				})
+			}
 		}
 	}
 
@@ -523,7 +534,7 @@ func buildServerErrorRoutes(infos []routeInfo) map[string]any {
 // handler with a 302 redirect. A catch-all redirect (no host matcher) is appended
 // after the domain-specific routes so that unconfigured domains also redirect to
 // HTTPS, where the on-demand TLS and fallback 404 route handle them.
-func buildHTTPRedirectRoutes(cfg config.Config) []map[string]any {
+func buildHTTPRedirectRoutes(cfg config.Config, tunnelDomains map[string][]string) []map[string]any {
 	redirectHandler := []map[string]any{
 		{
 			"handler":     "static_response",
@@ -534,7 +545,7 @@ func buildHTTPRedirectRoutes(cfg config.Config) []map[string]any {
 		},
 	}
 
-	domains := collectDomains(cfg)
+	domains := collectDomains(cfg, tunnelDomains)
 	if len(domains) == 0 {
 		return []map[string]any{
 			{
@@ -562,8 +573,8 @@ func buildHTTPRedirectRoutes(cfg config.Config) []map[string]any {
 // A catch-all on-demand policy is appended so that requests to unconfigured
 // domains still get a valid certificate during the TLS handshake, allowing
 // the HTTP fallback route to serve the 404 debug page.
-func buildTLSConfig(cfg config.Config, rootCACert string) map[string]any {
-	domains := collectDomains(cfg)
+func buildTLSConfig(cfg config.Config, rootCACert string, tunnelDomains map[string][]string) map[string]any {
+	domains := collectDomains(cfg, tunnelDomains)
 
 	issuer := map[string]any{"module": "internal"}
 	if rootCACert != "" {
@@ -618,20 +629,26 @@ func buildPKIConfig(pki PKIPaths) map[string]any {
 // collectDomains returns all unique domains across enabled projects, sorted.
 // Each service's full domain is listed explicitly so that Caddy's automatic
 // HTTPS exact-match check recognises them against the TLS automation policy.
-func collectDomains(cfg config.Config) []string {
+// Tunnel domains are included so certificates are pre-generated.
+func collectDomains(cfg config.Config, tunnelDomains map[string][]string) []string {
 	domainSet := make(map[string]bool)
 
-	for _, proj := range cfg.Projects {
+	for projName, proj := range cfg.Projects {
 		if !proj.Enabled {
 			continue
 		}
-		for _, svc := range proj.Services {
+		for svcName, svc := range proj.Services {
 			if svc.Proxy == "" {
 				continue
 			}
 			domainSet[proj.Domain] = true
 			if svc.Subdomain != "" {
 				domainSet[svc.Subdomain+"."+proj.Domain] = true
+			}
+
+			key := projName + "/" + svcName
+			for _, td := range tunnelDomains[key] {
+				domainSet[td] = true
 			}
 		}
 	}

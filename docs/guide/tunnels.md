@@ -85,6 +85,16 @@ settings:
 
 The account ID must be a 32-character hexadecimal string. You can find it in the Cloudflare dashboard under your account overview.
 
+## Auto-Detected Tunnel Domains
+
+When a `cloudflare_token` is configured, Hatch queries the Cloudflare API for each named tunnel's ingress rules. It reads the hostnames attached to the tunnel and adds Caddy routes for each one. This means requests arriving through the tunnel with external domains (e.g. `myapp.example.com`) are routed to the correct local service automatically.
+
+Without this, the tunnel sends requests with the external domain in the Host header, but Caddy only has routes for `.test` domains, causing a "no route" error.
+
+The auto-detection runs at daemon startup and on config reload. If the API call fails, Hatch logs a warning and continues without the tunnel domains. The daemon never fails to start because of a Cloudflare API issue.
+
+Without an API token, Hatch cannot detect tunnel domains. You must either set a `cloudflare_token` or configure cloudflared to connect directly to the service upstream.
+
 ## CLI Commands
 
 ### `hatch tunnel start <project>/<service>`
