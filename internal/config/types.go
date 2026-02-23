@@ -16,13 +16,14 @@ type Config struct {
 
 // Settings holds global Hatch settings.
 type Settings struct {
-	TLD             string `yaml:"tld" json:"tld"`
-	HTTPPort        int    `yaml:"http_port" json:"http_port"`
-	HTTPSPort       int    `yaml:"https_port" json:"https_port"`
-	AutoStart       bool   `yaml:"auto_start" json:"auto_start"`
-	TrayIcon        bool   `yaml:"tray_icon" json:"tray_icon"`
-	LogLevel        string `yaml:"log_level" json:"log_level"`
-	CloudflareToken string `yaml:"cloudflare_token,omitempty" json:"cloudflare_token,omitempty"`
+	TLD                 string `yaml:"tld" json:"tld"`
+	HTTPPort            int    `yaml:"http_port" json:"http_port"`
+	HTTPSPort           int    `yaml:"https_port" json:"https_port"`
+	AutoStart           bool   `yaml:"auto_start" json:"auto_start"`
+	TrayIcon            bool   `yaml:"tray_icon" json:"tray_icon"`
+	LogLevel            string `yaml:"log_level" json:"log_level"`
+	CloudflareToken     string `yaml:"cloudflare_token,omitempty" json:"cloudflare_token,omitempty"`
+	CloudflareAccountID string `yaml:"cloudflare_account_id,omitempty" json:"cloudflare_account_id,omitempty"`
 }
 
 // Project defines a single project's proxy configuration.

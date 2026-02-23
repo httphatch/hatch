@@ -174,7 +174,7 @@ Hatch can expose local services to the internet via [Cloudflare Tunnels](https:/
 
 **Quick tunnels** use `cloudflared tunnel --url <upstream>`. Hatch scans stdout for a `trycloudflare.com` URL and waits up to 30 seconds for it to appear. No Cloudflare account is needed.
 
-**Named tunnels** use `cloudflared tunnel run <name>` with the API token passed via the `TUNNEL_TOKEN` environment variable (never exposed in process arguments).
+**Named tunnels** use `cloudflared tunnel run <name>`. When a `cloudflare_token` (API token) is configured, Hatch resolves the tunnel JWT by calling three Cloudflare API endpoints: (1) `/accounts` to find the account ID (skipped if `cloudflare_account_id` is set), (2) `/accounts/{id}/cfd_tunnel?name=...` to find the tunnel UUID, (3) `/accounts/{id}/cfd_tunnel/{tunnel_id}/token` to get the JWT. The resolved JWT is passed via the `TUNNEL_TOKEN` environment variable (never exposed in process arguments). Without an API token, cloudflared falls back to credential files in `~/.cloudflared/`.
 
 **Rewrite proxy:** Quick tunnels route through a local rewrite proxy that sits between cloudflared and the upstream. The proxy does three things: (1) strips absolute localhost URLs from HTML responses so browsers don't block them under PNA policy, (2) discovers a secondary dev server (e.g. Vite) by finding localhost URLs on a different port than the upstream, and retries 404'd GET requests against it, (3) retries failed WebSocket upgrades against the dev server so HMR works through the tunnel. Named tunnels skip the proxy and connect directly to the upstream.
 

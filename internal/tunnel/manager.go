@@ -10,6 +10,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
+	"github.com/httphatch/hatch/internal/cloudflare"
 	"github.com/httphatch/hatch/internal/config"
 )
 
@@ -39,12 +40,18 @@ type managed struct {
 	done   <-chan struct{}
 }
 
+// TokenResolver resolves a tunnel JWT from a Cloudflare API token.
+type TokenResolver interface {
+	ResolveTunnelToken(apiToken, accountID, tunnelName string) (string, error)
+}
+
 // Manager supervises cloudflared tunnel processes.
 type Manager struct {
-	mu        sync.Mutex
-	tunnels   map[TunnelID]*managed
-	stateFile string
-	onOutput  func(project, service, source, line string)
+	mu            sync.Mutex
+	tunnels       map[TunnelID]*managed
+	stateFile     string
+	onOutput      func(project, service, source, line string)
+	tokenResolver TokenResolver
 }
 
 // NewManager creates a new tunnel Manager.
@@ -52,14 +59,15 @@ type Manager struct {
 // onOutput, if non-nil, receives cloudflared output lines for logging and streaming.
 func NewManager(stateFile string, onOutput func(project, service, source, line string)) *Manager {
 	return &Manager{
-		tunnels:   make(map[TunnelID]*managed),
-		stateFile: stateFile,
-		onOutput:  onOutput,
+		tunnels:       make(map[TunnelID]*managed),
+		stateFile:     stateFile,
+		onOutput:      onOutput,
+		tokenResolver: cloudflare.NewClient(),
 	}
 }
 
 // StartTunnel starts a tunnel for the given service.
-func (m *Manager) StartTunnel(id TunnelID, upstream, tunnelName, token string) error {
+func (m *Manager) StartTunnel(id TunnelID, upstream, tunnelName, token, accountID string) error {
 	m.mu.Lock()
 	if t, ok := m.tunnels[id]; ok && (t.status.Running || t.status.Starting) {
 		m.mu.Unlock()
@@ -70,11 +78,6 @@ func (m *Manager) StartTunnel(id TunnelID, upstream, tunnelName, token string) e
 	}
 	m.mu.Unlock()
 
-	cfPath, err := FindCloudflared()
-	if err != nil {
-		return err
-	}
-
 	if upstream == "" {
 		return fmt.Errorf("service has no upstream to tunnel")
 	}
@@ -84,6 +87,21 @@ func (m *Manager) StartTunnel(id TunnelID, upstream, tunnelName, token string) e
 		tunnelType = "named"
 	} else {
 		tunnelName = ""
+	}
+
+	// For named tunnels with an API token, resolve the tunnel JWT.
+	// Without an API token, cloudflared falls back to credential files.
+	if tunnelType == "named" && token != "" {
+		jwt, err := m.tokenResolver.ResolveTunnelToken(token, accountID, tunnelName)
+		if err != nil {
+			return fmt.Errorf("resolving tunnel token for %s: %w", id, err)
+		}
+		token = jwt
+	}
+
+	cfPath, err := FindCloudflared()
+	if err != nil {
+		return err
 	}
 
 	// Register as "starting" so the dashboard can show a loading state
@@ -243,7 +261,7 @@ func (m *Manager) ApplyConfig(cfg config.Config) error {
 		}
 
 		go func(id TunnelID, want desiredTunnel) {
-			if err := m.StartTunnel(id, want.upstream, want.tunnelName, want.token); err != nil {
+			if err := m.StartTunnel(id, want.upstream, want.tunnelName, want.token, want.accountID); err != nil {
 				log.Warn().Err(err).Str("tunnel", id.String()).Msg("failed to start tunnel")
 			}
 		}(id, want)
@@ -256,6 +274,7 @@ type desiredTunnel struct {
 	upstream   string
 	tunnelName string
 	token      string
+	accountID  string
 }
 
 func (m *Manager) buildDesired(cfg config.Config) map[TunnelID]desiredTunnel {
@@ -282,6 +301,7 @@ func (m *Manager) buildDesired(cfg config.Config) map[TunnelID]desiredTunnel {
 				upstream:   svc.Proxy,
 				tunnelName: tunnelVal,
 				token:      token,
+				accountID:  cfg.Settings.CloudflareAccountID,
 			}
 		}
 	}

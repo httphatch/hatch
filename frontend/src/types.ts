@@ -76,6 +76,7 @@ export interface Settings {
   tray_icon: boolean;
   log_level: string;
   cloudflare_token?: string;
+  cloudflare_account_id?: string;
 }
 
 export interface TunnelStatus {

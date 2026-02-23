@@ -15,7 +15,7 @@ settings:
   auto_start: true
   tray_icon: true
   log_level: info
-  cloudflare_token: "global-token"
+  cloudflare_token: "your-api-token"
 projects:
   myapp:
     domain: myapp.test
@@ -106,7 +106,14 @@ Controls the verbosity of daemon logs in `~/.hatch/logs/hatch.log`.
 - **Type:** `string`
 - **Optional**
 
-Default Cloudflare API token for named tunnels. Can be overridden per-project. See [Tunnels](/guide/tunnels) for details.
+Cloudflare API token used to resolve tunnel JWTs for named tunnels. When a named tunnel is configured, Hatch uses this token to call the Cloudflare API and fetch the tunnel-specific JWT that cloudflared needs. Can be overridden per-project. See [Tunnels](/guide/tunnels) for details.
+
+### `settings.cloudflare_account_id`
+
+- **Type:** `string`
+- **Optional**
+
+Cloudflare account ID (32-character hex string). When set, Hatch skips the account lookup API call and uses this ID directly. When empty, Hatch auto-detects the account from the API token (uses the first account).
 
 ## Projects
 
@@ -219,14 +226,14 @@ Enables WebSocket proxying for this service. Adds the necessary `Connection` and
 Exposes this service to the internet via a Cloudflare Tunnel. Requires `proxy` to be set.
 
 - `true` — starts a quick tunnel (temporary URL, no account needed)
-- `"my-tunnel-name"` — starts a named tunnel (persistent domain, requires `cloudflare_token`)
+- `"my-tunnel-name"` — starts a named tunnel (persistent domain, optionally uses `cloudflare_token` to resolve the tunnel JWT)
 
 ```yaml
 tunnel: true              # quick tunnel
 tunnel: my-tunnel-name    # named tunnel
 ```
 
-Named tunnel values must contain only alphanumeric characters, hyphens, or underscores (max 63 characters). Named tunnels require a `cloudflare_token` at the project or settings level.
+Named tunnel values must contain only alphanumeric characters, hyphens, or underscores (max 63 characters). When a `cloudflare_token` is set at the project or settings level, Hatch calls the Cloudflare API to resolve the tunnel JWT automatically. Without a token, cloudflared falls back to credential files in `~/.cloudflared/`.
 
 See [Tunnels](/guide/tunnels) for a full guide.
 
@@ -240,4 +247,4 @@ See [Tunnels](/guide/tunnels) for a full guide.
 - Service `subdomain` must be a valid DNS label
 - `route` and `subdomain` require `proxy`
 - `tunnel` requires `proxy`
-- Named tunnels require `cloudflare_token` at project or settings level
+- `settings.cloudflare_account_id`, when set, must be a 32-character hex string
