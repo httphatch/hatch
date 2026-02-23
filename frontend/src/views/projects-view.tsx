@@ -29,7 +29,7 @@ export function ProjectsView() {
 
   return (
     <div className="mx-auto w-full max-w-5xl">
-      <div className="mb-4 flex items-center justify-between px-4 pt-4">
+      <div className="flex items-center justify-between border-b border-border bg-surface/50 px-4 py-2">
         <h2 className="text-lg font-semibold text-foreground">Projects</h2>
         <Button size="sm" onClick={() => setAddOpen(true)}>
           <Plus />

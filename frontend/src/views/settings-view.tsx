@@ -7,12 +7,12 @@ export function SettingsView() {
       <div className="flex items-center border-b border-border bg-surface/50 px-4 py-2">
         <h2 className="text-lg font-semibold text-foreground">Settings</h2>
       </div>
-      <div className="space-y-6 p-4">
-        <SettingsForm />
-        <div>
-          <h3 className="mb-4 text-sm font-semibold text-foreground">
-            Advanced Configuration
-          </h3>
+      <SettingsForm />
+      <div className="border-b border-border">
+        <div className="flex items-center border-b border-border bg-surface/50 px-4 py-2">
+          <h3 className="text-sm font-semibold text-foreground">Advanced Configuration</h3>
+        </div>
+        <div className="px-4 py-4">
           <ConfigEditor />
         </div>
       </div>

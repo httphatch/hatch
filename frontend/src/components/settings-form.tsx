@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -82,12 +81,12 @@ export function SettingsForm() {
   }
 
   return (
-    <div className="space-y-3">
-      <Card className="gap-4 py-4">
-        <CardHeader className="pb-0">
-          <CardTitle className="text-sm">Network</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+    <div>
+      <div className="border-b border-border">
+        <div className="flex items-center border-b border-border bg-surface/50 px-4 py-2">
+          <h3 className="text-sm font-semibold text-foreground">Network</h3>
+        </div>
+        <div className="space-y-4 px-4 py-4">
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="tld">TLD</Label>
@@ -127,14 +126,14 @@ export function SettingsForm() {
               />
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card className="gap-4 py-4">
-        <CardHeader className="pb-0">
-          <CardTitle className="text-sm">General</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <div className="border-b border-border">
+        <div className="flex items-center border-b border-border bg-surface/50 px-4 py-2">
+          <h3 className="text-sm font-semibold text-foreground">General</h3>
+        </div>
+        <div className="space-y-4 px-4 py-4">
           <div className="flex items-center justify-between">
             <Label htmlFor="auto-start">Auto Start</Label>
             <Switch
@@ -169,14 +168,14 @@ export function SettingsForm() {
               </SelectContent>
             </Select>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card className="gap-4 py-4">
-        <CardHeader className="pb-0">
-          <CardTitle className="text-sm">Integrations</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <div className="border-b border-border">
+        <div className="flex items-center border-b border-border bg-surface/50 px-4 py-2">
+          <h3 className="text-sm font-semibold text-foreground">Integrations</h3>
+        </div>
+        <div className="space-y-4 px-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="cf-token">Cloudflare Token</Label>
             <div className="relative">
@@ -210,13 +209,13 @@ export function SettingsForm() {
               placeholder="Optional (auto-detected from token)"
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {(error || saveError) && (
-        <p className="text-sm text-destructive">{saveError || error}</p>
+        <p className="px-4 pt-4 text-sm text-destructive">{saveError || error}</p>
       )}
-      <div className="flex justify-end">
+      <div className="flex justify-end px-4 py-4">
         <Button onClick={handleSave} disabled={saving}>
           {saving ? "Saving..." : "Save & Reload"}
         </Button>
