@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -14,6 +13,7 @@ import { stopProcess, startProcess, restartProcess, startTunnel, stopTunnel } fr
 import type { ProcessStatus, Service, ServiceHealth, TunnelStatus } from "@/types";
 import { Cloud, CloudOff, ExternalLink, Play, RotateCw, Square, Terminal } from "lucide-react";
 import { safeOpenURL } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 interface ServiceRowProps {
   name: string;
@@ -60,175 +60,144 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
     }
   }
 
+  const target = service.proxy || service.command || "";
+  const route = [
+    service.subdomain ? `${service.subdomain}.*` : null,
+    service.route,
+    service.websocket ? "ws" : null,
+  ].filter(Boolean).join(" ");
+
+  const statusText = process
+    ? process.running
+      ? "running"
+      : "stopped"
+    : "";
+  const statusClass = process
+    ? process.running
+      ? "text-status-healthy"
+      : "text-status-error"
+    : "";
+
   return (
-    <div className="flex items-center gap-2 text-sm py-1">
-      <HealthDot health={health} />
-      <span className="font-medium text-foreground">{name}</span>
-      {service.proxy && (
-        <span className="font-mono text-muted-foreground">{service.proxy}</span>
-      )}
-      {!service.proxy && service.command && (
-        <span className="font-mono text-muted-foreground truncate max-w-48" title={service.command}>
-          {service.command}
+    <>
+      <div className="grid grid-cols-[auto_minmax(0,1fr)_minmax(0,1.5fr)_5rem_4rem_auto] items-center gap-x-3 py-1 text-xs">
+        {/* Health */}
+        <HealthDot health={health} />
+
+        {/* Name */}
+        <span className="font-medium text-foreground truncate">{name}</span>
+
+        {/* Target */}
+        <span className="font-mono text-muted-foreground truncate" title={target}>
+          {target}
+          {route && (
+            <span className="ml-1.5 text-muted-foreground/60">{route}</span>
+          )}
         </span>
-      )}
-      {service.route && (
-        <Badge variant="outline" className="font-mono text-xs">
-          {service.route}
-        </Badge>
-      )}
-      {service.subdomain && (
-        <Badge variant="secondary" className="font-mono text-xs">
-          {service.subdomain}.*
-        </Badge>
-      )}
-      {service.websocket && (
-        <Badge variant="outline" className="font-mono text-xs">
-          WS
-        </Badge>
-      )}
-      {process && (
-        <Badge
-          variant="outline"
-          className={`font-mono text-xs ${process.running ? "text-status-healthy border-status-healthy" : "text-status-error border-status-error"}`}
-        >
-          {process.running ? "Running" : "Stopped"}
-        </Badge>
-      )}
-      {process && process.restarts > 0 && (
-        <Badge variant="outline" className="font-mono text-xs">
-          {process.restarts} restart{process.restarts !== 1 ? "s" : ""}
-        </Badge>
-      )}
-      {process && process.running && (
-        <>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                disabled={actionLoading !== null}
-                onClick={() => handleAction("stop")}
-              >
-                <Square className={actionLoading === "stop" ? "animate-pulse" : ""} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Stop</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                disabled={actionLoading !== null}
-                onClick={() => handleAction("restart")}
-              >
-                <RotateCw className={actionLoading === "restart" ? "animate-spin" : ""} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Restart</TooltipContent>
-          </Tooltip>
-        </>
-      )}
-      {process && process.stopped && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              disabled={actionLoading !== null}
-              onClick={() => handleAction("start")}
+
+        {/* Status */}
+        <span className={cn("font-mono truncate", statusClass)}>
+          {statusText}
+          {process && process.restarts > 0 && (
+            <span className="text-muted-foreground"> ({process.restarts})</span>
+          )}
+        </span>
+
+        {/* Tunnel */}
+        <span className="font-mono text-muted-foreground truncate text-center">
+          {tunnel && tunnel.running && (
+            <button
+              type="button"
+              onClick={() => tunnel.url && safeOpenURL(tunnel.url)}
+              className="text-primary hover:underline cursor-pointer"
+              title={tunnel.url}
             >
-              <Play className={actionLoading === "start" ? "animate-pulse" : ""} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Start</TooltipContent>
-        </Tooltip>
-      )}
-      {tunnel && tunnel.running && (
-        <>
-          {tunnel.url && (
+              tunnel
+            </button>
+          )}
+          {(tunnelLoading || (tunnel && tunnel.starting)) && (
+            <span className="animate-pulse">...</span>
+          )}
+        </span>
+
+        {/* Actions */}
+        <div className="flex items-center gap-0.5">
+          {process && process.running && (
+            <>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon-xs" disabled={actionLoading !== null} onClick={() => handleAction("stop")}>
+                    <Square className={cn("size-3", actionLoading === "stop" && "animate-pulse")} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Stop</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon-xs" disabled={actionLoading !== null} onClick={() => handleAction("restart")}>
+                    <RotateCw className={cn("size-3", actionLoading === "restart" && "animate-spin")} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Restart</TooltipContent>
+              </Tooltip>
+            </>
+          )}
+          {process && process.stopped && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Badge
-                  variant="outline"
-                  className="font-mono text-xs text-primary border-primary cursor-pointer hover:bg-primary/10"
-                  onClick={() => safeOpenURL(tunnel.url)}
-                >
-                  <Cloud className="mr-1 size-3" />
-                  {tunnel.url.replace(/^https?:\/\//, "")}
-                </Badge>
+                <Button variant="ghost" size="icon-xs" disabled={actionLoading !== null} onClick={() => handleAction("start")}>
+                  <Play className={cn("size-3", actionLoading === "start" && "animate-pulse")} />
+                </Button>
               </TooltipTrigger>
-              <TooltipContent>Open tunnel URL</TooltipContent>
+              <TooltipContent>Start</TooltipContent>
+            </Tooltip>
+          )}
+          {tunnel && tunnel.running && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon-xs" disabled={tunnelLoading} onClick={() => handleTunnelAction("stop")}>
+                  <CloudOff className={cn("size-3", tunnelLoading && "animate-pulse")} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Stop tunnel</TooltipContent>
+            </Tooltip>
+          )}
+          {service.proxy && (!tunnel || (!tunnel.running && !tunnel.starting)) && !tunnelLoading && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon-xs" onClick={() => handleTunnelAction("start")}>
+                  <Cloud className="size-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Start tunnel</TooltipContent>
             </Tooltip>
           )}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                disabled={tunnelLoading}
-                onClick={() => handleTunnelAction("stop")}
-              >
-                <CloudOff className={tunnelLoading ? "animate-pulse" : ""} />
+              <Button variant="ghost" size="icon-xs" onClick={() => setOutputOpen(true)}>
+                <Terminal className="size-3" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Stop tunnel</TooltipContent>
+            <TooltipContent>Output</TooltipContent>
           </Tooltip>
-        </>
-      )}
-      {service.proxy && (!tunnel || (!tunnel.running && !tunnel.starting)) && !tunnelLoading && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              onClick={() => handleTunnelAction("start")}
-            >
-              <Cloud />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Start tunnel</TooltipContent>
-        </Tooltip>
-      )}
-      {(tunnelLoading || (tunnel && tunnel.starting)) && (
-        <Badge variant="outline" className="font-mono text-xs text-muted-foreground border-muted-foreground animate-pulse">
-          <Cloud className="mr-1 size-3" />
-          Starting tunnel...
-        </Badge>
-      )}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            onClick={() => setOutputOpen(true)}
-          >
-            <Terminal />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>View output</TooltipContent>
-      </Tooltip>
-      {url && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              onClick={() => safeOpenURL(url)}
-            >
-              <ExternalLink />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Open {url}</TooltipContent>
-        </Tooltip>
-      )}
+          {url && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon-xs" onClick={() => safeOpenURL(url)}>
+                  <ExternalLink className="size-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Open</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+      </div>
       <ProcessOutputDialog
         project={projectName}
         service={name}
         open={outputOpen}
         onOpenChange={setOutputOpen}
       />
-    </div>
+    </>
   );
 }

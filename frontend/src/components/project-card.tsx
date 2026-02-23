@@ -1,10 +1,3 @@
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardAction,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -15,8 +8,7 @@ import {
 import { ServiceRow } from "@/components/service-row";
 import type { ProcessStatus, Project, ServiceHealth, TunnelStatus } from "@/types";
 import { Copy, ExternalLink, Pencil, Trash2 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { safeOpenURL } from "@/lib/utils";
+import { cn, safeOpenURL } from "@/lib/utils";
 
 interface ProjectCardProps {
   name: string;
@@ -45,92 +37,71 @@ export function ProjectCard({
 }: ProjectCardProps) {
   const url = `https://${project.domain}`;
 
-  function copyDomain() {
-    navigator.clipboard.writeText(url);
-  }
-
-  function openInBrowser() {
-    safeOpenURL(url);
-  }
-
   return (
-    <Card className={cn(!project.enabled && "opacity-60")}>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <span className="text-lg font-semibold text-primary">{name}</span>
-          <Switch
-            checked={project.enabled}
-            onCheckedChange={() => onToggle(name)}
-            aria-label={`Toggle ${name}`}
-          />
-        </CardTitle>
-        <CardAction>
-          <div className="flex gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  onClick={() => onEdit(name)}
-                >
-                  <Pencil />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Edit</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  onClick={() => onDelete(name)}
-                >
-                  <Trash2 className="text-destructive" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Delete</TooltipContent>
-            </Tooltip>
-          </div>
-        </CardAction>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="flex items-center gap-2 text-sm">
-          <span className="font-mono text-muted-foreground truncate">{project.domain}</span>
+    <div className={cn("py-3", !project.enabled && "opacity-50")}>
+      {/* Project header */}
+      <div className="flex items-center gap-3 mb-1">
+        <Switch
+          size="sm"
+          checked={project.enabled}
+          onCheckedChange={() => onToggle(name)}
+          aria-label={`Toggle ${name}`}
+        />
+        <span className="text-sm font-semibold text-primary">{name}</span>
+        <span className="font-mono text-xs text-muted-foreground truncate">{project.domain}</span>
+        <div className="ml-auto flex items-center gap-0.5">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon-xs" onClick={copyDomain}>
-                <Copy />
+              <Button variant="ghost" size="icon-xs" onClick={() => navigator.clipboard.writeText(url)}>
+                <Copy className="size-3" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Copy URL</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon-xs" onClick={openInBrowser}>
-                <ExternalLink />
+              <Button variant="ghost" size="icon-xs" onClick={() => safeOpenURL(url)}>
+                <ExternalLink className="size-3" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Open in browser</TooltipContent>
           </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon-xs" onClick={() => onEdit(name)}>
+                <Pencil className="size-3" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Edit</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon-xs" onClick={() => onDelete(name)}>
+                <Trash2 className="size-3 text-destructive" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Delete</TooltipContent>
+          </Tooltip>
         </div>
-        <p className="text-xs font-mono text-muted-foreground truncate">{project.path}</p>
-        <div>
-          {Object.entries(project.services).map(([svcName, svc]) => (
-            <ServiceRow
-              key={svcName}
-              name={svcName}
-              service={svc}
-              health={healthLookup(name, svcName)}
-              domain={project.domain}
-              process={processLookup(name, svcName)}
-              tunnel={tunnelLookup(name, svcName)}
-              projectName={name}
-              onRefresh={onProcessRefresh}
-              onTunnelRefresh={onTunnelRefresh}
-            />
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Services */}
+      <div className="ml-9">
+        {Object.entries(project.services).map(([svcName, svc]) => (
+          <ServiceRow
+            key={svcName}
+            name={svcName}
+            service={svc}
+            health={healthLookup(name, svcName)}
+            domain={project.domain}
+            process={processLookup(name, svcName)}
+            tunnel={tunnelLookup(name, svcName)}
+            projectName={name}
+            onRefresh={onProcessRefresh}
+            onTunnelRefresh={onTunnelRefresh}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
