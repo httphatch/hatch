@@ -1,25 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { EditorView, basicSetup } from "codemirror";
 import { yaml } from "@codemirror/lang-yaml";
+import { oneDark } from "@codemirror/theme-one-dark";
 import { EditorState } from "@codemirror/state";
 import { Button } from "@/components/ui/button";
 import { useConfig } from "@/hooks/use-config";
 
-const theme = EditorView.theme({
+const overrides = EditorView.theme({
   "&": {
     fontSize: "13px",
     border: "1px solid var(--color-border)",
-    borderRadius: "0.5rem",
   },
   "&.cm-focused": {
     outline: "none",
   },
   ".cm-scroller": {
     fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-  },
-  ".cm-gutters": {
-    backgroundColor: "var(--color-secondary)",
-    borderRight: "1px solid var(--color-border)",
   },
 });
 
@@ -28,7 +25,6 @@ export function ConfigEditor() {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (loading || !editorRef.current) return;
@@ -36,7 +32,7 @@ export function ConfigEditor() {
 
     const state = EditorState.create({
       doc: initialYaml,
-      extensions: [basicSetup, yaml(), theme],
+      extensions: [basicSetup, yaml(), oneDark, overrides],
     });
 
     viewRef.current = new EditorView({
@@ -54,36 +50,29 @@ export function ConfigEditor() {
     if (!viewRef.current) return;
     const content = viewRef.current.state.doc.toString();
     setSaveError(null);
-    setSaved(false);
     try {
       await save(content);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      toast.success("Config saved. Daemon reloaded.");
     } catch (err) {
-      setSaveError(
+      toast.error(
         err instanceof Error ? err.message : "Failed to save config"
       );
     }
   }, [save]);
 
   if (loading) {
-    return <p className="py-8 text-center text-text-muted">Loading config…</p>;
+    return <p className="py-8 text-center text-muted-foreground">Loading config...</p>;
   }
 
   return (
     <div className="space-y-3">
-      <div ref={editorRef} className="overflow-hidden rounded-lg" />
+      <div ref={editorRef} className="overflow-hidden" />
       {(error || saveError) && (
         <p className="text-sm text-destructive">{saveError || error}</p>
       )}
-      {saved && (
-        <p className="text-sm text-emerald-600">
-          Config saved — daemon reloaded.
-        </p>
-      )}
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={saving}>
-          {saving ? "Saving…" : "Save & Reload"}
+          {saving ? "Saving..." : "Save & Reload"}
         </Button>
       </div>
     </div>

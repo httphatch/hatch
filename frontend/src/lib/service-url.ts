@@ -7,6 +7,11 @@ export function serviceUrl(domain: string, service: Service): string | null {
     ? `${service.subdomain}.${domain}`
     : domain;
 
-  const path = service.route ?? "";
-  return `https://${host}${path}`;
+  try {
+    const u = new URL(`https://${host}`);
+    if (service.route) u.pathname = service.route;
+    return u.toString();
+  } catch {
+    return null;
+  }
 }

@@ -34,7 +34,7 @@ export function ProjectList({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+    <div className="space-y-4">
       {entries.map(([name, project]) => (
         <ProjectCard
           key={name}

@@ -7,9 +7,9 @@ import type { ServiceHealth } from "@/types";
 import { cn } from "@/lib/utils";
 
 const statusColor: Record<string, string> = {
-  healthy: "bg-muted-teal",
-  unhealthy: "bg-light-coral",
-  unknown: "bg-cotton-rose",
+  healthy: "bg-status-healthy",
+  unhealthy: "bg-status-error",
+  unknown: "bg-status-unknown",
 };
 
 interface HealthDotProps {
@@ -20,14 +20,14 @@ export function HealthDot({ health }: HealthDotProps) {
   const status = health?.status ?? "unknown";
   const since = health?.since
     ? new Date(health.since).toLocaleTimeString()
-    : "—";
+    : "\u2014";
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <span
           className={cn(
-            "inline-block size-2.5 rounded-full shrink-0",
+            "inline-block size-2.5 shrink-0",
             statusColor[status]
           )}
         />

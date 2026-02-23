@@ -35,27 +35,27 @@ export function ProcessOutputDialog({
       <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <span>
+            <span className="font-mono">
               {project}/{service}
             </span>
             <span
               className={cn(
-                "inline-block size-2 rounded-full",
-                connected ? "bg-muted-teal" : "bg-light-coral",
+                "inline-block size-2",
+                connected ? "bg-status-healthy" : "bg-status-error",
               )}
             />
           </DialogTitle>
         </DialogHeader>
-        <div className="flex-1 min-h-0 overflow-auto rounded border bg-zinc-950 p-3 font-mono text-xs leading-relaxed">
+        <div className="flex-1 min-h-0 overflow-auto border border-border bg-background p-3 font-mono text-xs leading-relaxed">
           {lines.length === 0 && (
-            <p className="text-text-muted">No output yet.</p>
+            <p className="text-muted-foreground">No output yet.</p>
           )}
           {lines.map((line) => (
             <div
               key={line.id}
               className={cn(
                 "whitespace-pre-wrap break-all",
-                line.source === "stderr" ? "text-light-coral" : "text-zinc-300",
+                line.source === "stderr" ? "text-status-error" : "text-foreground",
               )}
             >
               {line.line}
