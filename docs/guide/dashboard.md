@@ -66,6 +66,17 @@ The log viewer streams daemon logs in real time via server-sent events. When you
 
 Toggle the log panel with the button in the header.
 
+### Tray Icon Menu
+
+The tray icon in the macOS menu bar provides quick access to all running projects and daemon controls.
+
+- **Open Dashboard** — shows the dashboard window
+- **Add Project...** — opens the dashboard to the add project dialog
+- **Restart Hatch** — unloads and reloads the launchd plist; the daemon relaunches automatically
+- **Stop Hatch** — removes the launchd plist and stops the daemon; it will not restart on boot until you run `hatch up` again
+
+Each project appears as a submenu with its domain, an enable/disable toggle, and per-service health indicators.
+
 ### Settings
 
 The settings dialog has three tabs:
