@@ -81,7 +81,7 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
 
   return (
     <>
-      <div className="grid grid-cols-[auto_minmax(0,1fr)_4.5rem_minmax(0,1.5fr)_6.5rem_5.5rem_auto] items-center gap-x-3 py-2 text-xs border-b border-border/50 last:border-b-0">
+      <div className="grid grid-cols-[0.625rem_minmax(0,1fr)_4.5rem_minmax(0,1.5fr)_6.5rem_5.5rem_8rem] items-center gap-x-3 py-2 text-xs border-b border-border/50 last:border-b-0">
         {/* Health */}
         <HealthDot health={health} />
 
