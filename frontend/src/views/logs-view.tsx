@@ -208,7 +208,7 @@ export function LogsView() {
             onClick={jumpToLatest}
             className="absolute right-4 bottom-3 h-7 gap-1 text-xs shadow-md"
           >
-            <ArrowDown className="size-3" />
+            <ArrowDown className="size-3.5" />
             Jump to latest
           </Button>
         )}

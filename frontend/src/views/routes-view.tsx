@@ -44,45 +44,47 @@ export function RoutesView() {
   const routes = useMemo(() => buildRoutes(projects), [projects]);
 
   return (
-    <div className="mx-auto w-full max-w-5xl p-4">
-      <h2 className="mb-4 text-lg font-semibold text-foreground">Routes</h2>
+    <div className="mx-auto w-full max-w-5xl">
+      <div className="flex items-center border-b border-border bg-surface/50 px-4 py-2">
+        <h2 className="text-lg font-semibold text-foreground">Routes</h2>
+      </div>
       {routes.length === 0 ? (
         <p className="py-16 text-center text-muted-foreground">
           No active routes. Enable a project to see its routes here.
         </p>
       ) : (
-        <div className="overflow-x-auto border border-border bg-card">
+        <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                <th className="px-3 py-2 font-medium">Domain</th>
-                <th className="px-3 py-2 font-medium">Route</th>
-                <th className="px-3 py-2 font-medium">Target</th>
-                <th className="px-3 py-2 font-medium w-8">Health</th>
+                <th className="px-4 py-2 font-medium">Domain</th>
+                <th className="px-4 py-2 font-medium">Route</th>
+                <th className="px-4 py-2 font-medium">Target</th>
+                <th className="px-4 py-2 font-medium w-8">Health</th>
               </tr>
             </thead>
             <tbody>
               {routes.map((r) => (
                 <tr
                   key={`${r.domain}-${r.route}-${r.service}`}
-                  className="border-b border-border last:border-0"
+                  className="border-b border-border/50 last:border-0"
                 >
-                  <td className="px-3 py-2 font-mono">
+                  <td className="px-4 py-2 font-mono">
                     <button
                       type="button"
                       onClick={() => safeOpenURL(r.url)}
-                      className="hover:text-primary hover:underline"
+                      className="hover:text-primary hover:underline cursor-pointer"
                     >
                       {r.domain}
                     </button>
                   </td>
-                  <td className="px-3 py-2 font-mono text-muted-foreground">
+                  <td className="px-4 py-2 font-mono text-muted-foreground">
                     {r.route}
                   </td>
-                  <td className="px-3 py-2 font-mono text-muted-foreground">
+                  <td className="px-4 py-2 font-mono text-muted-foreground">
                     {r.target}
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-4 py-2">
                     <HealthDot health={lookup(r.project, r.service)} />
                   </td>
                 </tr>
