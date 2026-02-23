@@ -84,7 +84,7 @@ export interface TunnelStatus {
   service: string;
   running: boolean;
   starting: boolean;
-  url: string;
+  url?: string;
   type: "quick" | "named";
   started_at: string;
   error?: string;

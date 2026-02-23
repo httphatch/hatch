@@ -53,7 +53,7 @@ export function ProjectCard({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon-xs" onClick={() => navigator.clipboard.writeText(url)}>
-                <Copy className="size-3" />
+                <Copy className="size-3.5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Copy URL</TooltipContent>
@@ -61,7 +61,7 @@ export function ProjectCard({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon-xs" onClick={() => safeOpenURL(url)}>
-                <ExternalLink className="size-3" />
+                <ExternalLink className="size-3.5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Open in browser</TooltipContent>
@@ -69,7 +69,7 @@ export function ProjectCard({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon-xs" onClick={() => onEdit(name)}>
-                <Pencil className="size-3" />
+                <Pencil className="size-3.5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Edit</TooltipContent>
@@ -77,7 +77,7 @@ export function ProjectCard({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon-xs" onClick={() => onDelete(name)}>
-                <Trash2 className="size-3 text-destructive" />
+                <Trash2 className="size-3.5 text-destructive" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Delete</TooltipContent>
@@ -86,7 +86,7 @@ export function ProjectCard({
       </div>
 
       {/* Services */}
-      <div className="ml-9">
+      <div className="ml-9 bg-surface/50 border-l border-border pl-3">
         {Object.entries(project.services).map(([svcName, svc]) => (
           <ServiceRow
             key={svcName}

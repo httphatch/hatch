@@ -28,7 +28,7 @@ The main view shows all your projects in a grid layout. Each project card displa
 
 - Project name and domain
 - Enabled/disabled toggle
-- Service list with proxy targets
+- Service list with proxy targets and subdomain labels
 - Health indicators (green = healthy, red = unreachable)
 
 You can **add**, **edit**, and **delete** projects directly from the dashboard using dialog forms. The add and edit dialogs support `command` and `env_file` fields for process management. Proxy is optional when a command is set.

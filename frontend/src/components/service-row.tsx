@@ -62,7 +62,6 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
 
   const target = service.proxy || service.command || "";
   const route = [
-    service.subdomain ? `${service.subdomain}.*` : null,
     service.route,
     service.websocket ? "ws" : null,
   ].filter(Boolean).join(" ");
@@ -80,12 +79,20 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
 
   return (
     <>
-      <div className="grid grid-cols-[auto_minmax(0,1fr)_minmax(0,1.5fr)_5rem_4rem_auto] items-center gap-x-3 py-1 text-xs">
+      <div className="grid grid-cols-[auto_7rem_1rem_minmax(0,1fr)_5.5rem_5rem_auto] items-center gap-x-3 py-1 text-xs">
         {/* Health */}
         <HealthDot health={health} />
 
-        {/* Name */}
-        <span className="font-medium text-foreground truncate">{name}</span>
+        {/* Name + subdomain */}
+        <div className="min-w-0">
+          <span className="font-medium text-foreground truncate block">{name}</span>
+          {service.subdomain && (
+            <span className="text-[10px] text-muted-foreground/70 truncate block">{service.subdomain}.*</span>
+          )}
+        </div>
+
+        {/* Arrow */}
+        <span className="text-muted-foreground/40 text-center">&rarr;</span>
 
         {/* Target */}
         <span className="font-mono text-muted-foreground truncate" title={target}>
@@ -105,18 +112,21 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
 
         {/* Tunnel */}
         <span className="font-mono text-muted-foreground truncate text-center">
-          {tunnel && tunnel.running && (
+          {tunnel && tunnel.running && tunnel.url && (
             <button
               type="button"
               onClick={() => tunnel.url && safeOpenURL(tunnel.url)}
-              className="text-primary hover:underline cursor-pointer"
+              className="text-primary hover:underline cursor-pointer truncate block"
               title={tunnel.url}
             >
-              tunnel
+              {tunnel.url.replace(/^https?:\/\//, "")}
             </button>
           )}
-          {(tunnelLoading || (tunnel && tunnel.starting)) && (
-            <span className="animate-pulse">...</span>
+          {tunnel && tunnel.running && !tunnel.url && (
+            <span className="text-primary">connected</span>
+          )}
+          {(tunnelLoading || (tunnel && tunnel.starting)) && !tunnel?.running && (
+            <span className="animate-pulse">starting</span>
           )}
         </span>
 
@@ -127,7 +137,7 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="ghost" size="icon-xs" disabled={actionLoading !== null} onClick={() => handleAction("stop")}>
-                    <Square className={cn("size-3", actionLoading === "stop" && "animate-pulse")} />
+                    <Square className={cn("size-3.5", actionLoading === "stop" && "animate-pulse")} />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Stop</TooltipContent>
@@ -135,7 +145,7 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="ghost" size="icon-xs" disabled={actionLoading !== null} onClick={() => handleAction("restart")}>
-                    <RotateCw className={cn("size-3", actionLoading === "restart" && "animate-spin")} />
+                    <RotateCw className={cn("size-3.5", actionLoading === "restart" && "animate-spin")} />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Restart</TooltipContent>
@@ -146,7 +156,7 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon-xs" disabled={actionLoading !== null} onClick={() => handleAction("start")}>
-                  <Play className={cn("size-3", actionLoading === "start" && "animate-pulse")} />
+                  <Play className={cn("size-3.5", actionLoading === "start" && "animate-pulse")} />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Start</TooltipContent>
@@ -156,7 +166,7 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon-xs" disabled={tunnelLoading} onClick={() => handleTunnelAction("stop")}>
-                  <CloudOff className={cn("size-3", tunnelLoading && "animate-pulse")} />
+                  <CloudOff className={cn("size-3.5", tunnelLoading && "animate-pulse")} />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Stop tunnel</TooltipContent>
@@ -166,7 +176,7 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon-xs" onClick={() => handleTunnelAction("start")}>
-                  <Cloud className="size-3" />
+                  <Cloud className="size-3.5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Start tunnel</TooltipContent>
@@ -175,7 +185,7 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon-xs" onClick={() => setOutputOpen(true)}>
-                <Terminal className="size-3" />
+                <Terminal className="size-3.5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Output</TooltipContent>
@@ -184,7 +194,7 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon-xs" onClick={() => safeOpenURL(url)}>
-                  <ExternalLink className="size-3" />
+                  <ExternalLink className="size-3.5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Open</TooltipContent>
