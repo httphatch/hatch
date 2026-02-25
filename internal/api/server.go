@@ -24,11 +24,6 @@ type DaemonControl interface {
 	ReloadConfig() error
 }
 
-// DashboardShower can show the GUI dashboard window.
-type DashboardShower interface {
-	ShowDashboard()
-}
-
 // TunnelController provides tunnel status and control operations.
 type TunnelController interface {
 	StartTunnel(id tunnel.TunnelID, upstream, tunnelName, token, accountID string) error
@@ -48,7 +43,6 @@ type ProcessController interface {
 type Server struct {
 	httpSrv   *http.Server
 	daemon    DaemonControl
-	dashboard DashboardShower
 	health    *health.Checker
 	processes ProcessController
 	tunnels   TunnelController
@@ -67,7 +61,6 @@ type ServerConfig struct {
 	Processes ProcessController
 	Tunnels   TunnelController
 	Daemon    DaemonControl
-	Dashboard DashboardShower
 	CAPaths   certs.CAPaths
 	Version   string
 	StartTime time.Time
@@ -79,7 +72,6 @@ type ServerConfig struct {
 func NewServer(cfg ServerConfig) *Server {
 	s := &Server{
 		daemon:    cfg.Daemon,
-		dashboard: cfg.Dashboard,
 		health:    cfg.Health,
 		processes: cfg.Processes,
 		tunnels:   cfg.Tunnels,
@@ -119,12 +111,6 @@ func (s *Server) Start() error {
 	return nil
 }
 
-// Handler returns the server's HTTP handler for in-process use (e.g. the
-// Wails asset handler can call it directly without a network round-trip).
-func (s *Server) Handler() http.Handler {
-	return s.httpSrv.Handler
-}
-
 // Shutdown gracefully stops the HTTP server.
 func (s *Server) Shutdown(ctx context.Context) error {
 	return s.httpSrv.Shutdown(ctx)
@@ -153,5 +139,4 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/tunnels/{project}/{service}/start", requireJSON(s.handleTunnelStart))
 	mux.HandleFunc("POST /api/tunnels/{project}/{service}/stop", requireJSON(s.handleTunnelStop))
 	mux.HandleFunc("POST /api/restart", requireJSON(s.handleRestart))
-	mux.HandleFunc("POST /api/dashboard/show", requireJSON(s.handleShowDashboard))
 }

@@ -113,6 +113,11 @@ func runUp() error {
 		return fmt.Errorf("daemon failed to start; check logs with: hatch logs")
 	}
 
+	// Launch the tray app as a separate process if enabled.
+	if cfg.Settings.TrayIcon {
+		launchTray(false)
+	}
+
 	fmt.Printf("%s started\n", color.New(color.FgCyan, color.Bold).Sprint("Hatch"))
 	return nil
 }

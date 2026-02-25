@@ -92,7 +92,7 @@ When enabled, the daemon starts automatically on login via launchd and restarts 
 - **Type:** `boolean`
 - **Default:** `true`
 
-Show the Hatch tray icon and status menu (macOS only). Set to `false` to run the daemon without a tray icon or window. Changes to this setting take effect after the daemon restarts.
+Show the Hatch tray icon and status menu (macOS only). When enabled, `hatch up` launches the tray as a separate process. Set to `false` to start without the tray. The daemon always runs headless regardless of this setting. You can launch the tray manually at any time with `hatch app`.
 
 ### `settings.log_level`
 
