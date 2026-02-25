@@ -32,7 +32,7 @@ hatch restart
 
 ### `hatch status`
 
-Show daemon state, project list, and service health.
+Show daemon state, project list, and service health. When a service is unhealthy, the output includes a diagnosis: whether the port is free (nothing listening) or held by another process (with process name and PID). If port conflicts are detected, a summary with suggested `kill` commands is printed at the end.
 
 ```bash
 hatch status

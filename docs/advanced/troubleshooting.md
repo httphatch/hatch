@@ -46,10 +46,20 @@ hatch doctor    # check "Root CA trusted" status
 
 ### Port Conflicts
 
-**Symptoms:** `hatch up` fails with a message like `port 80 is already in use by nginx (PID 1234); stop that process first`. Or `hatch doctor` reports ports unavailable.
+**Symptoms:** `hatch up` fails with a message like `port 80 is already in use by nginx (PID 1234); stop that process first`. Or `hatch doctor` reports ports unavailable. Or `hatch status` shows a service as unhealthy with a port conflict.
+
+**Diagnosis:**
+
+`hatch status` automatically checks ports when a service is unhealthy or the daemon is not running. It shows the process name, PID, and a suggested `kill` command:
+```
+Port conflicts detected:
+  Port 3000 in use by node (PID 12345)  → kill 12345
+```
+
+You can also run `hatch doctor` for a full system check.
 
 **Fixes:**
-- Stop the process named in the error, then run `hatch up` again
+- Kill the process shown in the conflict summary, then run `hatch up` again
 - Or change Hatch's ports in `~/.hatch/config.yml`:
   ```yaml
   settings:
@@ -107,11 +117,12 @@ hatch doctor    # check launchd plist status
 
 ### Service Showing as Unhealthy
 
-**Symptoms:** Dashboard or `hatch status` shows a red health indicator.
+**Symptoms:** Dashboard or `hatch status` shows a red health indicator. The status line includes a diagnostic hint like `unhealthy (not listening on :3000)` or `unhealthy (port :3000 in use by node, PID 12345)`.
 
 **Fixes:**
+- If the hint says "not listening", your dev server is not running. Start it on the configured port.
+- If the hint names a process and PID, that process is holding the port. Kill it or reconfigure your service to use a different port.
 - Visit the domain in your browser. If the upstream is down, Hatch shows a 502 error page with the configured upstream address and a checklist of things to verify.
-- Make sure your local dev server is actually running on the configured port
 - Check the proxy URL in your config matches your dev server's address
 - View logs for details: `hatch logs -f`
 

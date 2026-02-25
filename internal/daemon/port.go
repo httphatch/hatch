@@ -58,7 +58,7 @@ func parseLsofOutput(output string, port int) *PortInfo {
 		if len(fields) < 2 {
 			continue
 		}
-		name := fields[0]
+		name := sanitizeProcessName(fields[0])
 		pid, err := strconv.Atoi(fields[1])
 		if err != nil {
 			return &PortInfo{Process: name}
@@ -66,4 +66,19 @@ func parseLsofOutput(output string, port int) *PortInfo {
 		return &PortInfo{Process: name, PID: pid}
 	}
 	return nil
+}
+
+// sanitizeProcessName strips terminal control characters from a process name
+// to prevent escape-sequence injection via crafted binary names.
+func sanitizeProcessName(s string) string {
+	var b strings.Builder
+	b.Grow(len(s))
+	for _, r := range s {
+		if r == 0x1b || (r < 0x20 && r != '\t') || r == 0x7f {
+			b.WriteRune('?')
+		} else {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
