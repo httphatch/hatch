@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -84,6 +85,10 @@ func runStatus() error {
 		}
 	}()
 
+	// Port check cache and conflict collector.
+	portCache := make(map[int]*daemon.PortInfo)
+	var conflicts []portConflict
+
 	// Daemon state
 	running, pid, _ := daemon.IsRunning()
 	if running {
@@ -95,6 +100,17 @@ func runStatus() error {
 	} else {
 		fmt.Printf("Daemon: %s\n", red("not running"))
 		fmt.Printf("  %s Run 'hatch up' to start the daemon\n", yellow("→"))
+		for _, dp := range []int{cfg.Settings.HTTPPort, cfg.Settings.HTTPSPort} {
+			_, c := diagnosePort(dp, portCache)
+			if c != nil {
+				if c.pid > 0 {
+					fmt.Printf("  %s Port %d in use by %s (PID %d)\n", red("!"), c.port, c.process, c.pid)
+				} else {
+					fmt.Printf("  %s Port %d in use by %s\n", red("!"), c.port, c.process)
+				}
+				conflicts = append(conflicts, *c)
+			}
+		}
 	}
 
 	if len(cfg.Projects) == 0 {
@@ -153,7 +169,16 @@ func runStatus() error {
 			if upstream != "" && dialHealth(upstream) {
 				status = green("✓") + " healthy"
 			} else {
-				status = red("✗") + " unhealthy"
+				suffix := ""
+				if upstream != "" {
+					port := extractPort(upstream)
+					var c *portConflict
+					suffix, c = diagnosePort(port, portCache)
+					if c != nil {
+						conflicts = append(conflicts, *c)
+					}
+				}
+				status = red("✗") + " unhealthy" + suffix
 			}
 
 			tunnelURL := ""
@@ -206,6 +231,27 @@ func runStatus() error {
 		}
 	}
 
+	// Deduplicate and print conflict summary.
+	if len(conflicts) > 0 {
+		seen := make(map[int]bool)
+		var unique []portConflict
+		for _, c := range conflicts {
+			if !seen[c.port] {
+				seen[c.port] = true
+				unique = append(unique, c)
+			}
+		}
+		fmt.Println()
+		fmt.Println("Port conflicts detected:")
+		for _, c := range unique {
+			if c.pid > 0 {
+				fmt.Printf("  Port %d in use by %s (PID %d)  %s kill %d\n", c.port, c.process, c.pid, yellow("→"), c.pid)
+			} else {
+				fmt.Printf("  Port %d in use by %s\n", c.port, c.process)
+			}
+		}
+	}
+
 	updateWg.Wait()
 	if updateHint != "" {
 		fmt.Print(updateHint)
@@ -241,6 +287,48 @@ func extractDialAddr(proxyURL string) string {
 		}
 	}
 	return net.JoinHostPort(host, port)
+}
+
+// extractPort returns the numeric port from a "host:port" string, or 0 if unparsable.
+func extractPort(addr string) int {
+	_, portStr, err := net.SplitHostPort(addr)
+	if err != nil {
+		return 0
+	}
+	p, err := strconv.Atoi(portStr)
+	if err != nil {
+		return 0
+	}
+	return p
+}
+
+// portConflict records a port held by another process.
+type portConflict struct {
+	port    int
+	process string
+	pid     int
+}
+
+// diagnosePort checks who holds a port and returns a status suffix and optional conflict.
+// Results are cached in the provided map to avoid duplicate lsof calls.
+func diagnosePort(port int, cache map[int]*daemon.PortInfo) (string, *portConflict) {
+	if port == 0 {
+		return "", nil
+	}
+	info, cached := cache[port]
+	if !cached {
+		var err error
+		info, err = daemon.CheckPort(port)
+		if err != nil {
+			return "", nil
+		}
+		cache[port] = info
+	}
+	if info == nil {
+		return fmt.Sprintf(" (not listening on :%d)", port), nil
+	}
+	conflict := &portConflict{port: port, process: info.Process, pid: info.PID}
+	return fmt.Sprintf(" (port :%d in use by %s)", port, info), conflict
 }
 
 // resolveDomain returns the full domain for a service, prepending the

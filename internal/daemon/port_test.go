@@ -63,6 +63,13 @@ func TestParseLsofOutput(t *testing.T) {
 			port: 443,
 			want: &PortInfo{Process: "nginx", PID: 1234},
 		},
+		{
+			name: "control characters in process name are sanitized",
+			output: "COMMAND  PID   USER   FD   TYPE DEVICE SIZE/OFF NODE NAME\n" +
+				"\x1b[31mevil\x1b[0m   999   root    6u  IPv4  12345      0t0  TCP *:80 (LISTEN)\n",
+			port: 80,
+			want: &PortInfo{Process: "?[31mevil?[0m", PID: 999},
+		},
 	}
 
 	for _, tt := range tests {
