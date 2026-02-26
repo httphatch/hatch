@@ -11,9 +11,10 @@ const TABS: { id: Tab; label: string }[] = [
 interface TabNavProps {
   active: Tab;
   onChange: (tab: Tab) => void;
+  children?: React.ReactNode;
 }
 
-export function TabNav({ active, onChange }: TabNavProps) {
+export function TabNav({ active, onChange, children }: TabNavProps) {
   return (
     <nav
       className="flex items-center border-b border-border bg-surface"
@@ -41,6 +42,14 @@ export function TabNav({ active, onChange }: TabNavProps) {
           </button>
         ))}
       </div>
+      {children && (
+        <div
+          className="ml-auto pr-6"
+          style={{ "--wails-draggable": "no-drag" } as React.CSSProperties}
+        >
+          {children}
+        </div>
+      )}
     </nav>
   );
 }

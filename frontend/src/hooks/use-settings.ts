@@ -29,7 +29,7 @@ export function useSettings() {
     setError(null);
     try {
       await api.updateSettings(updated);
-      await api.restartDaemon();
+      await api.reloadConfig();
       setSettings(updated);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to save settings";

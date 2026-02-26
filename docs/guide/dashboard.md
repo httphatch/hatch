@@ -18,6 +18,8 @@ The dashboard uses a tab bar across the top with three tabs:
 - **Logs** — real-time log table with filtering
 - **Settings** — routes, certificates, settings form, and raw YAML config editor
 
+The top bar also shows daemon controls on the right side. When the daemon is running, restart and stop buttons appear. When stopped, a start button appears instead. These control the daemon via the tray process and refresh status automatically.
+
 A status bar at the bottom of the window shows the daemon state (running/stopped), version, and uptime.
 
 ## Projects Tab

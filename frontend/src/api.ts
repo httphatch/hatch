@@ -63,8 +63,29 @@ export function getHealth(): Promise<ServiceHealth[]> {
   return request("/api/health");
 }
 
-export function restartDaemon(): Promise<{ status: string }> {
+export function reloadConfig(): Promise<{ status: string }> {
   return request("/api/restart", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+export function startDaemon(): Promise<{ status: string }> {
+  return request("/api/tray/start", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+export function stopDaemon(): Promise<{ status: string }> {
+  return request("/api/tray/stop", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+export function restartDaemon(): Promise<{ status: string }> {
+  return request("/api/tray/restart", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
   });

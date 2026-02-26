@@ -132,6 +132,16 @@ func UnloadPlist() error {
 	return nil
 }
 
+// RemoveJob removes the launchd job by label. Unlike UnloadPlist, this does
+// not require the plist file to exist on disk.
+func RemoveJob() error {
+	out, err := exec.Command("launchctl", "remove", PlistLabel).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("launchctl remove: %s: %w", strings.TrimSpace(string(out)), err)
+	}
+	return nil
+}
+
 // IsLoaded checks whether the launchd job is currently loaded.
 func IsLoaded() bool {
 	err := exec.Command("launchctl", "list", PlistLabel).Run()
