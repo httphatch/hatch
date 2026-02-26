@@ -25,17 +25,17 @@ func runDown() error {
 		return nil
 	}
 
+	// Remove plist first so KeepAlive cannot respawn the process.
+	if err := daemon.UninstallPlist(); err != nil {
+		return fmt.Errorf("uninstall plist: %w", err)
+	}
+	log.Debug().Msg("plist removed")
+
 	// Unload sends SIGTERM → graceful shutdown.
 	if err := daemon.UnloadPlist(); err != nil {
 		return fmt.Errorf("unload plist: %w", err)
 	}
 	log.Debug().Msg("plist unloaded")
-
-	// Remove plist to prevent KeepAlive restart.
-	if err := daemon.UninstallPlist(); err != nil {
-		return fmt.Errorf("uninstall plist: %w", err)
-	}
-	log.Debug().Msg("plist removed")
 
 	fmt.Printf("%s stopped\n", color.New(color.FgCyan, color.Bold).Sprint("Hatch"))
 	return nil
