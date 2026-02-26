@@ -164,6 +164,7 @@ func (m *Manager) refresh() {
 	cfg, daemonRunning, daemonVersion, statuses := m.fetchState()
 	if m.needsRebuild(cfg) {
 		m.rebuildMenu(cfg, daemonRunning, daemonVersion, statuses)
+		m.menu.Update() // Push structural changes to the native NSMenu.
 	} else {
 		m.updateLabels(cfg, daemonRunning, daemonVersion, statuses)
 	}
@@ -352,7 +353,6 @@ func (m *Manager) rebuildMenu(cfg config.Config, daemonRunning bool, daemonVersi
 
 	m.prevProjectNames = projectNames
 	m.menuBuilt = true
-	m.menu.Update()
 }
 
 // updateLabels updates menu item labels and visibility in place without
