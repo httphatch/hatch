@@ -3,6 +3,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"net/http"
@@ -52,6 +53,8 @@ func runTray() error {
 		return fmt.Errorf("loading frontend assets: %w", err)
 	}
 
+	client := tray.NewClient()
+
 	// Reverse proxy for API requests to the daemon.
 	daemonURL, err := url.Parse("http://" + api.DefaultAddr)
 	if err != nil {
@@ -60,7 +63,12 @@ func runTray() error {
 	proxy := httputil.NewSingleHostReverseProxy(daemonURL)
 
 	staticHandler := application.BundledAssetFileServer(frontendAssets)
+	trayAPIHandler := newTrayAPIHandler(client)
 	assetHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/api/tray/") {
+			trayAPIHandler.ServeHTTP(w, r)
+			return
+		}
 		if strings.HasPrefix(r.URL.Path, "/api/") {
 			proxy.ServeHTTP(w, r)
 			return
@@ -95,8 +103,6 @@ func runTray() error {
 		},
 	})
 
-	client := tray.NewClient()
-
 	mgr := tray.NewManager(tray.ManagerConfig{
 		Version: version,
 		App:     wailsApp,
@@ -122,6 +128,37 @@ func runTray() error {
 		return fmt.Errorf("tray app: %w", err)
 	}
 	return nil
+}
+
+// newTrayAPIHandler returns an http.Handler for /api/tray/ endpoints that
+// manage daemon lifecycle (start/stop/restart) via the tray client.
+func newTrayAPIHandler(client *tray.Client) http.Handler {
+	mux := http.NewServeMux()
+
+	handle := func(action string, fn func() error, status string) {
+		mux.HandleFunc("/api/tray/"+action, func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != http.MethodPost {
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+			if ct := r.Header.Get("Content-Type"); ct != "application/json" {
+				http.Error(w, "Content-Type must be application/json", http.StatusUnsupportedMediaType)
+				return
+			}
+			if err := fn(); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]string{"status": status})
+		})
+	}
+
+	handle("start", client.StartDaemon, "started")
+	handle("stop", client.StopDaemon, "stopped")
+	handle("restart", client.RestartDaemon, "restarted")
+
+	return mux
 }
 
 // acquireTrayLock tries to obtain an exclusive file lock on the tray lock file.

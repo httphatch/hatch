@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Toaster } from "sonner";
 import { TabNav, type Tab } from "@/components/tab-nav";
 import { StatusBar } from "@/components/status-bar";
+import { DaemonControls } from "@/components/daemon-controls";
 import { ProjectsView } from "@/views/projects-view";
 import { LogsView } from "@/views/logs-view";
 import { SettingsView } from "@/views/settings-view";
@@ -9,11 +10,13 @@ import { useStatus } from "@/hooks/use-status";
 
 function App() {
   const [tab, setTab] = useState<Tab>("projects");
-  const { status } = useStatus();
+  const { status, refresh: refreshStatus } = useStatus();
 
   return (
     <div className="flex h-screen flex-col bg-background">
-      <TabNav active={tab} onChange={setTab} />
+      <TabNav active={tab} onChange={setTab}>
+        <DaemonControls status={status} onRefresh={refreshStatus} />
+      </TabNav>
       <main className="flex-1 overflow-y-auto">
         {tab === "projects" && <ProjectsView />}
         {tab === "logs" && <LogsView />}

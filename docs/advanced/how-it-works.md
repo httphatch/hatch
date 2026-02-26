@@ -172,6 +172,18 @@ Key endpoints:
 
 The API is localhost-only and used by both the CLI commands and the React dashboard.
 
+### Tray API
+
+The tray process (`hatch _tray`) serves additional endpoints for daemon lifecycle control. These are handled by the tray itself, not forwarded to the daemon:
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/tray/start` | Start the daemon via launchd |
+| POST | `/api/tray/stop` | Stop the daemon via launchd |
+| POST | `/api/tray/restart` | Restart the daemon via launchd |
+
+All three require `Content-Type: application/json` and return `{"status": "started"|"stopped"|"restarted"}` on success.
+
 ## Tunnels
 
 Hatch can expose local services to the internet via [Cloudflare Tunnels](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/). It runs cloudflared as a subprocess, one per active tunnel.

@@ -28,7 +28,7 @@ export function useConfig() {
     setError(null);
     try {
       await api.updateConfig(content);
-      await api.restartDaemon();
+      await api.reloadConfig();
       setYaml(content);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to save config";
