@@ -150,14 +150,14 @@ func (c *Client) StartDaemon() error {
 	return nil
 }
 
-// StopDaemon uninstalls the plist (to prevent KeepAlive restart) then unloads
-// the launchd job.
+// StopDaemon uninstalls the plist (to prevent KeepAlive restart) then removes
+// the launchd job by label.
 func (c *Client) StopDaemon() error {
 	if err := daemon.UninstallPlist(); err != nil {
 		return fmt.Errorf("uninstall plist: %w", err)
 	}
-	if err := daemon.UnloadPlist(); err != nil {
-		return fmt.Errorf("unload plist: %w", err)
+	if err := daemon.RemoveJob(); err != nil {
+		return fmt.Errorf("remove job: %w", err)
 	}
 	return nil
 }

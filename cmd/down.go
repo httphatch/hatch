@@ -31,11 +31,12 @@ func runDown() error {
 	}
 	log.Debug().Msg("plist removed")
 
-	// Unload sends SIGTERM → graceful shutdown.
-	if err := daemon.UnloadPlist(); err != nil {
-		return fmt.Errorf("unload plist: %w", err)
+	// Remove the job by label. This works after the plist file is deleted,
+	// unlike "launchctl unload" which requires the file to exist.
+	if err := daemon.RemoveJob(); err != nil {
+		return fmt.Errorf("remove job: %w", err)
 	}
-	log.Debug().Msg("plist unloaded")
+	log.Debug().Msg("job removed")
 
 	fmt.Printf("%s stopped\n", color.New(color.FgCyan, color.Bold).Sprint("Hatch"))
 	return nil

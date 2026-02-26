@@ -1,11 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { startDaemon, stopDaemon, restartDaemon } from "@/api";
 import type { DaemonStatus } from "@/types";
 import { Play, RotateCw, Square } from "lucide-react";
@@ -40,37 +35,25 @@ export function DaemonControls({ status, onRefresh }: DaemonControlsProps) {
 
   if (running) {
     return (
-      <div className="flex items-center gap-1">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon-xs" disabled={actionLoading !== null} onClick={() => handleAction("restart")}>
-              <RotateCw className={cn("size-3.5", actionLoading === "restart" && "animate-spin")} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Restart daemon</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon-xs" disabled={actionLoading !== null} onClick={() => handleAction("stop")}>
-              <Square className={cn("size-3.5", actionLoading === "stop" && "animate-pulse")} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Stop daemon</TooltipContent>
-        </Tooltip>
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="xs" disabled={actionLoading !== null} onClick={() => handleAction("restart")}>
+          <RotateCw className={cn("size-3", actionLoading === "restart" && "animate-spin")} />
+          Restart
+        </Button>
+        <Button variant="ghost" size="xs" disabled={actionLoading !== null} onClick={() => handleAction("stop")}>
+          <Square className={cn("size-3", actionLoading === "stop" && "animate-pulse")} />
+          Stop
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-0.5">
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon-xs" disabled={actionLoading !== null} onClick={() => handleAction("start")}>
-            <Play className={cn("size-3.5", actionLoading === "start" && "animate-pulse")} />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>Start daemon</TooltipContent>
-      </Tooltip>
+    <div className="flex items-center gap-2">
+      <Button variant="ghost" size="xs" disabled={actionLoading !== null} onClick={() => handleAction("start")}>
+        <Play className={cn("size-3", actionLoading === "start" && "animate-pulse")} />
+        Start
+      </Button>
     </div>
   );
 }

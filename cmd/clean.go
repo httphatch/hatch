@@ -51,7 +51,7 @@ func runClean(cmd *cobra.Command, args []string) error {
 			fmt.Printf("  %s Failed to remove daemon plist: %v\n", red("✗"), err)
 			os.Exit(1)
 		}
-		if err := daemon.UnloadPlist(); err != nil {
+		if err := daemon.RemoveJob(); err != nil {
 			fmt.Printf("  %s Failed to stop daemon: %v\n", red("✗"), err)
 			os.Exit(1)
 		}
