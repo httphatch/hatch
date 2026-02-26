@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"net/url"
 	"os/exec"
-	"sort"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -31,6 +31,17 @@ type ManagerConfig struct {
 	Client  *Client
 }
 
+// projectMenuState holds references to menu items within a project submenu
+// so they can be updated in place without rebuilding.
+type projectMenuState struct {
+	submenuItem  *application.MenuItem
+	submenu      *application.Menu
+	toggleItem   *application.MenuItem
+	serviceItems map[string]*application.MenuItem
+	prevServices []string
+	prevDomain   string
+}
+
 // Manager orchestrates the system tray icon, menu, and health polling.
 type Manager struct {
 	version string
@@ -40,6 +51,18 @@ type Manager struct {
 	tray    *application.SystemTray
 	menu    *application.Menu
 	client  *Client
+
+	// Stored menu item references for in-place updates.
+	versionItem  *application.MenuItem
+	daemonItem   *application.MenuItem
+	restartItem  *application.MenuItem
+	stopItem     *application.MenuItem
+	startItem    *application.MenuItem
+	projectItems map[string]*projectMenuState
+
+	// Previous state for change detection.
+	prevProjectNames []string
+	menuBuilt        bool
 
 	mu   sync.Mutex
 	wg   sync.WaitGroup
@@ -66,9 +89,8 @@ func (m *Manager) Init() {
 	m.tray = m.app.SystemTray.New()
 	m.tray.SetTemplateIcon(iconPNG)
 
-	// Build the initial menu content so the native NSMenu is populated
-	// when the deferred Run() fires during app startup.
-	m.populateMenu()
+	cfg, daemonRunning, daemonVersion, statuses := m.fetchState()
+	m.rebuildMenu(cfg, daemonRunning, daemonVersion, statuses)
 	m.tray.SetMenu(m.menu)
 }
 
@@ -125,24 +147,36 @@ func (m *Manager) ShowDashboard() {
 	m.showWindow()
 }
 
-// refresh reloads config, queries health, and rebuilds the menu.
+// refresh reloads config, queries health, and updates the menu.
+// It performs a full rebuild only when the project/service set changes;
+// otherwise it updates labels and visibility in place to avoid destroying
+// native NSMenuItems and their click handlers.
 func (m *Manager) refresh() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.populateMenu()
-	m.menu.Update()
+
+	// Stop() nils m.done before destroying the tray. Skip menu operations
+	// if shutdown is in progress to avoid racing with tray.Destroy().
+	if m.done == nil {
+		return
+	}
+
+	cfg, daemonRunning, daemonVersion, statuses := m.fetchState()
+	if m.needsRebuild(cfg) {
+		m.rebuildMenu(cfg, daemonRunning, daemonVersion, statuses)
+	} else {
+		m.updateLabels(cfg, daemonRunning, daemonVersion, statuses)
+	}
 }
 
-// populateMenu clears the existing menu and rebuilds its items from
-// the current config and health state.
-func (m *Manager) populateMenu() {
+// fetchState loads config, queries daemon status and health.
+func (m *Manager) fetchState() (config.Config, bool, string, map[health.ServiceKey]health.ServiceStatus) {
 	cfg, err := config.LoadWithProjectConfigs()
 	if err != nil {
 		log.Debug().Err(err).Msg("tray: config load failed during refresh")
 		cfg = config.DefaultConfig()
 	}
 
-	// Query daemon status over HTTP.
 	daemonRunning, daemonVersion, _ := m.client.DaemonStatus()
 
 	statuses := make(map[health.ServiceKey]health.ServiceStatus)
@@ -152,35 +186,112 @@ func (m *Manager) populateMenu() {
 		}
 	}
 
-	// Clear existing items and rebuild.
+	return cfg, daemonRunning, daemonVersion, statuses
+}
+
+// needsRebuild returns true if the menu structure has changed and a full
+// rebuild is required. Structural changes include project or service
+// additions/removals, and domain changes.
+func (m *Manager) needsRebuild(cfg config.Config) bool {
+	if !m.menuBuilt {
+		return true
+	}
+
+	names := sortedProjectNames(cfg)
+	if !slices.Equal(names, m.prevProjectNames) {
+		return true
+	}
+
+	for _, name := range names {
+		proj := cfg.Projects[name]
+		ps, ok := m.projectItems[name]
+		if !ok {
+			return true
+		}
+		if proj.Domain != ps.prevDomain {
+			return true
+		}
+		if !slices.Equal(sortedServiceNames(proj), ps.prevServices) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// rebuildMenu destroys all menu items and recreates them from scratch.
+// Called on first init and when the project/service set changes.
+func (m *Manager) rebuildMenu(cfg config.Config, daemonRunning bool, daemonVersion string, statuses map[health.ServiceKey]health.ServiceStatus) {
 	m.menu.Clear()
 
-	// Version header — use daemon version if available, fall back to tray version.
-	displayVersion := m.version
-	if daemonVersion != "" {
-		displayVersion = daemonVersion
-	}
-	m.menu.Add(fmt.Sprintf("Hatch %s", displayVersion)).SetEnabled(false)
+	idx := 0
+
+	// Version header.
+	m.versionItem = m.menu.Add(fmt.Sprintf("Hatch %s", m.displayVersion(daemonVersion)))
+	m.versionItem.SetEnabled(false)
+	idx++
 
 	// Daemon status.
-	if daemonRunning {
-		m.menu.Add("Daemon: Running").SetEnabled(false)
-	} else {
-		m.menu.Add("Daemon: Stopped").SetEnabled(false)
-	}
+	m.daemonItem = m.menu.Add(daemonLabel(daemonRunning))
+	m.daemonItem.SetEnabled(false)
+	idx++
 
 	m.menu.AddSeparator()
+	idx++
 
 	// Projects — sorted by name.
-	projectNames := make([]string, 0, len(cfg.Projects))
-	for name := range cfg.Projects {
-		projectNames = append(projectNames, name)
-	}
-	sort.Strings(projectNames)
+	projectNames := sortedProjectNames(cfg)
+	m.projectItems = make(map[string]*projectMenuState, len(projectNames))
 
 	for _, name := range projectNames {
 		proj := cfg.Projects[name]
-		m.buildProjectItem(m.menu, name, proj, statuses, daemonRunning)
+		dot := projectDot(name, proj, statuses, daemonRunning)
+		sub := m.menu.AddSubmenu(fmt.Sprintf("%s %s", dot, proj.Domain))
+		submenuItem := m.menu.ItemAt(idx)
+		idx++
+
+		ps := &projectMenuState{
+			submenuItem:  submenuItem,
+			submenu:      sub,
+			serviceItems: make(map[string]*application.MenuItem),
+			prevDomain:   proj.Domain,
+		}
+
+		// Copy Domain.
+		domain := proj.Domain
+		sub.Add("Copy Domain").OnClick(func(_ *application.Context) {
+			copyToClipboard(domain)
+		})
+
+		// Open in Browser.
+		sub.Add("Open in Browser").OnClick(func(_ *application.Context) {
+			u := url.URL{Scheme: "https", Host: domain}
+			_ = browser.OpenURL(u.String())
+		})
+
+		// Enable / Disable toggle. The handler reads fresh config state
+		// at click time, so it does not need to be rebound on each poll.
+		projName := name
+		ps.toggleItem = sub.Add(toggleLabel(proj.Enabled))
+		ps.toggleItem.OnClick(func(_ *application.Context) {
+			go m.toggleProject(projName)
+		})
+
+		sub.AddSeparator()
+
+		// Per-service health rows.
+		svcNames := sortedServiceNames(proj)
+		for _, svcName := range svcNames {
+			svc := proj.Services[svcName]
+			key := health.ServiceKey{Project: name, Service: svcName}
+			indicator := serviceIndicator(statuses, key)
+			item := sub.Add(fmt.Sprintf("%s  %s  %s", svcName, svc.Proxy, indicator))
+			item.SetEnabled(false)
+			ps.serviceItems[svcName] = item
+		}
+
+		ps.prevServices = svcNames
+		m.projectItems[name] = ps
 	}
 
 	if len(projectNames) > 0 {
@@ -199,117 +310,152 @@ func (m *Manager) populateMenu() {
 
 	m.menu.AddSeparator()
 
-	if daemonRunning {
-		// Restart Hatch (unload + reload via launchd).
-		m.menu.Add("Restart Hatch").OnClick(func(_ *application.Context) {
-			go func() {
-				if err := m.client.RestartDaemon(); err != nil {
-					log.Warn().Err(err).Msg("tray: restart failed")
-				}
-			}()
-		})
+	// Restart Hatch.
+	m.restartItem = m.menu.Add("Restart Hatch")
+	m.restartItem.OnClick(func(_ *application.Context) {
+		go func() {
+			if err := m.client.RestartDaemon(); err != nil {
+				log.Warn().Err(err).Msg("tray: restart failed")
+			}
+		}()
+	})
 
-		// Stop Hatch (remove plist + unload via launchd).
-		m.menu.Add("Stop Hatch").OnClick(func(_ *application.Context) {
-			go func() {
-				if err := m.client.StopDaemon(); err != nil {
-					log.Warn().Err(err).Msg("tray: stop failed")
-				}
-				m.refresh()
-			}()
-		})
-	} else {
-		// Start Hatch (install plist + load via launchd).
-		m.menu.Add("Start Hatch").OnClick(func(_ *application.Context) {
-			go func() {
-				if err := m.client.StartDaemon(); err != nil {
-					log.Warn().Err(err).Msg("tray: start failed")
-				}
-				m.refresh()
-			}()
-		})
-	}
+	// Stop Hatch.
+	m.stopItem = m.menu.Add("Stop Hatch")
+	m.stopItem.OnClick(func(_ *application.Context) {
+		go func() {
+			if err := m.client.StopDaemon(); err != nil {
+				log.Warn().Err(err).Msg("tray: stop failed")
+			}
+			m.refresh()
+		}()
+	})
 
-	// Quit tray (leaves daemon running).
+	// Start Hatch.
+	m.startItem = m.menu.Add("Start Hatch")
+	m.startItem.OnClick(func(_ *application.Context) {
+		go func() {
+			if err := m.client.StartDaemon(); err != nil {
+				log.Warn().Err(err).Msg("tray: start failed")
+			}
+			m.refresh()
+		}()
+	})
+
+	m.applyDaemonVisibility(daemonRunning)
+
+	// Quit tray.
 	m.menu.AddSeparator()
 	m.menu.Add("Quit").OnClick(func(_ *application.Context) {
 		m.app.Quit()
 	})
+
+	m.prevProjectNames = projectNames
+	m.menuBuilt = true
+	m.menu.Update()
 }
 
-// buildProjectItem adds a submenu item for a single project.
-func (m *Manager) buildProjectItem(menu *application.Menu, name string, proj config.Project, statuses map[health.ServiceKey]health.ServiceStatus, daemonRunning bool) {
-	var dot string
-	switch {
-	case !proj.Enabled, !daemonRunning:
-		dot = "○"
-	default:
-		allHealthy := true
-		for svcName := range proj.Services {
+// updateLabels updates menu item labels and visibility in place without
+// destroying and recreating items. This is the hot path that runs every
+// 5 seconds and preserves click handler references.
+func (m *Manager) updateLabels(cfg config.Config, daemonRunning bool, daemonVersion string, statuses map[health.ServiceKey]health.ServiceStatus) {
+	m.versionItem.SetLabel(fmt.Sprintf("Hatch %s", m.displayVersion(daemonVersion)))
+	m.daemonItem.SetLabel(daemonLabel(daemonRunning))
+	m.applyDaemonVisibility(daemonRunning)
+
+	for name, ps := range m.projectItems {
+		proj := cfg.Projects[name]
+		dot := projectDot(name, proj, statuses, daemonRunning)
+		ps.submenuItem.SetLabel(fmt.Sprintf("%s %s", dot, proj.Domain))
+
+		ps.toggleItem.SetLabel(toggleLabel(proj.Enabled))
+
+		// Update service health indicators.
+		for svcName, item := range ps.serviceItems {
+			svc := proj.Services[svcName]
 			key := health.ServiceKey{Project: name, Service: svcName}
-			if s, ok := statuses[key]; ok && s.Status != health.StatusHealthy {
-				allHealthy = false
-				break
-			}
+			indicator := serviceIndicator(statuses, key)
+			item.SetLabel(fmt.Sprintf("%s  %s  %s", svcName, svc.Proxy, indicator))
 		}
-		if allHealthy {
-			dot = "●"
-		} else {
-			dot = "◐"
-		}
-	}
-
-	sub := menu.AddSubmenu(fmt.Sprintf("%s %s", dot, proj.Domain))
-
-	// Copy Domain.
-	domain := proj.Domain
-	sub.Add("Copy Domain").OnClick(func(_ *application.Context) {
-		copyToClipboard(domain)
-	})
-
-	// Open in Browser.
-	sub.Add("Open in Browser").OnClick(func(_ *application.Context) {
-		u := url.URL{Scheme: "https", Host: domain}
-		_ = browser.OpenURL(u.String())
-	})
-
-	// Enable / Disable toggle.
-	projName := name
-	if proj.Enabled {
-		sub.Add("Disable").OnClick(func(_ *application.Context) {
-			go m.toggleProject(projName, false)
-		})
-	} else {
-		sub.Add("Enable").OnClick(func(_ *application.Context) {
-			go m.toggleProject(projName, true)
-		})
-	}
-
-	sub.AddSeparator()
-
-	// Per-service health rows.
-	svcNames := make([]string, 0, len(proj.Services))
-	for sn := range proj.Services {
-		svcNames = append(svcNames, sn)
-	}
-	sort.Strings(svcNames)
-
-	for _, svcName := range svcNames {
-		svc := proj.Services[svcName]
-		key := health.ServiceKey{Project: name, Service: svcName}
-		indicator := "…"
-		if s, ok := statuses[key]; ok {
-			switch s.Status {
-			case health.StatusHealthy:
-				indicator = "✓"
-			case health.StatusUnhealthy:
-				indicator = "✗"
-			}
-		}
-		addr := svc.Proxy
-		sub.Add(fmt.Sprintf("%s  %s  %s", svcName, addr, indicator)).SetEnabled(false)
 	}
 }
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
+func (m *Manager) displayVersion(daemonVersion string) string {
+	if daemonVersion != "" {
+		if len(daemonVersion) > 64 {
+			daemonVersion = daemonVersion[:64]
+		}
+		return daemonVersion
+	}
+	return m.version
+}
+
+func daemonLabel(running bool) string {
+	if running {
+		return "Daemon: Running"
+	}
+	return "Daemon: Stopped"
+}
+
+func toggleLabel(enabled bool) string {
+	if enabled {
+		return "Disable"
+	}
+	return "Enable"
+}
+
+func projectDot(name string, proj config.Project, statuses map[health.ServiceKey]health.ServiceStatus, daemonRunning bool) string {
+	if !proj.Enabled || !daemonRunning {
+		return "○"
+	}
+	for svcName := range proj.Services {
+		key := health.ServiceKey{Project: name, Service: svcName}
+		if s, ok := statuses[key]; ok && s.Status != health.StatusHealthy {
+			return "◐"
+		}
+	}
+	return "●"
+}
+
+func serviceIndicator(statuses map[health.ServiceKey]health.ServiceStatus, key health.ServiceKey) string {
+	if s, ok := statuses[key]; ok {
+		switch s.Status {
+		case health.StatusHealthy:
+			return "✓"
+		case health.StatusUnhealthy:
+			return "✗"
+		}
+	}
+	return "…"
+}
+
+func (m *Manager) applyDaemonVisibility(running bool) {
+	m.restartItem.SetHidden(!running)
+	m.stopItem.SetHidden(!running)
+	m.startItem.SetHidden(running)
+}
+
+func sortedProjectNames(cfg config.Config) []string {
+	names := make([]string, 0, len(cfg.Projects))
+	for name := range cfg.Projects {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	return names
+}
+
+func sortedServiceNames(proj config.Project) []string {
+	names := make([]string, 0, len(proj.Services))
+	for name := range proj.Services {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	return names
+}
+
+// ── Window ──────────────────────────────────────────────────────────────────
 
 func (m *Manager) showWindow() {
 	if m.window != nil {
@@ -330,7 +476,7 @@ func (m *Manager) hideWindow() {
 
 // ── Actions ─────────────────────────────────────────────────────────────────
 
-func (m *Manager) toggleProject(name string, enabled bool) {
+func (m *Manager) toggleProject(name string) {
 	cfg, err := config.Load()
 	if err != nil {
 		log.Warn().Err(err).Msg("tray: config load failed")
@@ -340,7 +486,7 @@ func (m *Manager) toggleProject(name string, enabled bool) {
 	if !ok {
 		return
 	}
-	proj.Enabled = enabled
+	proj.Enabled = !proj.Enabled
 	cfg.Projects[name] = proj
 	if err := config.Save(cfg); err != nil {
 		log.Warn().Err(err).Msg("tray: config save failed")
