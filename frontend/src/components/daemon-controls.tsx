@@ -27,15 +27,11 @@ export function DaemonControls({ status, onRefresh }: DaemonControlsProps) {
       else if (action === "stop") await stopDaemon();
       else await restartDaemon();
 
-      if (action === "stop") {
+      const delay = action === "stop" ? 1000 : 2000;
+      setTimeout(() => {
         onRefresh();
         setActionLoading(null);
-      } else {
-        setTimeout(() => {
-          onRefresh();
-          setActionLoading(null);
-        }, 2000);
-      }
+      }, delay);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : `Failed to ${action} daemon`);
       setActionLoading(null);
