@@ -44,7 +44,7 @@ export function TabNav({ active, onChange, children }: TabNavProps) {
       </div>
       {children && (
         <div
-          className="ml-auto pr-4"
+          className="ml-auto pr-6"
           style={{ "--wails-draggable": "no-drag" } as React.CSSProperties}
         >
           {children}

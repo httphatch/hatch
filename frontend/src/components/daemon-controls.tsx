@@ -29,19 +29,22 @@ export function DaemonControls({ status, onRefresh }: DaemonControlsProps) {
 
       if (action === "stop") {
         onRefresh();
+        setActionLoading(null);
       } else {
-        setTimeout(onRefresh, 2000);
+        setTimeout(() => {
+          onRefresh();
+          setActionLoading(null);
+        }, 2000);
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : `Failed to ${action} daemon`);
-    } finally {
       setActionLoading(null);
     }
   }
 
   if (running) {
     return (
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-1">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon-xs" disabled={actionLoading !== null} onClick={() => handleAction("restart")}>
