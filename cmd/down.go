@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/rs/zerolog/log"
@@ -37,6 +38,17 @@ func runDown() error {
 		return fmt.Errorf("remove job: %w", err)
 	}
 	log.Debug().Msg("job removed")
+
+	// Wait for the process to fully exit. launchctl remove sends SIGTERM
+	// but returns immediately; the process may still be shutting down.
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		running, _, _ := daemon.IsRunning()
+		if !running {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
 
 	fmt.Printf("%s stopped\n", color.New(color.FgCyan, color.Bold).Sprint("Hatch"))
 	return nil
