@@ -8,9 +8,6 @@ import (
 	"github.com/httphatch/hatch/internal/daemon"
 )
 
-func runDaemon(ctx context.Context, d *daemon.Daemon, trayIcon bool) error {
-	if trayIcon {
-		return daemon.RunWithUI(ctx, d, embeddedAssets, appIconData)
-	}
+func runDaemon(ctx context.Context, d *daemon.Daemon, _ bool) error {
 	return d.Run(ctx)
 }

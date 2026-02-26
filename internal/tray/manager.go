@@ -22,21 +22,13 @@ import (
 	"github.com/httphatch/hatch/internal/health"
 )
 
-// DaemonControl allows the tray to trigger daemon operations directly.
-type DaemonControl interface {
-	ReloadConfig() error
-	HealthChecker() *health.Checker
-	StopDaemon()
-	RestartDaemon()
-}
-
 // ManagerConfig holds the dependencies for a Manager.
 type ManagerConfig struct {
 	Version string
 	App     *application.App
 	Window  *application.WebviewWindow
 	Icon    []byte
-	Daemon  DaemonControl
+	Client  *Client
 }
 
 // Manager orchestrates the system tray icon, menu, and health polling.
@@ -47,7 +39,7 @@ type Manager struct {
 	icon    []byte
 	tray    *application.SystemTray
 	menu    *application.Menu
-	daemon  DaemonControl
+	client  *Client
 
 	mu   sync.Mutex
 	wg   sync.WaitGroup
@@ -61,7 +53,7 @@ func NewManager(cfg ManagerConfig) *Manager {
 		app:     cfg.App,
 		window:  cfg.Window,
 		icon:    cfg.Icon,
-		daemon:  cfg.Daemon,
+		client:  cfg.Client,
 	}
 }
 
@@ -128,7 +120,7 @@ func (m *Manager) Stop() {
 	}
 }
 
-// ShowDashboard shows the dashboard window (implements api.DashboardShower).
+// ShowDashboard shows the dashboard window.
 func (m *Manager) ShowDashboard() {
 	m.showWindow()
 }
@@ -150,21 +142,32 @@ func (m *Manager) populateMenu() {
 		cfg = config.DefaultConfig()
 	}
 
+	// Query daemon status over HTTP.
+	daemonRunning, daemonVersion, _ := m.client.DaemonStatus()
+
 	statuses := make(map[health.ServiceKey]health.ServiceStatus)
-	if m.daemon != nil {
-		if checker := m.daemon.HealthChecker(); checker != nil {
-			statuses = checker.ServiceStatuses()
+	if daemonRunning {
+		if h, err := m.client.Health(); err == nil {
+			statuses = h
 		}
 	}
 
 	// Clear existing items and rebuild.
 	m.menu.Clear()
 
-	// Version header.
-	m.menu.Add(fmt.Sprintf("Hatch %s", m.version)).SetEnabled(false)
+	// Version header — use daemon version if available, fall back to tray version.
+	displayVersion := m.version
+	if daemonVersion != "" {
+		displayVersion = daemonVersion
+	}
+	m.menu.Add(fmt.Sprintf("Hatch %s", displayVersion)).SetEnabled(false)
 
-	// Daemon status — always running since we are the daemon.
-	m.menu.Add("Daemon: Running").SetEnabled(false)
+	// Daemon status.
+	if daemonRunning {
+		m.menu.Add("Daemon: Running").SetEnabled(false)
+	} else {
+		m.menu.Add("Daemon: Stopped").SetEnabled(false)
+	}
 
 	m.menu.AddSeparator()
 
@@ -177,7 +180,7 @@ func (m *Manager) populateMenu() {
 
 	for _, name := range projectNames {
 		proj := cfg.Projects[name]
-		m.buildProjectItem(m.menu, name, proj, statuses)
+		m.buildProjectItem(m.menu, name, proj, statuses, daemonRunning)
 	}
 
 	if len(projectNames) > 0 {
@@ -196,27 +199,51 @@ func (m *Manager) populateMenu() {
 
 	m.menu.AddSeparator()
 
-	// Restart Hatch (kill + relaunch via launchd).
-	m.menu.Add("Restart Hatch").OnClick(func(_ *application.Context) {
-		if m.daemon != nil {
-			m.daemon.RestartDaemon()
-		}
-	})
+	if daemonRunning {
+		// Restart Hatch (unload + reload via launchd).
+		m.menu.Add("Restart Hatch").OnClick(func(_ *application.Context) {
+			go func() {
+				if err := m.client.RestartDaemon(); err != nil {
+					log.Warn().Err(err).Msg("tray: restart failed")
+				}
+			}()
+		})
 
-	// Stop Hatch (remove plist + unload via launchd).
-	m.menu.Add("Stop Hatch").OnClick(func(_ *application.Context) {
-		if m.daemon != nil {
-			m.daemon.StopDaemon()
-		}
+		// Stop Hatch (remove plist + unload via launchd).
+		m.menu.Add("Stop Hatch").OnClick(func(_ *application.Context) {
+			go func() {
+				if err := m.client.StopDaemon(); err != nil {
+					log.Warn().Err(err).Msg("tray: stop failed")
+				}
+				m.refresh()
+			}()
+		})
+	} else {
+		// Start Hatch (install plist + load via launchd).
+		m.menu.Add("Start Hatch").OnClick(func(_ *application.Context) {
+			go func() {
+				if err := m.client.StartDaemon(); err != nil {
+					log.Warn().Err(err).Msg("tray: start failed")
+				}
+				m.refresh()
+			}()
+		})
+	}
+
+	// Quit tray (leaves daemon running).
+	m.menu.AddSeparator()
+	m.menu.Add("Quit").OnClick(func(_ *application.Context) {
+		m.app.Quit()
 	})
 }
 
 // buildProjectItem adds a submenu item for a single project.
-func (m *Manager) buildProjectItem(menu *application.Menu, name string, proj config.Project, statuses map[health.ServiceKey]health.ServiceStatus) {
+func (m *Manager) buildProjectItem(menu *application.Menu, name string, proj config.Project, statuses map[health.ServiceKey]health.ServiceStatus, daemonRunning bool) {
 	var dot string
-	if !proj.Enabled {
+	switch {
+	case !proj.Enabled, !daemonRunning:
 		dot = "○"
-	} else {
+	default:
 		allHealthy := true
 		for svcName := range proj.Services {
 			key := health.ServiceKey{Project: name, Service: svcName}
@@ -319,10 +346,8 @@ func (m *Manager) toggleProject(name string, enabled bool) {
 		log.Warn().Err(err).Msg("tray: config save failed")
 		return
 	}
-	if m.daemon != nil {
-		if err := m.daemon.ReloadConfig(); err != nil {
-			log.Warn().Err(err).Msg("tray: reload config failed")
-		}
+	if err := m.client.ReloadConfig(); err != nil {
+		log.Warn().Err(err).Msg("tray: reload config failed")
 	}
 	m.refresh()
 }

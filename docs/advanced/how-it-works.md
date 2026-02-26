@@ -113,6 +113,10 @@ A plist file is installed at `~/Library/LaunchAgents/dev.hatch.daemon.plist`. Ke
 
 `hatch up` installs and loads the plist. `hatch down` unloads it.
 
+### Tray Process
+
+The system tray app runs as a separate process (`hatch _tray`). `hatch up` spawns it automatically when `tray_icon` is enabled. `hatch app` also spawns it on demand. The tray communicates with the daemon over the local HTTP API at `127.0.0.1:42824`. It does not share in-process state. Quitting the tray leaves the daemon running. A file lock at `~/.hatch/tray.lock` prevents duplicate tray instances.
+
 ### Startup Sequence
 
 1. Acquire PID lock (`~/.hatch/hatch.pid`)
@@ -210,6 +214,7 @@ Services with a `command` field are managed as supervised processes.
 | `~/.hatch/certs/` | CA certificates and keys |
 | `~/.hatch/logs/hatch.log` | Daemon log file |
 | `~/.hatch/hatch.pid` | Daemon PID lock file |
+| `~/.hatch/tray.lock` | Tray instance lock file |
 | `~/.hatch/tunnels.json` | Active tunnel metadata |
 | `~/.hatch/caddy/` | Caddy data (cached site certs) |
 | `/etc/resolver/<tld>` | macOS DNS resolver override |

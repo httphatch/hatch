@@ -74,11 +74,18 @@ The Settings tab uses a sidebar with four sections:
 
 ## Tray Icon Menu
 
-The tray icon in the macOS menu bar provides quick access to all running projects and daemon controls.
+The tray icon in the macOS menu bar provides quick access to all running projects and daemon controls. The tray runs as a separate process from the daemon, so it stays visible when the daemon stops.
 
 - **Open Dashboard** — shows the dashboard window
 - **Add Project...** — opens the dashboard to the add project dialog
 - **Restart Hatch** — unloads and reloads the launchd plist; the daemon relaunches automatically
 - **Stop Hatch** — removes the launchd plist and stops the daemon; it will not restart on boot until you run `hatch up` again
+- **Quit** — closes the tray app; the daemon continues running
+
+When the daemon is not running, "Restart Hatch" and "Stop Hatch" are replaced with:
+
+- **Start Hatch** — installs the launchd plist and starts the daemon
+
+The tray shows "Daemon: Running" or "Daemon: Stopped" to indicate daemon status.
 
 Each project appears as a submenu with its domain, an enable/disable toggle, and per-service health indicators.
