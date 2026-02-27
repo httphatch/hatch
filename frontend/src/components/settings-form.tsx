@@ -12,6 +12,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { SectionHeader } from "@/components/section-header";
+import { LoadingState } from "@/components/loading-state";
+import { ErrorState } from "@/components/error-state";
 import { useSettings } from "@/hooks/use-settings";
 import type { Settings } from "@/types";
 
@@ -31,16 +34,15 @@ export function SettingsForm() {
   }, [settings]);
 
   if (loading) {
-    return (
-      <p className="py-8 text-center text-muted-foreground">Loading settings...</p>
-    );
+    return <LoadingState message="Loading settings..." className="py-8" />;
   }
 
   if (!form) {
     return (
-      <p className="py-8 text-center text-destructive">
-        {error || "Failed to load settings"}
-      </p>
+      <ErrorState
+        message={error || "Failed to load settings"}
+        className="py-8"
+      />
     );
   }
 
@@ -83,9 +85,7 @@ export function SettingsForm() {
   return (
     <div>
       <div className="border-b border-border">
-        <div className="flex items-center border-b border-border bg-surface/50 px-4 py-2">
-          <h3 className="text-sm font-semibold text-foreground">Network</h3>
-        </div>
+        <SectionHeader title="Network" as="h3" />
         <div className="space-y-4 px-4 py-4">
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
@@ -130,9 +130,7 @@ export function SettingsForm() {
       </div>
 
       <div className="border-b border-border">
-        <div className="flex items-center border-b border-border bg-surface/50 px-4 py-2">
-          <h3 className="text-sm font-semibold text-foreground">General</h3>
-        </div>
+        <SectionHeader title="General" as="h3" />
         <div className="space-y-4 px-4 py-4">
           <div className="flex items-center justify-between">
             <Label htmlFor="auto-start">Auto Start</Label>
@@ -172,9 +170,7 @@ export function SettingsForm() {
       </div>
 
       <div className="border-b border-border">
-        <div className="flex items-center border-b border-border bg-surface/50 px-4 py-2">
-          <h3 className="text-sm font-semibold text-foreground">Integrations</h3>
-        </div>
+        <SectionHeader title="Integrations" as="h3" />
         <div className="space-y-4 px-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="cf-token">Cloudflare Token</Label>

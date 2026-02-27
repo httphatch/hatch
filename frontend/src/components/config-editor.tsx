@@ -5,6 +5,7 @@ import { yaml } from "@codemirror/lang-yaml";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { EditorState } from "@codemirror/state";
 import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/loading-state";
 import { useConfig } from "@/hooks/use-config";
 
 const overrides = EditorView.theme({
@@ -61,7 +62,7 @@ export function ConfigEditor() {
   }, [save]);
 
   if (loading) {
-    return <p className="py-8 text-center text-muted-foreground">Loading config...</p>;
+    return <LoadingState message="Loading config..." className="py-8" />;
   }
 
   return (

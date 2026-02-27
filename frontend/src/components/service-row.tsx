@@ -9,11 +9,11 @@ import {
 import { HealthDot } from "@/components/health-dot";
 import { ProcessOutputDialog } from "@/components/process-output-dialog";
 import { serviceUrl } from "@/lib/service-url";
+import { useProjectServices } from "@/hooks/use-project-services";
 import { stopProcess, startProcess, restartProcess, startTunnel, stopTunnel } from "@/api";
 import type { ProcessStatus, Service, ServiceHealth, TunnelStatus } from "@/types";
 import { Cloud, CloudOff, ExternalLink, Play, RotateCw, Square, Terminal } from "lucide-react";
-import { safeOpenURL } from "@/lib/utils";
-import { cn } from "@/lib/utils";
+import { cn, safeOpenURL } from "@/lib/utils";
 
 interface ServiceRowProps {
   name: string;
@@ -23,11 +23,10 @@ interface ServiceRowProps {
   process?: ProcessStatus;
   tunnel?: TunnelStatus;
   projectName: string;
-  onRefresh: () => void;
-  onTunnelRefresh: () => void;
 }
 
-export function ServiceRow({ name, service, health, domain, process, tunnel, projectName, onRefresh, onTunnelRefresh }: ServiceRowProps) {
+export function ServiceRow({ name, service, health, domain, process, tunnel, projectName }: ServiceRowProps) {
+  const { refreshProcesses, refreshTunnels } = useProjectServices();
   const url = serviceUrl(domain, service);
   const [outputOpen, setOutputOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -38,7 +37,7 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
     try {
       if (action === "start") await startTunnel(projectName, name);
       else await stopTunnel(projectName, name);
-      onTunnelRefresh();
+      refreshTunnels();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Tunnel action failed");
     } finally {
@@ -52,7 +51,7 @@ export function ServiceRow({ name, service, health, domain, process, tunnel, pro
       if (action === "stop") await stopProcess(projectName, name);
       else if (action === "start") await startProcess(projectName, name);
       else await restartProcess(projectName, name);
-      onRefresh();
+      refreshProcesses();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : `Failed to ${action} process`);
     } finally {
