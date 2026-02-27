@@ -1,4 +1,6 @@
 import { Badge } from "@/components/ui/badge";
+import { SectionHeader } from "@/components/section-header";
+import { LoadingState, ErrorState } from "@/components/status-messages";
 import { useCerts } from "@/hooks/use-certs";
 import type { CertInfo } from "@/types";
 
@@ -8,6 +10,29 @@ function formatDate(iso: string): string {
     month: "long",
     day: "numeric",
   });
+}
+
+function CertBadges({ info, showTrust }: { info: CertInfo; showTrust?: boolean }) {
+  return (
+    <div className="flex items-center gap-2">
+      {info.exists ? (
+        <Badge variant="default" className="bg-status-healthy text-background">
+          Installed
+        </Badge>
+      ) : (
+        <Badge variant="destructive">Missing</Badge>
+      )}
+      {showTrust && info.trusted !== undefined && (
+        info.trusted ? (
+          <Badge variant="default" className="bg-status-healthy text-background">
+            Trusted
+          </Badge>
+        ) : (
+          <Badge variant="destructive">Not Trusted</Badge>
+        )
+      )}
+    </div>
+  );
 }
 
 function CertSection({
@@ -21,25 +46,9 @@ function CertSection({
 }) {
   return (
     <div className="border-b border-border">
-      <div className="flex items-center gap-2 border-b border-border bg-surface/50 px-4 py-2">
-        <h3 className="text-sm font-semibold text-foreground">{label}</h3>
-        {info.exists ? (
-          <Badge variant="default" className="bg-status-healthy text-background">
-            Installed
-          </Badge>
-        ) : (
-          <Badge variant="destructive">Missing</Badge>
-        )}
-        {showTrust && info.trusted !== undefined && (
-          info.trusted ? (
-            <Badge variant="default" className="bg-status-healthy text-background">
-              Trusted
-            </Badge>
-          ) : (
-            <Badge variant="destructive">Not Trusted</Badge>
-          )
-        )}
-      </div>
+      <SectionHeader title={label} as="h3">
+        <CertBadges info={info} showTrust={showTrust} />
+      </SectionHeader>
       {info.exists && (
         <div className="space-y-1 px-4 py-3 text-sm">
           {info.subject && (
@@ -65,12 +74,8 @@ export function CertsView() {
 
   return (
     <>
-      {loading && (
-        <p className="py-16 text-center text-muted-foreground">
-          Loading certificates...
-        </p>
-      )}
-      {error && <p className="py-16 text-center text-destructive">{error}</p>}
+      {loading && <LoadingState message="Loading certificates..." />}
+      {error && <ErrorState message={error} />}
       {!loading && !error && certs && (
         <>
           <CertSection label="Root CA" info={certs.root_ca} showTrust />

@@ -4,6 +4,7 @@ import { RoutesView } from "@/views/routes-view";
 import { CertsView } from "@/views/certs-view";
 import { SettingsForm } from "@/components/settings-form";
 import { ConfigEditor } from "@/components/config-editor";
+import { SectionHeader } from "@/components/section-header";
 
 type Section = "routes" | "certificates" | "general" | "advanced";
 
@@ -20,14 +21,6 @@ const SECTION_TITLES: Record<Section, string> = {
   general: "Settings",
   advanced: "Advanced Configuration",
 };
-
-function SectionHeader({ title }: { title: string }) {
-  return (
-    <div className="flex items-center border-b border-border bg-surface/50 px-4 py-2">
-      <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-    </div>
-  );
-}
 
 export function SettingsView() {
   const [section, setSection] = useState<Section>("general");

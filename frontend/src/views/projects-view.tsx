@@ -2,19 +2,16 @@ import { useState } from "react";
 import { ProjectList } from "@/components/project-list";
 import { AddProjectDialog } from "@/components/add-project-dialog";
 import { EditProjectDialog } from "@/components/edit-project-dialog";
+import { SectionHeader } from "@/components/section-header";
+import { LoadingState, ErrorState } from "@/components/status-messages";
 import { Button } from "@/components/ui/button";
 import { useProjects } from "@/hooks/use-projects";
-import { useHealth } from "@/hooks/use-health";
-import { useProcesses } from "@/hooks/use-processes";
-import { useTunnels } from "@/hooks/use-tunnels";
+import { ProjectServicesProvider } from "@/hooks/use-project-services";
 import { Plus } from "lucide-react";
 
 export function ProjectsView() {
   const { projects, add, update, remove, toggle, loading, error } =
     useProjects();
-  const { lookup } = useHealth();
-  const { lookup: processLookup, refresh: refreshProcesses } = useProcesses();
-  const { lookup: tunnelLookup, refresh: refreshTunnels } = useTunnels();
 
   const [addOpen, setAddOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<string | null>(null);
@@ -29,32 +26,24 @@ export function ProjectsView() {
 
   return (
     <div className="mx-auto w-full max-w-5xl">
-      <div className="flex items-center justify-between border-b border-border bg-surface/50 px-4 py-2">
-        <h2 className="text-lg font-semibold text-foreground">Projects</h2>
+      <SectionHeader title="Projects">
         <Button size="sm" onClick={() => setAddOpen(true)}>
           <Plus />
           Add Project
         </Button>
-      </div>
-      {loading && (
-        <p className="py-16 text-center text-muted-foreground">Loading...</p>
-      )}
-      {error && (
-        <p className="py-16 text-center text-destructive">{error}</p>
-      )}
+      </SectionHeader>
+      {loading && <LoadingState />}
+      {error && <ErrorState message={error} />}
       {!loading && !error && (
-        <ProjectList
-          projects={projects}
-          healthLookup={lookup}
-          processLookup={processLookup}
-          onToggle={toggle}
-          onEdit={setEditTarget}
-          onDelete={handleDelete}
-          onAdd={() => setAddOpen(true)}
-          tunnelLookup={tunnelLookup}
-          onProcessRefresh={refreshProcesses}
-          onTunnelRefresh={refreshTunnels}
-        />
+        <ProjectServicesProvider>
+          <ProjectList
+            projects={projects}
+            onToggle={toggle}
+            onEdit={setEditTarget}
+            onDelete={handleDelete}
+            onAdd={() => setAddOpen(true)}
+          />
+        </ProjectServicesProvider>
       )}
       <AddProjectDialog open={addOpen} onOpenChange={setAddOpen} onAdd={add} />
       {editTarget && editProject && (

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { HealthDot } from "@/components/health-dot";
+import { LoadingState, ErrorState } from "@/components/status-messages";
 import { serviceUrl } from "@/lib/service-url";
 import { useProjects } from "@/hooks/use-projects";
 import { useHealth } from "@/hooks/use-health";
@@ -44,13 +45,11 @@ export function RoutesView() {
   const routes = useMemo(() => buildRoutes(projects), [projects]);
 
   if (loading) {
-    return (
-      <p className="py-16 text-center text-muted-foreground">Loading routes...</p>
-    );
+    return <LoadingState message="Loading routes..." />;
   }
 
   if (error) {
-    return <p className="py-16 text-center text-destructive">{error}</p>;
+    return <ErrorState message={error} />;
   }
 
   return routes.length === 0 ? (

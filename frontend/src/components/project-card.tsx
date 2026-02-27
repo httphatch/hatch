@@ -6,35 +6,27 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ServiceRow } from "@/components/service-row";
-import type { ProcessStatus, Project, ServiceHealth, TunnelStatus } from "@/types";
+import { useProjectServices } from "@/hooks/use-project-services";
+import type { Project } from "@/types";
 import { Copy, ExternalLink, Pencil, Trash2 } from "lucide-react";
 import { cn, safeOpenURL } from "@/lib/utils";
 
 interface ProjectCardProps {
   name: string;
   project: Project;
-  healthLookup: (project: string, service: string) => ServiceHealth | undefined;
-  processLookup: (project: string, service: string) => ProcessStatus | undefined;
   onToggle: (name: string) => void;
   onEdit: (name: string) => void;
   onDelete: (name: string) => void;
-  tunnelLookup: (project: string, service: string) => TunnelStatus | undefined;
-  onProcessRefresh: () => void;
-  onTunnelRefresh: () => void;
 }
 
 export function ProjectCard({
   name,
   project,
-  healthLookup,
-  processLookup,
   onToggle,
   onEdit,
   onDelete,
-  tunnelLookup,
-  onProcessRefresh,
-  onTunnelRefresh,
 }: ProjectCardProps) {
+  const { healthLookup, processLookup, tunnelLookup } = useProjectServices();
   const url = `https://${project.domain}`;
 
   return (
@@ -97,8 +89,6 @@ export function ProjectCard({
             process={processLookup(name, svcName)}
             tunnel={tunnelLookup(name, svcName)}
             projectName={name}
-            onRefresh={onProcessRefresh}
-            onTunnelRefresh={onTunnelRefresh}
           />
         ))}
       </div>
