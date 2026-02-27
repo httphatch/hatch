@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { HealthDot } from "@/components/health-dot";
-import { LoadingState, ErrorState } from "@/components/status-messages";
+import { LoadingState } from "@/components/loading-state";
+import { ErrorState } from "@/components/error-state";
 import { serviceUrl } from "@/lib/service-url";
 import { useProjects } from "@/hooks/use-projects";
 import { useHealth } from "@/hooks/use-health";

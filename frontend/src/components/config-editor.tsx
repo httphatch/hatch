@@ -5,7 +5,7 @@ import { yaml } from "@codemirror/lang-yaml";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { EditorState } from "@codemirror/state";
 import { Button } from "@/components/ui/button";
-import { LoadingState } from "@/components/status-messages";
+import { LoadingState } from "@/components/loading-state";
 import { useConfig } from "@/hooks/use-config";
 
 const overrides = EditorView.theme({

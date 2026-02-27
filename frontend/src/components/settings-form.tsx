@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { SectionHeader } from "@/components/section-header";
-import { LoadingState, ErrorState } from "@/components/status-messages";
+import { LoadingState } from "@/components/loading-state";
+import { ErrorState } from "@/components/error-state";
 import { useSettings } from "@/hooks/use-settings";
 import type { Settings } from "@/types";
 
