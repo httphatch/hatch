@@ -138,6 +138,7 @@ func TestCheckPort_Listening(t *testing.T) {
 	}
 	if info == nil {
 		t.Fatal("expected non-nil PortInfo for listening port")
+		return
 	}
 	if info.PID == 0 {
 		t.Error("expected non-zero PID")
