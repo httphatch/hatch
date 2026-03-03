@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import * as api from "@/api";
 import type { Project } from "@/types";
 
@@ -6,6 +6,7 @@ export function useProjects() {
   const [projects, setProjects] = useState<Record<string, Project>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -21,6 +22,10 @@ export function useProjects() {
 
   useEffect(() => {
     refresh();
+    intervalRef.current = setInterval(refresh, 10_000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, [refresh]);
 
   const add = useCallback(
