@@ -12,7 +12,8 @@ import (
 )
 
 var downCmd = &cobra.Command{
-	Use:   "down",
+	Use:     "down",
+	Aliases: []string{"stop"},
 	Short: "Stop the Hatch daemon",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runDown()

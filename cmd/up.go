@@ -18,7 +18,8 @@ import (
 )
 
 var upCmd = &cobra.Command{
-	Use:   "up",
+	Use:     "up",
+	Aliases: []string{"start"},
 	Short: "Start the Hatch daemon",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runUp()
