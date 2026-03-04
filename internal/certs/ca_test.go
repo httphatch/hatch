@@ -176,6 +176,7 @@ func TestGenerateIntermediateCA_ValidCert(t *testing.T) {
 	block, _ := pem.Decode(certPEM)
 	if block == nil {
 		t.Fatal("no PEM block found in intermediate cert")
+		return
 	}
 	cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
@@ -190,6 +191,7 @@ func TestGenerateIntermediateCA_ValidCert(t *testing.T) {
 	keyBlock, _ := pem.Decode(keyPEM)
 	if keyBlock == nil {
 		t.Fatal("no PEM block found in intermediate key")
+		return
 	}
 	key, err := x509.ParseECPrivateKey(keyBlock.Bytes)
 	if err != nil {
