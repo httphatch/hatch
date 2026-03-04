@@ -52,6 +52,11 @@ func LogFile() string {
 	return filepath.Join(LogsDir(), "hatch.log")
 }
 
+// ProcessStatePath returns the path to the managed process PID state file.
+func ProcessStatePath() string {
+	return filepath.Join(Dir(), "processes.json")
+}
+
 // CaddyDir returns the path to the isolated Caddy data directory.
 func CaddyDir() string {
 	return filepath.Join(Dir(), "caddy")

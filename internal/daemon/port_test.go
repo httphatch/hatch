@@ -83,6 +83,7 @@ func TestParseLsofOutput(t *testing.T) {
 			}
 			if got == nil {
 				t.Fatalf("got nil, want %v", tt.want)
+				return
 			}
 			if got.Process != tt.want.Process {
 				t.Errorf("Process: got %q, want %q", got.Process, tt.want.Process)
