@@ -120,8 +120,9 @@ The system tray app runs as a separate process (`hatch _tray`). `hatch up` spawn
 ### Startup Sequence
 
 1. Acquire PID lock (`~/.hatch/hatch.pid`)
-2. Load and validate config
-3. Verify ports are available
+2. Clean up orphaned processes from a previous daemon instance
+3. Load and validate config
+4. Verify ports are available
 4. Start DNS server
 5. Start Caddy with translated config
 6. Start health checker
@@ -218,6 +219,8 @@ Services with a `command` field are managed as supervised processes.
 
 **Env file loading:** When `env_file` is set, Hatch loads the specified file (relative to the project path) and injects the variables into the command's environment.
 
+**PID tracking:** The process manager writes running process PIDs to `~/.hatch/processes.json`. On daemon startup, Hatch reads this file and kills any surviving processes from a previous instance (SIGTERM with 5-second timeout, then SIGKILL). This prevents port conflicts when the daemon restarts after a crash or upgrade.
+
 ## File Locations
 
 | Path | Purpose |
@@ -227,6 +230,7 @@ Services with a `command` field are managed as supervised processes.
 | `~/.hatch/logs/hatch.log` | Daemon log file |
 | `~/.hatch/hatch.pid` | Daemon PID lock file |
 | `~/.hatch/tray.lock` | Tray instance lock file |
+| `~/.hatch/processes.json` | Managed process PID state file |
 | `~/.hatch/tunnels.json` | Active tunnel metadata |
 | `~/.hatch/caddy/` | Caddy data (cached site certs) |
 | `/etc/resolver/<tld>` | macOS DNS resolver override |

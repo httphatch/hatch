@@ -2,6 +2,7 @@ package process
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -48,6 +49,7 @@ type ProcessStatus struct {
 
 // ManagerConfig holds the configuration for a process Manager.
 type ManagerConfig struct {
+	PIDFile  string
 	OnOutput func(project, service, source, line string)
 }
 
@@ -164,6 +166,10 @@ func (m *Manager) Stop() error {
 	m.mu.Lock()
 	m.processes = make(map[ServiceID]*supervised)
 	m.mu.Unlock()
+
+	if m.cfg.PIDFile != "" {
+		_ = os.Remove(m.cfg.PIDFile)
+	}
 
 	return nil
 }
@@ -389,6 +395,10 @@ func (m *Manager) supervise(ctx context.Context, sup *supervised) {
 		sup.started = now
 		sup.mu.Unlock()
 
+		m.mu.Lock()
+		m.savePIDs()
+		m.mu.Unlock()
+
 		startedAt := now
 
 		// Wait for exit or cancellation.
@@ -398,6 +408,10 @@ func (m *Manager) supervise(ctx context.Context, sup *supervised) {
 			return
 		case <-runner.Done():
 		}
+
+		m.mu.Lock()
+		m.savePIDs()
+		m.mu.Unlock()
 
 		// Don't restart if context is cancelled or manually stopped.
 		if ctx.Err() != nil {
@@ -423,6 +437,35 @@ func (m *Manager) supervise(ctx context.Context, sup *supervised) {
 		case <-time.After(backoff):
 			backoff = nextBackoff(backoff)
 		}
+	}
+}
+
+// savePIDs writes the current process PIDs to the state file.
+// Must be called with m.mu held or from a context where the map is stable.
+func (m *Manager) savePIDs() {
+	if m.cfg.PIDFile == "" {
+		return
+	}
+
+	pids := make(map[string]int)
+	for id, sup := range m.processes {
+		sup.mu.Lock()
+		if sup.runner != nil {
+			if pid := sup.runner.PID(); pid != 0 {
+				pids[id.String()] = pid
+			}
+		}
+		sup.mu.Unlock()
+	}
+
+	data, err := json.Marshal(pids)
+	if err != nil {
+		log.Warn().Err(err).Msg("failed to marshal process PIDs")
+		return
+	}
+
+	if err := os.WriteFile(m.cfg.PIDFile, data, 0o600); err != nil {
+		log.Warn().Err(err).Msg("failed to write process PID file")
 	}
 }
 

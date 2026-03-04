@@ -132,6 +132,16 @@ func (r *Runner) Stop() error {
 	return nil
 }
 
+// PID returns the process ID of the managed process, or 0 if not started.
+func (r *Runner) PID() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.cmd != nil && r.cmd.Process != nil {
+		return r.cmd.Process.Pid
+	}
+	return 0
+}
+
 // Done returns a channel that is closed when the process exits.
 func (r *Runner) Done() <-chan struct{} {
 	r.mu.Lock()

@@ -67,6 +67,11 @@ func (d *Daemon) Run(ctx context.Context) error {
 	d.pidFile = pidFile
 	log.Info().Int("pid", os.Getpid()).Msg("pid file written")
 
+	// Kill orphaned managed processes from a previous daemon instance.
+	if err := process.CleanOrphans(config.ProcessStatePath()); err != nil {
+		log.Warn().Err(err).Msg("failed to clean orphaned processes")
+	}
+
 	// Load config.
 	cfg, err := config.LoadWithProjectConfigs()
 	if err != nil {
@@ -168,6 +173,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 
 	// Start process manager.
 	procMgr := process.NewManager(process.ManagerConfig{
+		PIDFile: config.ProcessStatePath(),
 		OnOutput: func(project, service, source, line string) {
 			log.Info().
 				Str("project", project).
