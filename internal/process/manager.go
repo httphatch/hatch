@@ -326,9 +326,22 @@ func (m *Manager) buildDesired(appCfg config.Config) map[ServiceID]desiredProces
 				}
 			}
 
+			dir := proj.Path
+			if svc.Dir != "" {
+				dir = filepath.Clean(filepath.Join(proj.Path, svc.Dir))
+				if proj.Path != "" && !strings.HasPrefix(dir, filepath.Clean(proj.Path)+string(filepath.Separator)) {
+					log.Warn().
+						Str("project", projName).
+						Str("service", svcName).
+						Str("dir", svc.Dir).
+						Msg("dir path escapes project directory, using project path")
+					dir = proj.Path
+				}
+			}
+
 			desired[id] = desiredProcess{
 				command: svc.Command,
-				dir:     proj.Path,
+				dir:     dir,
 				env:     deduplicateEnv(env),
 			}
 		}

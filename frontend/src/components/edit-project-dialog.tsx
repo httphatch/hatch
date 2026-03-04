@@ -27,6 +27,7 @@ interface ServiceForm {
   name: string;
   proxy: string;
   command: string;
+  dir: string;
   envFile: string;
   route: string;
   subdomain: string;
@@ -38,6 +39,7 @@ function serviceToForm(name: string, svc: Service): ServiceForm {
     name,
     proxy: svc.proxy ?? "",
     command: svc.command ?? "",
+    dir: svc.dir ?? "",
     envFile: svc.env_file ?? "",
     route: svc.route ?? "",
     subdomain: svc.subdomain ?? "",
@@ -78,7 +80,7 @@ export function EditProjectDialog({
   function addService() {
     setServices((prev) => [
       ...prev,
-      { name: "", proxy: "localhost:3000", command: "", envFile: "", route: "", subdomain: "", websocket: false },
+      { name: "", proxy: "localhost:3000", command: "", dir: "", envFile: "", route: "", subdomain: "", websocket: false },
     ]);
   }
 
@@ -122,6 +124,7 @@ export function EditProjectDialog({
       svcMap[s.name] = {
         ...(s.proxy ? { proxy: s.proxy } : {}),
         ...(s.command ? { command: s.command } : {}),
+        ...(s.dir ? { dir: s.dir } : {}),
         ...(s.envFile ? { env_file: s.envFile } : {}),
         ...(s.route ? { route: s.route } : {}),
         ...(s.subdomain ? { subdomain: s.subdomain } : {}),
@@ -233,6 +236,16 @@ export function EditProjectDialog({
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
+                    <Label className="text-xs">Working directory</Label>
+                    <Input
+                      value={svc.dir}
+                      onChange={(e) =>
+                        updateService(idx, { dir: e.target.value })
+                      }
+                      placeholder="packages/api"
+                    />
+                  </div>
+                  <div className="space-y-1">
                     <Label className="text-xs">Env file</Label>
                     <Input
                       value={svc.envFile}
@@ -242,6 +255,8 @@ export function EditProjectDialog({
                       placeholder=".env"
                     />
                   </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">Route</Label>
                     <Input
@@ -252,8 +267,6 @@ export function EditProjectDialog({
                       placeholder="/api/*"
                     />
                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">Subdomain</Label>
                     <Input
@@ -264,6 +277,8 @@ export function EditProjectDialog({
                       placeholder="api"
                     />
                   </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                   <div className="flex items-end gap-2 pb-1">
                     <Switch
                       checked={svc.websocket}

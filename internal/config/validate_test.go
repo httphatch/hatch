@@ -386,6 +386,43 @@ func TestValidate_ServiceEnvFile(t *testing.T) {
 	}
 }
 
+func TestValidate_ServiceDir(t *testing.T) {
+	tests := []struct {
+		name    string
+		dir     string
+		wantErr string
+	}{
+		{"relative path", "packages/api", ""},
+		{"simple subdir", "src", ""},
+		{"absolute path", "/usr/local/app", "must be a relative path"},
+		{"parent traversal", "../other", "must not contain '..'"},
+		{"nested traversal", "packages/../../other", "must not contain '..'"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := validConfig()
+			p := cfg.Projects["myapp"]
+			p.Services = map[string]Service{"web": {Command: "npm start", Dir: tt.dir}}
+			cfg.Projects["myapp"] = p
+			errs := Validate(cfg)
+			if tt.wantErr != "" {
+				requireError(t, errs, tt.wantErr)
+			} else if len(errs) != 0 {
+				t.Errorf("expected no errors, got %v", errs)
+			}
+		})
+	}
+}
+
+func TestValidate_ServiceDirRequiresCommand(t *testing.T) {
+	cfg := validConfig()
+	p := cfg.Projects["myapp"]
+	p.Services = map[string]Service{"web": {Proxy: "http://localhost:3000", Dir: "packages/web"}}
+	cfg.Projects["myapp"] = p
+	errs := Validate(cfg)
+	requireError(t, errs, "dir requires command")
+}
+
 func requireError(t *testing.T, errs []error, substr string) {
 	t.Helper()
 	for _, err := range errs {

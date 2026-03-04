@@ -4,6 +4,7 @@ export interface Service {
   subdomain?: string;
   websocket?: boolean;
   command?: string;
+  dir?: string;
   env_file?: string;
   tunnel?: string;
 }
