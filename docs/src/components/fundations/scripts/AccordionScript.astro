@@ -1,0 +1,58 @@
+<script>
+  function initializeAccordions() {
+    const sections = document.querySelectorAll(".accordion-section");
+
+    sections.forEach((section) => {
+      const toggle = section.querySelector("[data-accordion-trigger]");
+      const content = section.querySelector(".accordion-content");
+      const background = section.querySelector("[data-background]");
+
+      if (!toggle || !content) return;
+      if (toggle.dataset.accordionReady) return;
+      toggle.dataset.accordionReady = "true";
+
+      toggle.addEventListener("click", () => {
+        const isOpen = toggle.getAttribute("aria-expanded") === "true";
+
+        // Close all other sections
+        sections.forEach((s) => {
+          if (s !== section) {
+            const t = s.querySelector("[data-accordion-trigger]");
+            const c = s.querySelector(".accordion-content");
+            const b = s.querySelector("[data-background]");
+
+            if (c && t && b) {
+              c.style.height = "0";
+              c.style.opacity = "0";
+              c.style.transform = "translateY(-0.5rem)";
+              t.setAttribute("aria-expanded", "false");
+              b.classList.remove("opacity-100");
+              b.classList.add("opacity-0");
+            }
+          }
+        });
+
+        // Toggle current section
+        if (isOpen) {
+          content.style.height = "0";
+          content.style.opacity = "0";
+          content.style.transform = "translateY(-0.5rem)";
+          toggle.setAttribute("aria-expanded", "false");
+          background?.classList.remove("opacity-100");
+          background?.classList.add("opacity-0");
+        } else {
+          const scrollHeight = content.scrollHeight + "px";
+          content.style.height = scrollHeight;
+          content.style.opacity = "1";
+          content.style.transform = "translateY(0)";
+          toggle.setAttribute("aria-expanded", "true");
+          background?.classList.add("opacity-100");
+          background?.classList.remove("opacity-0");
+        }
+      });
+    });
+  }
+
+  document.addEventListener("astro:page-load", initializeAccordions);
+  document.addEventListener("DOMContentLoaded", initializeAccordions);
+</script>
