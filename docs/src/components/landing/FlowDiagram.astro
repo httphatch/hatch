@@ -322,27 +322,27 @@ const routes = [
     text-shadow: 0 0 12px oklch(0.7 0.15 192 / 0.5);
   }
 
-  /* Connector base path */
-  .flow-path {
+  /* Connector base path — :global because JS creates these elements */
+  :global(.flow-path) {
     stroke: var(--color-accent-300);
   }
 
-  :global(.dark) .flow-path {
+  :global(.dark .flow-path) {
     stroke: var(--color-accent-700);
   }
 
   /* Pulse overlay on lines */
-  .flow-pulse {
+  :global(.flow-pulse) {
     stroke: var(--color-accent-400);
     opacity: 0.7;
   }
 
-  :global(.dark) .flow-pulse {
+  :global(.dark .flow-pulse) {
     stroke: var(--color-accent-400);
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .flow-pulse { display: none; }
+    :global(.flow-pulse) { display: none; }
     .flow-hub__matrix { display: none; }
   }
 
