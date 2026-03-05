@@ -1,0 +1,149 @@
+---
+import { Image } from "astro:assets";
+import DocsLayout from "@/layouts/DocsLayout.astro";
+import RightSidebarLayout from "@/layouts/RightSidebarLayout.astro";
+import Text from "@/components/fundations/elements/Text.astro";
+import Header from "@/components/fundations/containers/Header.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+import ShareButtons from "@/components/fundations/elements/ShareButtons.astro";
+import TocAnimationScript from "@/components/fundations/scripts/TocAnimationScript.astro";
+
+const { frontmatter, previous, next, headings = [] } = Astro.props;
+---
+
+<DocsLayout>
+  <section>
+    <RightSidebarLayout>
+      <div slot="main">
+        <Header
+          title={frontmatter.title}
+          description={frontmatter.description}
+          innerClass="gap-24 lg:gap-32"
+        />
+        <section class="px-8 pb-8">
+          {frontmatter.image && (
+            <Image
+              width={1000}
+              height={800}
+              alt={frontmatter.image.alt}
+              src={frontmatter.image.url}
+              class="object-cover object-center mt-8 size-full max-h-120 lg:col-span-2"
+            />
+          )}
+          <Wrapper variant="prose" class="mt-8"><slot /></Wrapper>
+        </section>
+        <div
+          class="p-8 border-t border-base-200 dark:border-base-800 grid grid-cols-1 lg:grid-cols-2 gap-8"
+        >
+          <div>
+            <Text
+              tag="p"
+              variant="textXS"
+              class="text-base-500 dark:text-base-300"
+            >
+              <span class="font-medium">
+                <time datetime={new Date(frontmatter.pubDate).toISOString()}>
+                  {new Date(frontmatter.pubDate).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "2-digit",
+                  })}
+                </time>
+              </span>
+              {frontmatter.author && (
+                <span> by <span class="font-medium">{frontmatter.author}</span></span>
+              )}
+              {frontmatter.tags && (
+                <span class="block mt-1">
+                  {frontmatter.tags.map((tag: string) => (
+                    <a href={`/blog/tags/${tag}`} class="capitalize text-accent-500 hover:text-accent-400">
+                      {tag}
+                    </a>
+                  ))}
+                </span>
+              )}
+            </Text>
+          </div>
+          <div class="flex flex-col gap-2 lg:ml-auto">
+            <Text
+              tag="p"
+              variant="textXS"
+              class="text-base-500 dark:text-base-300"
+            >
+              Share this article:
+            </Text>
+            <ShareButtons description={frontmatter.description} />
+          </div>
+        </div>
+      </div>
+      <div slot="rightAside">
+        <Text
+          tag="h4"
+          variant="textSM"
+          class="ml-4 text text-base-900 dark:text-white">On this page</Text
+        >
+        <div class="flex flex-col h-full mt-4">
+          {
+            headings
+              .filter((h: any) => h.depth === 2 || h.depth === 3)
+              .map((heading: any) => (
+                <a
+                  href={`#${heading.slug}`}
+                  class="block py-1 text-xs border-l-2 border-transparent select-none hover:text-accent-600 dark:hover:text-accent-400 text-base-500 dark:text-base-400 transition-all duration-200 toc-link"
+                  style={`padding-left: ${heading.depth === 3 ? "1.8rem" : "1rem"}`}
+                  data-heading-id={heading.slug}
+                  data-heading-depth={heading.depth}
+                >
+                  {heading.text}
+                </a>
+              ))
+          }
+        </div>
+      </div>
+    </RightSidebarLayout>
+  </section>
+  <nav
+    aria-label="Post pagination"
+    class="w-full border-t grid grid-cols-1 md:grid-cols-2 divide-y divide-base-200 dark:divide-base-800 lg:divide-y-0 lg:divide-x border-base-200 dark:border-base-800"
+  >
+    <div class="w-full">
+      {
+        previous && (
+          <a
+            href={`/blog/posts/${previous.slug}`}
+            class="flex flex-col w-full p-8 gap-12 group hover:bg-base-50 dark:hover:bg-white/1 duration-200"
+          >
+            <span class="font-mono text-xs font-medium tracking-wide uppercase text-base-500 dark:text-base-400">
+              Previous
+            </span>
+            <div>
+              <div class="text-sm font-medium truncate text-base-900 dark:text-white group-hover:text-accent-600 dark:group-hover:text-accent-400 transition-colors">
+                {previous.data.title}
+              </div>
+            </div>
+          </a>
+        )
+      }
+    </div>
+    <div class="w-full">
+      {
+        next && (
+          <a
+            href={`/blog/posts/${next.slug}`}
+            class="flex flex-col justify-end w-full p-8 gap-12 group hover:bg-base-50 dark:hover:bg-white/1 duration-200"
+          >
+            <span class="font-mono text-xs font-medium tracking-wide uppercase text-base-500 dark:text-base-400">
+              Next
+            </span>
+            <div>
+              <div class="text-sm font-medium truncate text-base-900 dark:text-white group-hover:text-accent-600 dark:group-hover:text-accent-400 transition-colors">
+                {next.data.title}
+              </div>
+            </div>
+          </a>
+        )
+      }
+    </div>
+  </nav>
+</DocsLayout>
+<TocAnimationScript />

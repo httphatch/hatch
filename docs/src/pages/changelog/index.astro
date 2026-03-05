@@ -1,0 +1,29 @@
+---
+// Fundations
+import DocsLayout from "@/layouts/DocsLayout.astro";
+import Header from "@/components/fundations/containers/Header.astro";
+// Components
+import ChangelogCard from "@/components/changelog/ChangelogCard.astro";
+// Content
+import { getCollection } from "astro:content";
+const allUpdatesUnsorted = await getCollection("changelog");
+// Sort the posts in descending order by publication date (newest to oldest)
+const allUpdates = allUpdatesUnsorted.sort((a, b) => {
+  const dateA = new Date(a.data.pubDate ?? 0).getTime();
+  const dateB = new Date(b.data.pubDate ?? 0).getTime();
+  return dateB - dateA;
+});
+---
+
+<DocsLayout>
+  <section>
+    <Header
+      title="Changelog"
+      description="Release notes and updates for Hatch."
+      innerClass="pt-24 "
+    />
+    <div class="flex flex-col px-8 pb-12 mt-4 gap-2">
+      {allUpdates.map((post) => <ChangelogCard post={post} />)}
+    </div>
+  </section>
+</DocsLayout>

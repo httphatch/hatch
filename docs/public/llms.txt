@@ -1,44 +1,41 @@
-# Hatch
+# Hatch Documentation
 
-> Local HTTPS development for macOS — automatic DNS, trusted certificates, and reverse proxying for .test domains.
+> Hatch is a local HTTPS development tool for macOS that provides .test domains with trusted certificates, automatic DNS, and reverse proxying.
 
-Hatch is a local development environment tool for macOS. It runs as a background daemon that provides DNS resolution, TLS certificate management, and HTTPS reverse proxying so that local projects are accessible via clean `.test` domains (e.g., `https://myapp.test`) with trusted certificates.
+## Getting Started
+- [What is Hatch?](https://httphatch.com/docs/getting-started/what-is-hatch)
+- [Installation](https://httphatch.com/docs/getting-started/installation)
+- [Quick Start](https://httphatch.com/docs/getting-started/quick-start)
 
-Key concepts:
-- **Daemon**: A single background process (managed via launchd) that runs the DNS server, certificate authority, and reverse proxy.
-- **Projects**: Each project maps a `.test` domain to one or more local services. Projects are added with `hatch add` or by linking a `.hatch.yml` config file.
-- **Services**: Each project has one or more services, each proxying to a local upstream (e.g., `http://localhost:3000`). Services can be routed by path prefix or subdomain.
-- **Certificates**: Hatch generates a local root CA and intermediate CA, trusted in the macOS Keychain. Per-domain certificates are issued automatically.
-- **DNS**: A local DNS server resolves `*.test` to localhost via a macOS resolver config in `/etc/resolver/`.
-- **Tunnels**: Expose local services to the internet via Cloudflare Tunnels. Quick tunnels (no account, temporary URL) and named tunnels (persistent domain, requires token). Includes a rewrite proxy that handles Vite/HMR compatibility.
+## Concepts
+- [Domains and DNS](https://httphatch.com/docs/concepts/domains-and-dns)
+- [HTTPS and Certificates](https://httphatch.com/docs/concepts/https-and-certificates)
+- [Routing](https://httphatch.com/docs/concepts/routing)
+- [Process Management](https://httphatch.com/docs/concepts/process-management)
+- [Tunnels](https://httphatch.com/docs/concepts/tunnels)
 
-## Guide
-
-- [What is Hatch?](https://httphatch.com/guide/what-is-hatch): Feature overview and how Hatch compares to editing /etc/hosts or using self-signed certificates.
-- [Getting Started](https://httphatch.com/guide/getting-started): Installation (Homebrew or source), first-time setup with `hatch init`, starting the daemon, and adding your first project.
-- [Tunnels](https://httphatch.com/guide/tunnels): Expose local services via Cloudflare Tunnels — quick tunnels, named tunnels, CLI commands, config-driven tunnels, and Vite/HMR compatibility.
-- [Dashboard](https://httphatch.com/guide/dashboard): Visual GUI for managing projects, viewing logs, and monitoring service health.
+## Guides
+- [Multi-Service Project](https://httphatch.com/docs/guides/multi-service-project)
+- [Per-Project Config](https://httphatch.com/docs/guides/per-project-config)
+- [Debug a Crashing Process](https://httphatch.com/docs/guides/debug-crashing-process)
+- [Share a Dev Server](https://httphatch.com/docs/guides/share-dev-server)
+- [Dashboard](https://httphatch.com/docs/guides/dashboard)
 
 ## Reference
-
-- [CLI](https://httphatch.com/reference/cli): Complete command reference — daemon management (`up`, `down`, `restart`, `status`, `logs`), project management (`add`, `link`, `unlink`, `list`, `remove`, `enable`, `disable`, `open`), tunnel management (`tunnel start`, `tunnel stop`, `tunnel status`), system setup (`init`, `trust`, `doctor`, `clean`), and config commands.
-- [Configuration](https://httphatch.com/reference/config): Global config file (`~/.hatch/config.yml`) — TLD, HTTP/HTTPS ports, auto-start, log level, and project/service definitions.
-- [.hatch.yml](https://httphatch.com/reference/hatch-yml): Per-project config file format — domain, services with proxy, route, subdomain, and websocket options.
+- [CLI Commands](https://httphatch.com/docs/reference/cli)
+- [config.yml Reference](https://httphatch.com/docs/reference/config-yml)
+- [hatch.yml Reference](https://httphatch.com/docs/reference/hatch-yml)
 
 ## Advanced
-
-- [How It Works](https://httphatch.com/advanced/how-it-works): Architecture internals — embedded Caddy server, DNS resolver integration, certificate chain, launchd lifecycle, and live config reloading.
-- [Troubleshooting](https://httphatch.com/advanced/troubleshooting): Common issues and diagnostic steps — `hatch doctor`, port conflicts, DNS resolution failures, certificate trust problems.
+- [Architecture](https://httphatch.com/docs/advanced/architecture)
+- [Troubleshooting](https://httphatch.com/docs/advanced/troubleshooting)
 
 ## Changelog
-
 - [Changelog](https://httphatch.com/changelog)
 
 ## Contributing
-
 - [Development Setup](https://httphatch.com/docs/contributing/development-setup)
 - [Get Involved](https://httphatch.com/docs/contributing/get-involved)
 
 ## Community
-
 - [GitHub](https://github.com/httphatch/hatch): Source code and issue tracker.

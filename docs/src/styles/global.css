@@ -1,0 +1,52 @@
+@import "./syntaxhighlighting.css";
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@plugin "@tailwindcss/forms";
+@plugin "tailwind-scrollbar-hide";
+@custom-variant dark (&:where(.dark, .dark *));
+@theme {
+  /* Typography */
+  --font-sans: Geist, sans-serif;
+  --font-mono: Geist Mono, monospace;
+
+  /* Cyan accent scale (hue ~195, matching dashboard primary) */
+  --color-accent-50: oklch(0.977 0.013 195);
+  --color-accent-100: oklch(0.951 0.026 195);
+  --color-accent-200: oklch(0.901 0.058 192);
+  --color-accent-300: oklch(0.828 0.111 192);
+  --color-accent-400: oklch(0.746 0.16 190);
+  --color-accent-500: oklch(0.685 0.169 190);
+  --color-accent-600: oklch(0.588 0.158 192);
+  --color-accent-700: oklch(0.5 0.134 195);
+  --color-accent-800: oklch(0.443 0.11 195);
+  --color-accent-900: oklch(0.391 0.09 197);
+  --color-accent-950: oklch(0.293 0.066 200);
+
+  /* Base (neutral) scale */
+  --color-base-50: oklch(0.985 0 0);
+  --color-base-100: oklch(0.97 0 0);
+  --color-base-200: oklch(0.922 0 0);
+  --color-base-300: oklch(0.87 0 0);
+  --color-base-400: oklch(0.708 0 0);
+  --color-base-500: oklch(0.556 0 0);
+  --color-base-600: oklch(0.439 0 0);
+  --color-base-700: oklch(0.371 0 0);
+  --color-base-800: oklch(0.269 0 0);
+  --color-base-900: oklch(0.165 0 0);
+  --color-base-950: oklch(0.12 0 0);
+
+  /* Sharp corners (0px radius everywhere) */
+  --radius-xs: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-4xl: 0px;
+  --radius-full: 0px;
+}
+:root {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

@@ -1,0 +1,11 @@
+---
+const { class: className, ...rest } = Astro.props;
+---
+
+<span
+  class:list={["font-bold text-accent-500", className]}
+  style="font-family: 'Fugaz One', cursive;"
+  {...rest}
+>
+  HATCH
+</span>

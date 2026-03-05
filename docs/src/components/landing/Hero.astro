@@ -1,0 +1,29 @@
+---
+import Header from "@/components/fundations/containers/Header.astro";
+import Button from "@/components/fundations/elements/Button.astro";
+import FlowDiagram from "@/components/landing/FlowDiagram.astro";
+---
+
+<section class="bg-white dark:bg-base-900">
+  <Header
+    title="Hatch"
+    description="Local HTTPS development for macOS. Real .test domains with trusted certificates, automatic DNS, and reverse proxying. One binary, zero config friction."
+    innerClass="pt-24"
+  >
+    <div class="flex flex-wrap items-center w-full mt-8 gap-2">
+      <Button
+        isLink={true}
+        size="xs"
+        variant="accent"
+        href="/docs/getting-started/what-is-hatch">Get started</Button
+      >
+      <Button
+        isLink={true}
+        size="xs"
+        variant="muted"
+        href="https://github.com/httphatch/hatch">View on GitHub</Button
+      >
+    </div>
+  </Header>
+  <FlowDiagram />
+</section>

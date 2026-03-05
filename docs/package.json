@@ -1,13 +1,27 @@
 {
   "name": "hatch-docs",
-  "private": true,
   "type": "module",
+  "version": "0.0.1",
   "scripts": {
-    "docs:dev": "vitepress dev",
-    "docs:build": "vitepress build",
-    "docs:preview": "vitepress preview"
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/mdx": "^4.3.13",
+    "@astrojs/sitemap": "^3.6.0",
+    "@astrolib/seo": "^1.0.0-beta.8",
+    "@tailwindcss/forms": "^0.5.11",
+    "@tailwindcss/typography": "^0.5.19",
+    "@tailwindcss/vite": "^4.1.18",
+    "astro": "^5.16.6",
+    "shiki": "^3.20.0",
+    "tailwind-scrollbar-hide": "^4.0.0",
+    "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
-    "vitepress": "^1.6.3"
+    "@shikijs/transformers": "^3.20.0"
   }
 }

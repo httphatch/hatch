@@ -1,0 +1,35 @@
+---
+import { getCollection } from "astro:content";
+import ChangelogLayout from "@/layouts/ChangelogLayout.astro";
+export async function getStaticPaths() {
+  const allChangelog = await getCollection("changelog");
+  const sorted = allChangelog.sort(
+    (a, b) =>
+      new Date(b.data.pubDate).getTime() - new Date(a.data.pubDate).getTime()
+  );
+  return sorted.map((page) => ({
+    params: { slug: page.slug },
+    props: { slug: page.slug },
+    trailingSlash: false,
+  }));
+}
+const { slug } = Astro.props;
+const allChangelog = await getCollection("changelog");
+const sorted = allChangelog.sort(
+  (a, b) =>
+    new Date(b.data.pubDate).getTime() - new Date(a.data.pubDate).getTime()
+);
+const index = sorted.findIndex((item) => item.slug === slug);
+const page = sorted[index];
+const previous = sorted[index - 1] || null;
+const next = sorted[index + 1] || null;
+const { Content, headings } = await page.render();
+---
+<ChangelogLayout
+  frontmatter={page.data}
+  previous={previous}
+  next={next}
+  headings={headings}
+>
+  <Content />
+</ChangelogLayout>

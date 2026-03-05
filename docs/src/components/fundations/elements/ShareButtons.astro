@@ -1,0 +1,93 @@
+---
+// Fundations
+import Button from "@/components/fundations/elements/Button.astro";
+// ShareButtons.astro
+interface Props {
+  url?: string;
+  title?: string;
+  description?: string;
+  contentType?: "blog" | "generic";
+}
+const { url, title, description, contentType = "blog" } = Astro.props;
+---
+<div class="flex flex-wrap gap-4">
+  <Button
+    size="mini"
+    variant="muted"
+    isLink={true}
+    id="twitter-share"
+    aria-label="Share on X"
+  >
+    X
+  </Button>
+  <Button
+    size="mini"
+    variant="muted"
+    isLink={true}
+    id="facebook-share"
+    aria-label="Share on Facebook"
+  >
+    Facebook
+  </Button>
+  <Button
+    size="mini"
+    variant="muted"
+    isLink={true}
+    id="linkedin-share"
+    aria-label="Share on LinkedIn"
+  >
+    Linkedin
+  </Button>
+  <Button
+    size="mini"
+    variant="muted"
+    isLink={true}
+    id="copy-link"
+    aria-label="Copy link"
+  >
+    Link
+  </Button>
+</div>
+<script define:vars={{ url, title, description, contentType }}>
+  // Get the current page URL and title, using custom values if provided
+  const pageUrl = url || window.location.href;
+  const pageTitle = title || document.title;
+  const pageDesc = description || "";
+  // Set share text specifically for blog content type
+  let shareText = `Check out this article: ${pageTitle}`;
+  // Add description if available
+  if (pageDesc) {
+    shareText += ` - ${pageDesc}`;
+  }
+  // Twitter share
+  document.getElementById("twitter-share")?.addEventListener("click", () => {
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(pageUrl)}`;
+    window.open(twitterUrl, "_blank");
+  });
+  // Facebook share
+  document.getElementById("facebook-share")?.addEventListener("click", () => {
+    const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(pageUrl)}`;
+    window.open(facebookUrl, "_blank");
+  });
+  // LinkedIn share
+  document.getElementById("linkedin-share")?.addEventListener("click", () => {
+    const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(pageUrl)}`;
+    window.open(linkedinUrl, "_blank");
+  });
+  // Copy link
+  document.getElementById("copy-link")?.addEventListener("click", () => {
+    navigator.clipboard.writeText(pageUrl).then(
+      () => {
+        const Button = document.getElementById("copy-link");
+        const originalText = Button.textContent;
+        Button.textContent = "✓";
+        setTimeout(() => {
+          Button.innerHTML = `Copied!`;
+        }, 2000);
+      },
+      (err) => {
+        console.error("Could not copy text: ", err);
+      }
+    );
+  });
+</script>

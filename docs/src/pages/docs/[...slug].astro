@@ -1,0 +1,232 @@
+---
+// Fundations
+import DocsLayout from "@/layouts/DocsLayout.astro";
+import RightSidebarLayout from "@/layouts/RightSidebarLayout.astro";
+import Text from "@/components/fundations/elements/Text.astro";
+import Button from "@/components/fundations/elements/Button.astro";
+import Header from "@/components/fundations/containers/Header.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+// Icons
+import ChevronRight from "@/components/fundations/icons/ChevronRight.astro";
+import ArrowDownright from "@/components/fundations/icons/ArrowDownright.astro";
+import GPT from "@/components/fundations/icons/GPT.astro";
+import Claude from "@/components/fundations/icons/Claude.astro";
+import Markdown from "@/components/fundations/icons/Markdown.astro";
+// Scripts
+import AskGPT from "@/components/fundations/scripts/AskGPT.astro";
+import Github from "@/components/fundations/icons/GitHub.astro";
+import AskClaude from "@/components/fundations/scripts/AskClaude.astro";
+import CopyAsMarkdown from "@/components/fundations/scripts/CopyAsMarkdown.astro";
+import CopyToClipboard from "@/components/fundations/scripts/CopyToClipboard.astro";
+import TocAnimationScript from "@/components/fundations/scripts/TocAnimationScript.astro";
+// Content
+import { type CollectionEntry, getCollection } from "astro:content";
+export async function getStaticPaths() {
+  const docs = await getCollection("docs");
+  // Sort docs by order within each category
+  const sortedDocs = docs.sort((a, b) => {
+    if (a.data.category === b.data.category) {
+      return a.data.order - b.data.order;
+    }
+    return a.data.category.localeCompare(b.data.category);
+  });
+  return sortedDocs.map((doc, index) => {
+    const prevDoc = index > 0 ? sortedDocs[index - 1] : null;
+    const nextDoc =
+      index < sortedDocs.length - 1 ? sortedDocs[index + 1] : null;
+    return {
+      params: { slug: doc.slug },
+      props: {
+        doc,
+        prevDoc,
+        nextDoc,
+      },
+    };
+  });
+}
+type Props = {
+  doc: CollectionEntry<"docs">;
+  prevDoc: CollectionEntry<"docs"> | null;
+  nextDoc: CollectionEntry<"docs"> | null;
+};
+const { doc, prevDoc, nextDoc } = Astro.props;
+const { Content, headings } = await doc.render();
+// Format the date
+const formatDate = (date: Date) => {
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(date);
+};
+---
+
+<DocsLayout title={doc.data.title} description={doc.data.description}>
+  <!-- Document header -->
+  <RightSidebarLayout>
+    <div slot="main">
+      <Header
+        title={doc.data.title}
+        description={doc.data.description}
+        innerClass="gap-24 lg:gap-32"
+      >
+        <div class="order-first">
+          <nav aria-label="Breadcrumb">
+            <ol
+              class="text-base-500 dark:text-base-300 flex items-center gap-1 text-xs"
+            >
+              <a href="/" class="hover:text-accent-600">Home</a>
+              <ChevronRight size="xs" />
+              <span class="capitalize"
+                >{doc.data.category.replace("-", " ")}</span
+              >
+              <ChevronRight size="xs" />
+              <span class="text-accent-500 dark:text-accent-400"
+                >{doc.data.title}</span
+              >
+            </ol>
+          </nav>
+          <Text
+            tag="p"
+            variant="textXS"
+            class="text-base-400 flex items-center gap-2 mt-1 font-mono font-medium"
+          >
+            <ArrowDownright size="sm" />
+            Last updated: {formatDate(doc.data.lastUpdated)}
+          </Text>
+        </div>
+      </Header>
+
+      <div id="markdown-content">
+        <Wrapper variant="prose" class="px-8 py-4">
+          <Content />
+        </Wrapper>
+      </div>
+      <div class="border-base-200 dark:border-base-800 p-8 border-t">
+        <div class="gap-2 space-y-4">
+          <button
+            id="copy-markdown"
+            class="text-base-900 dark:text-white hover:text-accent-600 flex items-center w-full gap-2 text-xs text-left"
+          >
+            <Markdown
+              slot="icon"
+              size="sm"
+              class="text-base-900 dark:text-white"
+            />
+            Copy page Markdown for LLMs
+          </button>
+          <button
+            id="ask-chatgpt"
+            class="text-base-900 dark:text-white hover:text-accent-600 flex items-center w-full gap-2 text-xs text-left"
+          >
+            <GPT slot="icon" size="sm" class="text-base-900 dark:text-white" />
+            Ask ChatGPT
+          </button>
+          <button
+            id="ask-claude"
+            class="text-base-900 dark:text-white hover:text-accent-600 flex items-center w-full gap-2 text-xs text-left"
+          >
+            <Claude
+              slot="icon"
+              size="sm"
+              class="text-base-900 dark:text-white"
+            />
+            Ask Claude
+          </button>
+          <a
+            href={`https://github.com/httphatch/hatch/edit/main/docs/src/content/docs/${doc.slug}.md`}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-base-900 dark:text-white hover:text-accent-600 flex items-center w-full gap-2 text-xs text-left"
+          >
+            <Github
+              slot="icon"
+              size="sm"
+              class="text-base-900 dark:text-white"
+            />
+            Edit on GitHub</a
+          >
+        </div>
+      </div>
+    </div>
+    <div slot="rightAside">
+      <Text
+        tag="h4"
+        variant="textSM"
+        class="text text-base-900 dark:text-white ml-4">On this page</Text
+      >
+      <div class="flex flex-col h-full mt-4">
+        {
+          headings
+            .filter((h) => h.depth === 2 || h.depth === 3)
+            .map((heading) => (
+              <a
+                href={`#${heading.slug}`}
+                class="hover:text-accent-600 dark:hover:text-accent-400 text-base-500 dark:text-base-400 toc-link block py-1 text-xs transition-all duration-200 border-l-2 border-transparent select-none"
+                style={`padding-left: ${heading.depth === 3 ? "1.8rem" : "1rem"}`}
+                data-heading-id={heading.slug}
+                data-heading-depth={heading.depth}
+              >
+                {heading.text}
+              </a>
+            ))
+        }
+      </div>
+    </div>
+  </RightSidebarLayout>
+
+  <nav
+    aria-label="Documentation pagination"
+    class="md:grid-cols-2 divide-base-200 dark:divide-base-800 lg:divide-y-0 lg:divide-x border-base-200 dark:border-base-800 grid w-full grid-cols-1 border-t divide-y"
+  >
+    <div class="w-full">
+      {
+        prevDoc && (
+          <a
+            href={`/docs/${prevDoc.slug}`}
+            class="group hover:bg-base-50 dark:hover:bg-white/1 flex flex-col w-full gap-12 p-8 duration-200"
+          >
+            <span class="text-base-500 dark:text-base-400 font-mon text-xs font-medium tracking-wide uppercase">
+              Previous
+            </span>
+            <div>
+              <div class="text-base-900 dark:text-white group-hover:text-accent-600 dark:group-hover:text-accent-400 text-sm font-medium truncate transition-colors">
+                {prevDoc.data.title}
+              </div>
+              <div class="text-base-500 dark:text-base-400 text-xs capitalize">
+                {prevDoc.data.category.replace("-", " ")}
+              </div>
+            </div>
+          </a>
+        )
+      }
+    </div>
+    <div class="w-full">
+      {
+        nextDoc && (
+          <a
+            href={`/docs/${nextDoc.slug}`}
+            class="group hover:bg-base-50 dark:hover:bg-white/1 flex flex-col justify-end w-full gap-12 p-8 duration-200"
+          >
+            <span class="text-base-500 dark:text-base-400 font-mono text-xs font-medium tracking-wide uppercase">
+              Next
+            </span>
+            <div>
+              <div class="text-base-900 dark:text-white group-hover:text-accent-600 dark:group-hover:text-accent-400 text-sm font-medium truncate transition-colors">
+                {nextDoc.data.title}
+              </div>
+              <div class="text-base-500 dark:text-base-400 text-xs capitalize">
+                {nextDoc.data.category.replace("-", " ")}
+              </div>
+            </div>
+          </a>
+        )
+      }
+    </div>
+  </nav>
+</DocsLayout>
+<TocAnimationScript />
+<CopyToClipboard />
+<AskGPT />
+<AskClaude />
+<CopyAsMarkdown />
