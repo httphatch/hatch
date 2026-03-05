@@ -10,6 +10,7 @@ services:
   <service-name>:
     proxy: <upstream-url>        # required unless command is set
     command: <shell-command>      # optional
+    dir: <relative-path>         # optional
     env_file: <path>             # optional
     route: <path-prefix>         # optional
     subdomain: <subdomain>       # optional
@@ -135,6 +136,26 @@ services:
 Produces:
 - `https://myapp.test` → `http://localhost:3000` (process managed by Hatch)
 - `worker` runs as a supervised process with no proxy route
+
+### Monorepo
+
+```yaml
+domain: myapp.test
+services:
+  api:
+    proxy: http://localhost:8080
+    command: npm run dev
+    dir: packages/api
+    subdomain: api
+  web:
+    proxy: http://localhost:3000
+    command: npm run dev
+    dir: packages/web
+```
+
+Produces:
+- `https://myapp.test` → `http://localhost:3000` (runs `npm run dev` in `packages/web`)
+- `https://api.myapp.test` → `http://localhost:8080` (runs `npm run dev` in `packages/api`)
 
 ### Tunnel Support
 

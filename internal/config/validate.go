@@ -176,6 +176,20 @@ func validateService(prefix, name string, s Service) []error {
 		errs = append(errs, fmt.Errorf("%s.subdomain %q must be a valid hostname label", svcPrefix, s.Subdomain))
 	}
 
+	// Dir must be a relative path without traversal (resolved against project path).
+	if s.Dir != "" {
+		if filepath.IsAbs(s.Dir) {
+			errs = append(errs, fmt.Errorf("%s.dir must be a relative path, got %q", svcPrefix, s.Dir))
+		} else if strings.Contains(s.Dir, "..") {
+			errs = append(errs, fmt.Errorf("%s.dir must not contain '..', got %q", svcPrefix, s.Dir))
+		}
+	}
+
+	// Dir requires command.
+	if s.Dir != "" && s.Command == "" {
+		errs = append(errs, fmt.Errorf("%s.dir requires command to be set", svcPrefix))
+	}
+
 	// EnvFile must be a relative path without traversal.
 	if s.EnvFile != "" {
 		if filepath.IsAbs(s.EnvFile) {

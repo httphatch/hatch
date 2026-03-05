@@ -41,6 +41,7 @@ projects:
       worker:
         proxy: http://localhost:3000
         command: npm run worker
+        dir: packages/worker
         env_file: .env.worker
       tasks:
         command: npm run tasks
@@ -201,6 +202,17 @@ A shell command to run for this service. Hatch supervises the process with expon
 command: npm run dev
 ```
 
+### `services.<name>.dir`
+
+- **Type:** `string`
+- **Optional**
+
+Working directory for the command. Must be a relative path (resolved from the project's `path` directory). If not set, the command runs in the project's `path`.
+
+```yaml
+dir: packages/api
+```
+
 ### `services.<name>.env_file`
 
 - **Type:** `string`
@@ -247,5 +259,7 @@ See [Tunnels](/guide/tunnels) for a full guide.
 - Service `proxy` must be a valid URL
 - Service `subdomain` must be a valid DNS label
 - `route` and `subdomain` require `proxy`
+- `dir` must be a relative path without `..`
+- `dir` requires `command`
 - `tunnel` requires `proxy`
 - `settings.cloudflare_account_id`, when set, must be a 32-character hex string

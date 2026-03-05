@@ -213,7 +213,7 @@ Services with a `command` field are managed as supervised processes.
 
 **Exponential backoff:** Restarts begin at 1 second and double up to a maximum of 30 seconds. The backoff resets after the process has been running stably for 60 seconds.
 
-**Command execution:** Commands are run via `sh -c` in the project's `path` directory. Each command runs in its own process group so that child processes are cleaned up on stop.
+**Command execution:** Commands are run via `sh -c` in the project's `path` directory. When a service sets `dir`, the command runs in that subdirectory instead (resolved relative to `path`). Each command runs in its own process group so that child processes are cleaned up on stop.
 
 **Graceful shutdown:** On stop, Hatch sends `SIGTERM` to the process group, waits up to 5 seconds, then sends `SIGKILL` if the process is still running.
 

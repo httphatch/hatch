@@ -27,6 +27,7 @@ function emptyForm() {
     serviceName: "web",
     proxy: "localhost:3000",
     command: "",
+    dir: "",
     envFile: "",
     route: "",
     subdomain: "",
@@ -95,6 +96,7 @@ export function AddProjectDialog({
         [form.serviceName]: {
           ...(form.proxy ? { proxy: form.proxy } : {}),
           ...(form.command ? { command: form.command } : {}),
+          ...(form.dir ? { dir: form.dir } : {}),
           ...(form.envFile ? { env_file: form.envFile } : {}),
           ...(form.route ? { route: form.route } : {}),
           ...(form.subdomain ? { subdomain: form.subdomain } : {}),
@@ -185,6 +187,17 @@ export function AddProjectDialog({
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="dir">Working directory</Label>
+                <Input
+                  id="dir"
+                  value={form.dir}
+                  onChange={(e) => set("dir", e.target.value)}
+                  placeholder="packages/api"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
                 <Label htmlFor="env-file">Env file</Label>
                 <Input
                   id="env-file"
@@ -193,8 +206,6 @@ export function AddProjectDialog({
                   placeholder=".env"
                 />
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="route">Route</Label>
                 <Input
@@ -204,6 +215,8 @@ export function AddProjectDialog({
                   placeholder="/api/*"
                 />
               </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="subdomain">Subdomain</Label>
                 <Input

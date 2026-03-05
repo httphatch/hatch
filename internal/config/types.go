@@ -73,6 +73,7 @@ func (t *TunnelValue) UnmarshalJSON(data []byte) error {
 type Service struct {
 	Proxy     string      `yaml:"proxy,omitempty" json:"proxy,omitempty"`
 	Command   string      `yaml:"command,omitempty" json:"command,omitempty"`
+	Dir       string      `yaml:"dir,omitempty" json:"dir,omitempty"`
 	Route     string      `yaml:"route,omitempty" json:"route,omitempty"`
 	Subdomain string      `yaml:"subdomain,omitempty" json:"subdomain,omitempty"`
 	WebSocket bool        `yaml:"websocket,omitempty" json:"websocket,omitempty"`
