@@ -1,0 +1,59 @@
+name: Changelog
+
+on:
+  release:
+    types: [published]
+
+concurrency:
+  group: changelog
+  cancel-in-progress: false
+
+jobs:
+  update-changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.TAP_TOKEN }}
+
+      - name: Validate tag
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Tag must match vX.Y.Z format, got: $TAG"
+            exit 1
+          fi
+
+      - name: Generate changelog entry
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          DATE=$(gh release view "$TAG" --json publishedAt -q '.publishedAt[:10]')
+
+          gh release view "$TAG" --json body -q .body > /tmp/body.txt
+
+          DESCRIPTION=$(grep -m1 '^[*-] ' /tmp/body.txt | sed 's/^[*-] //' | sed 's/ by @.*//' || echo "Release $TAG")
+          NOTES=$(grep '^[*-] ' /tmp/body.txt | sed 's/^[*-] /- /' | sed 's/ by @.*//' || true)
+
+          {
+            echo '---'
+            printf 'page: "%s"\n' "$TAG"
+            printf 'description: "%s"\n' "$(echo "$DESCRIPTION" | sed 's/"/\\"/g')"
+            printf 'pubDate: %s\n' "$DATE"
+            echo '---'
+            echo ""
+            echo "$NOTES"
+          } > "docs/src/content/changelog/${TAG}.md"
+
+      - name: Commit and push
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "docs/src/content/changelog/${TAG}.md"
+          git commit -m "docs: add changelog entry for ${TAG}"
+          git push
