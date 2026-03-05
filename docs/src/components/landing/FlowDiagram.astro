@@ -421,11 +421,11 @@ const routes = [
     const ports = layout.querySelectorAll('#flow-ports .flow-card');
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    function getCenter(el: Element, relativeTo: Element) {
+    function getEdge(el: Element, relativeTo: Element, edge: 'left' | 'right') {
       const elRect = el.getBoundingClientRect();
       const refRect = relativeTo.getBoundingClientRect();
       return {
-        x: elRect.left + elRect.width / 2 - refRect.left,
+        x: (edge === 'right' ? elRect.right : elRect.left) - refRect.left,
         y: elRect.top + elRect.height / 2 - refRect.top,
       };
     }
@@ -438,20 +438,21 @@ const routes = [
       svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
       while (svg.firstChild) svg.removeChild(svg.firstChild);
 
-      const hubCenter = getCenter(hubEl, svg);
+      // Hub edge: left side SVG connects to hub's left edge, right SVG to hub's right edge
+      const hubPt = getEdge(hubEl, svg, side === 'left' ? 'left' : 'right');
 
       cards.forEach((card, i) => {
-        const cardCenter = getCenter(card, svg);
+        // Card edge: left-side cards connect from their right edge, right-side from their left
+        const cardPt = getEdge(card, svg, side === 'left' ? 'right' : 'left');
+
+        // Horizontal control point offset for smooth curves
+        const cpOffset = Math.abs(hubPt.x - cardPt.x) * 0.5;
 
         let d: string;
         if (side === 'left') {
-          const cp1x = cardCenter.x + w * 0.4;
-          const cp2x = hubCenter.x - w * 0.4;
-          d = `M ${cardCenter.x} ${cardCenter.y} C ${cp1x} ${cardCenter.y}, ${cp2x} ${hubCenter.y}, ${hubCenter.x} ${hubCenter.y}`;
+          d = `M ${cardPt.x} ${cardPt.y} C ${cardPt.x + cpOffset} ${cardPt.y}, ${hubPt.x - cpOffset} ${hubPt.y}, ${hubPt.x} ${hubPt.y}`;
         } else {
-          const cp1x = hubCenter.x + w * 0.4;
-          const cp2x = cardCenter.x - w * 0.4;
-          d = `M ${hubCenter.x} ${hubCenter.y} C ${cp1x} ${hubCenter.y}, ${cp2x} ${cardCenter.y}, ${cardCenter.x} ${cardCenter.y}`;
+          d = `M ${hubPt.x} ${hubPt.y} C ${hubPt.x + cpOffset} ${hubPt.y}, ${cardPt.x - cpOffset} ${cardPt.y}, ${cardPt.x} ${cardPt.y}`;
         }
 
         // Base line
