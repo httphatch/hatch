@@ -1,52 +1,89 @@
 ---
-// Fundations
 import Text from "@/components/fundations/elements/Text.astro";
-// Icons
 import ChevronRight from "@/components/fundations/icons/ChevronRight.astro";
-// Content
-const { url, title, description, pubDate } = {
-  url: "/blog/posts/" + Astro.props.post.slug,
-  title: Astro.props.post.data.title,
-  description: Astro.props.post.data.description,
-  pubDate: new Date(Astro.props.post.data.pubDate).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "2-digit",
-  }),
-};
+
+const { post, featured = false } = Astro.props;
+const url = "/blog/posts/" + post.slug;
+const title = post.data.title;
+const description = post.data.description;
+const pubDate = new Date(post.data.pubDate).toLocaleDateString("en-US", {
+  year: "numeric",
+  month: "long",
+  day: "2-digit",
+});
+const tags = post.data.tags || [];
 ---
 
-<div
-  class="p-6 bg-base-50 dark:bg-white/2 rounded-none text-balance grid grid-cols-1 lg:grid-cols-3 gap-4"
->
-  <Text tag="p" variant="textXS" class="uppercase text-base-500">
-    <time datetime={pubDate}>{pubDate}</time>
-  </Text>
-  <div class="lg:col-span-2">
+{featured ? (
+  <a
+    href={url}
+    class="block p-8 bg-accent-950 border border-accent-800 group transition-colors hover:border-accent-600"
+  >
+    <div class="flex items-center gap-3 mb-4">
+      <span class="text-[10px] font-medium uppercase tracking-wider text-accent-400 bg-accent-900 px-2 py-0.5">Latest</span>
+      <time datetime={pubDate} class="text-xs text-accent-500">{pubDate}</time>
+    </div>
     <Text
       tag="h3"
-      variant="textBase"
-      class="font-medium text-base-900 dark:text-white"
+      variant="displayXS"
+      class="font-semibold text-white"
     >
       {title}
     </Text>
     <Text
       tag="p"
-      variant="textSM"
-      class="text-base-500 dark:text-base-400 mt-1"
+      variant="textBase"
+      class="text-base-400 mt-2 max-w-2xl"
     >
       {description}
     </Text>
-    <a
-      href={url}
-      title={`Read more: ${title}`}
-      aria-label={`Read blog post: ${title}`}
-      class="flex items-center mt-8 text-sm text-accent-600 hover:text-accent-500 dark:text-accent-400 gap-2 group"
-    >
-      View Details <ChevronRight
+    {tags.length > 0 && (
+      <div class="flex gap-2 mt-4">
+        {tags.map((tag: string) => (
+          <span class="text-[10px] uppercase tracking-wider text-accent-500 border border-accent-800 px-2 py-0.5">{tag}</span>
+        ))}
+      </div>
+    )}
+    <span class="flex items-center mt-6 text-sm text-accent-400 group-hover:text-accent-300 gap-2">
+      Read post <ChevronRight
         size="sm"
         class="group-hover:translate-x-2 duration-300"
-      /></a
-    >
+      />
+    </span>
+  </a>
+) : (
+  <div
+    class="p-6 bg-base-50 dark:bg-white/2 text-balance grid grid-cols-1 lg:grid-cols-3 gap-4"
+  >
+    <Text tag="p" variant="textXS" class="uppercase text-base-500">
+      <time datetime={pubDate}>{pubDate}</time>
+    </Text>
+    <div class="lg:col-span-2">
+      <Text
+        tag="h3"
+        variant="textBase"
+        class="font-medium text-base-900 dark:text-white"
+      >
+        {title}
+      </Text>
+      <Text
+        tag="p"
+        variant="textSM"
+        class="text-base-500 dark:text-base-400 mt-1"
+      >
+        {description}
+      </Text>
+      <a
+        href={url}
+        title={`Read more: ${title}`}
+        aria-label={`Read blog post: ${title}`}
+        class="flex items-center mt-8 text-sm text-accent-600 hover:text-accent-500 dark:text-accent-400 gap-2 group"
+      >
+        View Details <ChevronRight
+          size="sm"
+          class="group-hover:translate-x-2 duration-300"
+        /></a
+      >
+    </div>
   </div>
-</div>
+)}

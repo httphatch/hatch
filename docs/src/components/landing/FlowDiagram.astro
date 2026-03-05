@@ -1,0 +1,532 @@
+---
+const routes = [
+  { domain: "myapp.test", port: "localhost:3000" },
+  { domain: "api.myapp.test", port: "localhost:8080" },
+  { domain: "admin.myapp.test", port: "localhost:4000" },
+];
+---
+
+<div class="flow-wrap" id="flow-diagram">
+  <!-- Desktop layout -->
+  <div class="flow-layout" id="flow-desktop">
+    <div class="flow-col" id="flow-domains">
+      {routes.map((route, i) => (
+        <div class="flow-card flow-card--domain" data-index={i}>
+          <svg class="flow-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M2 12h20" />
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+          </svg>
+          <span class="flow-card__text">{route.domain}</span>
+          <div class="flow-card__lock" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <svg class="flow-svg" id="flow-svg-left"></svg>
+
+    <div class="flow-hub" id="flow-hub">
+      <div class="flow-hub__pill">
+        <canvas class="flow-hub__matrix" id="hub-matrix" width="120" height="48"></canvas>
+        <span class="flow-hub__text">HATCH</span>
+      </div>
+    </div>
+
+    <svg class="flow-svg" id="flow-svg-right"></svg>
+
+    <div class="flow-col" id="flow-ports">
+      {routes.map((route, i) => (
+        <div class="flow-card flow-card--port" data-index={i}>
+          <svg class="flow-card__icon flow-card__icon--port" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <rect x="2" y="3" width="20" height="18" rx="2" />
+            <path d="M7 8l4 4-4 4" />
+            <line x1="13" y1="16" x2="17" y2="16" />
+          </svg>
+          <span class="flow-card__text">{route.port}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <!-- Mobile layout -->
+  <div class="flow-mobile" id="flow-mobile">
+    <div class="flow-mobile-col">
+      {routes.map((route) => (
+        <div class="flow-card flow-card--domain">
+          <svg class="flow-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M2 12h20" />
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+          </svg>
+          <span class="flow-card__text">{route.domain}</span>
+          <div class="flow-card__lock" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <div class="flow-mobile-line">
+      <svg width="2" height="40" class="flow-mobile-svg">
+        <line x1="1" y1="0" x2="1" y2="40" class="flow-path" stroke-width="2" />
+      </svg>
+    </div>
+
+    <div class="flow-hub">
+      <div class="flow-hub__pill">
+        <canvas class="flow-hub__matrix" id="hub-matrix-mobile" width="120" height="48"></canvas>
+        <span class="flow-hub__text">HATCH</span>
+      </div>
+    </div>
+
+    <div class="flow-mobile-line">
+      <svg width="2" height="40" class="flow-mobile-svg">
+        <line x1="1" y1="0" x2="1" y2="40" class="flow-path" stroke-width="2" />
+      </svg>
+    </div>
+
+    <div class="flow-mobile-col">
+      {routes.map((route) => (
+        <div class="flow-card flow-card--port">
+          <svg class="flow-card__icon flow-card__icon--port" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <rect x="2" y="3" width="20" height="18" rx="2" />
+            <path d="M7 8l4 4-4 4" />
+            <line x1="13" y1="16" x2="17" y2="16" />
+          </svg>
+          <span class="flow-card__text">{route.port}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+</div>
+
+<style>
+  .flow-wrap {
+    width: 100%;
+    padding: 24px 32px 48px;
+  }
+
+  /* Desktop */
+  .flow-layout {
+    display: flex;
+    align-items: stretch;
+    position: relative;
+  }
+
+  .flow-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 14px;
+    flex-shrink: 0;
+  }
+
+  .flow-svg {
+    flex: 1;
+    min-width: 60px;
+    overflow: visible;
+  }
+
+  /* Mobile */
+  .flow-mobile {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .flow-mobile-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .flow-mobile-line {
+    display: flex;
+    justify-content: center;
+    padding: 4px 0;
+  }
+
+  .flow-mobile-svg {
+    overflow: visible;
+  }
+
+  @media (max-width: 767px) {
+    .flow-layout { display: none !important; }
+    .flow-mobile { display: flex; }
+    .flow-wrap { padding: 16px 24px 32px; }
+  }
+
+  /* Cards */
+  .flow-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: var(--color-base-50);
+    border: 1.5px solid var(--color-base-200);
+    white-space: nowrap;
+  }
+
+  :global(.dark) .flow-card {
+    background: var(--color-base-800);
+    border-color: var(--color-base-700);
+  }
+
+  .flow-card--domain {
+    position: relative;
+    padding-right: 28px;
+    border-left: 3px solid var(--color-accent-400);
+  }
+
+  :global(.dark) .flow-card--domain {
+    border-left-color: var(--color-accent-500);
+  }
+
+  .flow-card--port {
+    border-right: 3px solid var(--color-base-300);
+  }
+
+  :global(.dark) .flow-card--port {
+    border-right-color: var(--color-base-600);
+  }
+
+  .flow-card__icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    color: var(--color-accent-400);
+  }
+
+  :global(.dark) .flow-card__icon {
+    color: var(--color-accent-500);
+  }
+
+  .flow-card__icon--port {
+    color: var(--color-base-400);
+  }
+
+  :global(.dark) .flow-card__icon--port {
+    color: var(--color-base-500);
+  }
+
+  .flow-card__text {
+    font-family: Geist Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--color-base-900);
+  }
+
+  :global(.dark) .flow-card__text {
+    color: var(--color-base-200);
+  }
+
+  .flow-card--port .flow-card__text {
+    font-weight: 500;
+    color: var(--color-base-500);
+  }
+
+  :global(.dark) .flow-card--port .flow-card__text {
+    color: var(--color-base-400);
+  }
+
+  /* Lock */
+  .flow-card__lock {
+    position: absolute;
+    right: -14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(90deg, var(--color-base-50) 50%, var(--color-base-200) 50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+  }
+
+  :global(.dark) .flow-card__lock {
+    background: linear-gradient(90deg, var(--color-base-800) 50%, var(--color-base-700) 50%);
+  }
+
+  .flow-card__lock::before {
+    content: "";
+    position: absolute;
+    inset: 1.5px;
+    border-radius: 50%;
+    background: var(--color-base-50);
+  }
+
+  :global(.dark) .flow-card__lock::before {
+    background: var(--color-base-800);
+  }
+
+  .flow-card__lock svg {
+    position: relative;
+    z-index: 1;
+    width: 13px;
+    height: 13px;
+    color: var(--color-accent-500);
+  }
+
+  :global(.dark) .flow-card__lock svg {
+    color: var(--color-accent-400);
+  }
+
+  /* Hub */
+  .flow-hub {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    z-index: 1;
+  }
+
+  .flow-hub__pill {
+    position: relative;
+    padding: 14px 32px;
+    background: var(--color-accent-950);
+    border: 1.5px solid var(--color-accent-700);
+    overflow: hidden;
+  }
+
+  :global(.dark) .flow-hub__pill {
+    background: var(--color-accent-950);
+    border-color: var(--color-accent-600);
+  }
+
+  .flow-hub__matrix {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.3;
+  }
+
+  .flow-hub__text {
+    position: relative;
+    z-index: 1;
+    font-family: "Fugaz One", cursive;
+    font-size: 1.1rem;
+    color: var(--color-accent-400);
+    letter-spacing: 0.08em;
+    text-shadow: 0 0 12px oklch(0.7 0.15 192 / 0.5);
+  }
+
+  /* Connector base path — :global because JS creates these elements */
+  :global(.flow-path) {
+    stroke: var(--color-accent-300);
+  }
+
+  :global(.dark .flow-path) {
+    stroke: var(--color-accent-700);
+  }
+
+  /* Pulse overlay on lines */
+  :global(.flow-pulse) {
+    stroke: var(--color-accent-400);
+    opacity: 0.7;
+  }
+
+  :global(.dark .flow-pulse) {
+    stroke: var(--color-accent-400);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(.flow-pulse) { display: none; }
+    .flow-hub__matrix { display: none; }
+  }
+
+  /* Tablet */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .flow-card { padding: 8px 12px; }
+    .flow-card--domain { padding-right: 24px; }
+    .flow-card__text { font-size: 0.8rem; }
+    .flow-card__icon { width: 15px; height: 15px; }
+    .flow-card__lock { width: 24px; height: 24px; right: -12px; }
+    .flow-card__lock svg { width: 11px; height: 11px; }
+    .flow-hub__pill { padding: 10px 24px; }
+    .flow-hub__text { font-size: 0.95rem; }
+  }
+</style>
+
+<script>
+  // --- Matrix rain in hub ---
+  function initMatrix(canvasId: string) {
+    const canvas = document.getElementById(canvasId) as HTMLCanvasElement | null;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const pill = canvas.parentElement!;
+    const rect = pill.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const fontSize = 10;
+    const cols = Math.floor(rect.width / fontSize);
+    const drops: number[] = Array.from({ length: cols }, () => Math.random() * -20);
+    const chars = '01';
+
+    const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--color-accent-500').trim() || '#22d3ee';
+
+    function draw() {
+      ctx!.fillStyle = 'rgba(0, 0, 0, 0.15)';
+      ctx!.fillRect(0, 0, rect.width, rect.height);
+      ctx!.font = `${fontSize}px Geist Mono, monospace`;
+      ctx!.fillStyle = accentColor;
+
+      for (let i = 0; i < drops.length; i++) {
+        const char = chars[Math.floor(Math.random() * chars.length)];
+        const x = i * fontSize;
+        const y = drops[i] * fontSize;
+
+        if (y > 0 && y < rect.height) {
+          ctx!.globalAlpha = 0.4 + Math.random() * 0.4;
+          ctx!.fillText(char, x, y);
+        }
+
+        if (y > rect.height && Math.random() > 0.95) {
+          drops[i] = 0;
+        }
+        drops[i] += 0.3 + Math.random() * 0.2;
+      }
+    }
+
+    setInterval(draw, 80);
+  }
+
+  // --- Connector lines with pulse ---
+  function initFlowDiagram() {
+    const layout = document.getElementById('flow-desktop');
+    if (!layout || getComputedStyle(layout).display === 'none') return;
+
+    const svgL = document.getElementById('flow-svg-left') as SVGSVGElement | null;
+    const svgR = document.getElementById('flow-svg-right') as SVGSVGElement | null;
+    const hub = document.getElementById('flow-hub');
+    if (!svgL || !svgR || !hub) return;
+
+    const domains = layout.querySelectorAll('#flow-domains .flow-card');
+    const ports = layout.querySelectorAll('#flow-ports .flow-card');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function getEdge(el: Element, relativeTo: Element, edge: 'left' | 'right') {
+      const elRect = el.getBoundingClientRect();
+      const refRect = relativeTo.getBoundingClientRect();
+      return {
+        x: (edge === 'right' ? elRect.right : elRect.left) - refRect.left,
+        y: elRect.top + elRect.height / 2 - refRect.top,
+      };
+    }
+
+    function drawSide(svg: SVGSVGElement, cards: NodeListOf<Element>, hubEl: Element, side: 'left' | 'right') {
+      const svgRect = svg.getBoundingClientRect();
+      const w = svgRect.width;
+      const h = svgRect.height;
+
+      svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+      // Hub edge: left side SVG connects to hub's left edge, right SVG to hub's right edge
+      const hubPt = getEdge(hubEl, svg, side === 'left' ? 'left' : 'right');
+
+      cards.forEach((card, i) => {
+        // Card edge: left-side cards connect from their right edge, right-side from their left
+        const cardPt = getEdge(card, svg, side === 'left' ? 'right' : 'left');
+
+        // Horizontal control point offset for smooth curves
+        const cpOffset = Math.abs(hubPt.x - cardPt.x) * 0.5;
+
+        let d: string;
+        if (side === 'left') {
+          d = `M ${cardPt.x} ${cardPt.y} C ${cardPt.x + cpOffset} ${cardPt.y}, ${hubPt.x - cpOffset} ${hubPt.y}, ${hubPt.x} ${hubPt.y}`;
+        } else {
+          d = `M ${hubPt.x} ${hubPt.y} C ${hubPt.x + cpOffset} ${hubPt.y}, ${cardPt.x - cpOffset} ${cardPt.y}, ${cardPt.x} ${cardPt.y}`;
+        }
+
+        // Base line
+        const basePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        basePath.setAttribute('d', d);
+        basePath.setAttribute('fill', 'none');
+        basePath.setAttribute('class', 'flow-path');
+        basePath.setAttribute('stroke-width', '1.5');
+        svg.appendChild(basePath);
+
+        if (reducedMotion) return;
+
+        // Pulse: a bright segment that travels the full length of the line
+        const pulse = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        pulse.setAttribute('d', d);
+        pulse.setAttribute('fill', 'none');
+        pulse.setAttribute('class', 'flow-pulse');
+        pulse.setAttribute('stroke-width', '2.5');
+
+        const pathLength = basePath.getTotalLength();
+        const segLen = pathLength * 0.25;
+        const gap = pathLength - segLen;
+
+        pulse.setAttribute('stroke-dasharray', `${segLen} ${gap}`);
+        pulse.setAttribute('stroke-dashoffset', String(pathLength + segLen));
+
+        const duration = 2.2 + i * 0.2;
+        const delay = i * 0.6;
+        pulse.style.animation = `line-pulse ${duration}s linear infinite`;
+        pulse.style.animationDelay = `${delay}s`;
+        pulse.style.setProperty('--dash-start', String(pathLength + segLen));
+        pulse.style.setProperty('--dash-end', String(-segLen));
+
+        svg.appendChild(pulse);
+      });
+    }
+
+    function draw() {
+      if (getComputedStyle(layout!).display === 'none') return;
+      drawSide(svgL!, domains, hub!, 'left');
+      drawSide(svgR!, ports, hub!, 'right');
+    }
+
+    draw();
+
+    let resizeTimer: ReturnType<typeof setTimeout>;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(draw, 100);
+    });
+  }
+
+  // Inject pulse keyframe
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes line-pulse {
+      from { stroke-dashoffset: var(--dash-start); }
+      to { stroke-dashoffset: var(--dash-end); }
+    }
+  `;
+  document.head.appendChild(style);
+
+  function init() {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    initFlowDiagram();
+    if (!reducedMotion) {
+      initMatrix('hub-matrix');
+      initMatrix('hub-matrix-mobile');
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+</script>
