@@ -44,7 +44,9 @@ const tags = [...new Set(allPosts.map((post) => post.data.tags).flat())];
           innerClass="pt-24"
         />
         <div class="flex flex-col px-8 pb-8 mt-4 gap-2">
-          {paginatedPosts.map((post) => <BlogCard post={post} />)}
+          {paginatedPosts.map((post, i) => (
+            <BlogCard post={post} featured={currentPage === 1 && i === 0} />
+          ))}
         </div>
       </div>
       <div slot="rightAside">

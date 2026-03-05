@@ -7,7 +7,6 @@ import Button from "@/components/fundations/elements/Button.astro";
 import Header from "@/components/fundations/containers/Header.astro";
 import Wrapper from "@/components/fundations/containers/Wrapper.astro";
 // Icons
-import CircleCheck from "@/components/fundations/icons/CircleCheck.astro";
 import ChevronRight from "@/components/fundations/icons/ChevronRight.astro";
 import ArrowDownright from "@/components/fundations/icons/ArrowDownright.astro";
 import GPT from "@/components/fundations/icons/GPT.astro";
@@ -20,7 +19,6 @@ import AskClaude from "@/components/fundations/scripts/AskClaude.astro";
 import CopyAsMarkdown from "@/components/fundations/scripts/CopyAsMarkdown.astro";
 import CopyToClipboard from "@/components/fundations/scripts/CopyToClipboard.astro";
 import TocAnimationScript from "@/components/fundations/scripts/TocAnimationScript.astro";
-import DocsFeedbackButton from "@/components/fundations/scripts/DocsFeedbackButton.astro";
 // Content
 import { type CollectionEntry, getCollection } from "astro:content";
 export async function getStaticPaths() {
@@ -148,63 +146,6 @@ const formatDate = (date: Date) => {
             />
             Edit on GitHub</a
           >
-          <div id="feedback-buttons" class="flex items-center gap-2">
-            <span class="text-base-500 dark:text-base-400 text-xs">
-              Was this helpful?</span
-            >
-            <Button size="xxs" variant="muted" id="yes-btn"> Yes </Button>
-            <Button size="xxs" variant="muted" id="no-btn"> No </Button>
-          </div>
-          <span id="thank-you" class="hidden">
-            <div class="md:justify-start flex justify-center duration-300">
-              <div
-                class="text-base-600 dark:text-base-300 flex items-center w-full gap-2 text-xs text-left"
-              >
-                <CircleCheck size="sm" />
-                Thanks for your feedback!
-              </div>
-            </div>
-            <form class="max-w-sm mt-4 space-y-2" onsubmit="event.preventDefault()">
-              <div>
-                <div class="flex items-baseline justify-between mb-1 sr-only">
-                  <label
-                    for="message"
-                    class="text-base-500 dark:text-base-300 text-xs font-medium"
-                    >Your Message</label
-                  >
-                </div>
-                <div class="focus-within:z-10 relative z-0">
-                  <textarea
-                    id="message"
-                    name="message"
-                    rows="4"
-                    autofocus="true"
-                    placeholder="What's on your mind?"
-                    class="focus:z-10 text-base-500 ring-1 ring-base-200 placeholder-base-400 focus:border-accent-500 focus:ring-accent-100 focus:ring-2 focus:outline-none dark:bg-base-900 dark:ring-base-800 dark:placeholder-base-500 dark:ring-offset-base-900 dark:focus:ring-accent-100/10 block w-full px-4 py-2 text-xs leading-tight align-middle transition duration-300 ease-in-out bg-white border border-transparent rounded-none shadow-sm resize"
-                  ></textarea>
-                </div>
-                <Text
-                  tag="p"
-                  variant="textXS"
-                  class="text-base-500 dark:text-base-400 mt-1"
-                >
-                  Did you mean to <a
-                    class="text-base-900 dark:text-white hover:text-accent-600 w-full text-xs text-left underline"
-                    href="https://github.com/httphatch/hatch/issues">open an issue</a
-                  >?
-                </Text>
-              </div>
-              <Button
-                size="xxs"
-                variant="accent"
-                gap=""
-                type="submit"
-                class="w-fit"
-              >
-                Send Message
-              </Button>
-            </form>
-          </span>
         </div>
       </div>
     </div>
@@ -285,7 +226,6 @@ const formatDate = (date: Date) => {
   </nav>
 </DocsLayout>
 <TocAnimationScript />
-<DocsFeedbackButton />
 <CopyToClipboard />
 <AskGPT />
 <AskClaude />
