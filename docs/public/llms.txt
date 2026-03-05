@@ -30,7 +30,15 @@ Key concepts:
 - [How It Works](https://httphatch.com/advanced/how-it-works): Architecture internals — embedded Caddy server, DNS resolver integration, certificate chain, launchd lifecycle, and live config reloading.
 - [Troubleshooting](https://httphatch.com/advanced/troubleshooting): Common issues and diagnostic steps — `hatch doctor`, port conflicts, DNS resolution failures, certificate trust problems.
 
+## Changelog
+
+- [Changelog](https://httphatch.com/changelog)
+
+## Contributing
+
+- [Development Setup](https://httphatch.com/docs/contributing/development-setup)
+- [Get Involved](https://httphatch.com/docs/contributing/get-involved)
+
 ## Community
 
-- [Contributing](https://httphatch.com/contributing): Development setup, code conventions, and how to submit changes.
 - [GitHub](https://github.com/httphatch/hatch): Source code and issue tracker.
