@@ -1,0 +1,16 @@
+---
+// Components
+import SearchBar from "@/components/global/navigation/SearchBar.astro";
+import MobileMenuToggle from "@/components/global/navigation/MobileMenuToggle.astro";
+import ThemeToggle from "@/components/assets/ThemeToggle.astro";
+---
+
+<header
+  class="px-2 py-2 bg-white border-b lg:hidden border-base-200 dark:border-base-800 dark:bg-base-900"
+>
+  <div class="flex items-center justify-between gap-4">
+    <ThemeToggle />
+    <SearchBar searchId="mobile" />
+    <MobileMenuToggle />
+  </div>
+</header>

@@ -1,0 +1,36 @@
+<script>
+  // Mobile menu functionality
+  const sidebar = document.getElementById("sidebar");
+  const sidebarBackdrop = document.getElementById("sidebar-backdrop");
+  const mobileMenuToggle = document.getElementById("mobile-menu-toggle");
+  const sidebarClose = document.getElementById("sidebar-close");
+  function openSidebar() {
+    sidebar?.classList.remove("-translate-x-full");
+    sidebarBackdrop?.classList.remove("hidden");
+    document.body.classList.add("menu-open");
+  }
+  function closeSidebar() {
+    sidebar?.classList.add("-translate-x-full");
+    sidebarBackdrop?.classList.add("hidden");
+    document.body.classList.remove("menu-open");
+  }
+  // Event listeners
+  mobileMenuToggle?.addEventListener("click", openSidebar);
+  sidebarClose?.addEventListener("click", closeSidebar);
+  sidebarBackdrop?.addEventListener("click", closeSidebar);
+  // Close sidebar when clicking on links (mobile)
+  const sidebarLinks = sidebar?.querySelectorAll("a");
+  sidebarLinks?.forEach((link) => {
+    link.addEventListener("click", () => {
+      if (window.innerWidth < 1024) {
+        closeSidebar();
+      }
+    });
+  });
+  // Handle window resize
+  window.addEventListener("resize", () => {
+    if (window.innerWidth >= 1024) {
+      closeSidebar();
+    }
+  });
+</script>

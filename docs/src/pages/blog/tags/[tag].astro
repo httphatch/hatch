@@ -1,0 +1,37 @@
+---
+// Fundations
+import DocsLayout from "@/layouts/DocsLayout.astro";
+import Header from "@/components/fundations/containers/Header.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+// Components
+import BlogCard from "@/components/blog/BlogCard.astro";
+// Content
+import { getCollection } from "astro:content";
+export async function getStaticPaths() {
+  const allPosts = await getCollection("posts");
+  const uniqueTags = [
+    ...new Set(allPosts.map((post) => post.data.tags).flat()),
+  ];
+  return uniqueTags.map((tag) => {
+    const filteredPosts = allPosts.filter((post) =>
+      post.data.tags.includes(tag)
+    );
+    return {
+      params: { tag },
+      props: { posts: filteredPosts },
+    };
+  });
+}
+const { tag } = Astro.params;
+const { posts } = Astro.props;
+---
+
+<DocsLayout pageTitle={tag}>
+  <section>
+    <Header title={tag} innerClass="pt-24 capitalize" />
+
+    <div class="flex flex-col px-8 pb-8 mt-4 gap-2">
+      {posts.map((post) => <BlogCard post={post} />)}
+    </div>
+  </section>
+</DocsLayout>

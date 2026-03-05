@@ -1,0 +1,71 @@
+---
+import Logo from "@/components/assets/Logo.astro";
+import Text from "@/components/fundations/elements/Text.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+
+const footerLinks = [
+  {
+    heading: "Docs",
+    links: [
+      { label: "Getting Started", href: "/docs/getting-started/what-is-hatch" },
+      { label: "Concepts", href: "/docs/concepts/domains-and-dns" },
+      { label: "Guides", href: "/docs/guides/multi-service-project" },
+      { label: "CLI Reference", href: "/docs/reference/cli" },
+    ],
+  },
+  {
+    heading: "Resources",
+    links: [
+      { label: "Blog", href: "/blog" },
+      { label: "Changelog", href: "/changelog" },
+      { label: "Troubleshooting", href: "/docs/advanced/troubleshooting" },
+      { label: "Contributing", href: "/docs/contributing/development-setup" },
+    ],
+  },
+  {
+    heading: "Community",
+    links: [
+      { label: "GitHub", href: "https://github.com/httphatch/hatch" },
+      { label: "Issues", href: "https://github.com/httphatch/hatch/issues" },
+    ],
+  },
+];
+---
+
+<footer class="border-t border-base-200 dark:border-base-800">
+  <Wrapper variant="standard" class="py-4">
+    <div class="p-8">
+      <a
+        href="/"
+        class="flex items-center text-lg gap-2"
+      >
+        <span class="sr-only">Go to homepage</span>
+        <Logo class="text-lg" />
+      </a>
+
+      <div
+        class="mt-8 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-8"
+      >
+        {
+          footerLinks.map((section) => (
+            <div class="mt-12 md:mt-0">
+              <h3 class="text-base-900 dark:text-white font-display">{section.heading}</h3>
+              <ul role="list" class="mt-4 text-sm space-y-2 text-base-500">
+                {section.links.map((link) => (
+                  <li>
+                    <a
+                      href={link.href}
+                      class="hover:text-accent-500 dark:hover:text-accent-400 transition-colors"
+                    >
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </Wrapper>
+</footer>

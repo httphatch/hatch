@@ -1,0 +1,144 @@
+---
+// Icons
+import Close from "@/components/fundations/icons/Close.astro";
+import Error from "@/components/fundations/icons/Error.astro";
+import Warning from "@/components/fundations/icons/Warning.astro";
+import Info from "@/components/fundations/icons/RoundedInfo.astro";
+import Resources from "@/components/fundations/icons/Resources.astro";
+import Success from "@/components/fundations/icons/RoundedCheck.astro";
+
+const {
+  icon: customIcon = undefined,
+  variant = "info",
+  title = "",
+  description = "",
+  list = [],
+  links = [],
+  dismissible = false,
+  role = "alert",
+} = Astro.props;
+
+// Define variant styles with default icons
+const variants = {
+  warning: {
+    bg: "bg-orange-50/50 dark:bg-orange-600/5",
+    iconColor: "text-orange-500 dark:text-orange-300",
+    titleColor:
+      "text-orange-500 dark:text-orange-300 font-medium text-base leading-6",
+    textColor: "text-base-600 dark:text-base-400 text-sm leading-5",
+    linkColor:
+      "text-base-900 dark:text-white hover:text-orange-500 dark:hover:text-orange-300 text-sm underline",
+    outlineColor: "outline-orange-100 dark:outline-orange-500/10",
+    defaultIcon: Warning,
+  },
+  error: {
+    bg: "bg-rose-50/50 dark:bg-rose-600/5",
+    iconColor: "text-rose-500 dark:text-rose-300",
+    titleColor:
+      "text-rose-500 dark:text-rose-300 font-medium text-base leading-6",
+    textColor: "text-base-600 dark:text-base-400 text-sm leading-5",
+    linkColor:
+      "text-base-900 dark:text-white hover:text-rose-500 dark:hover:text-rose-300 text-sm underline",
+    outlineColor: "outline-rose-100 dark:outline-rose-500/10",
+    defaultIcon: Error,
+  },
+  info: {
+    bg: "bg-cyan-50/50 dark:bg-cyan-600/5",
+    iconColor: "text-cyan-500 dark:text-cyan-300",
+    titleColor:
+      "text-cyan-500 dark:text-cyan-300 font-medium text-base leading-6",
+    textColor: "text-base-600 dark:text-base-400 text-sm leading-5",
+    linkColor:
+      "text-base-900 dark:text-white hover:text-cyan-500 dark:hover:text-cyan-300 text-sm underline",
+    outlineColor: "outline-cyan-100 dark:outline-cyan-500/15",
+    defaultIcon: Info,
+  },
+  success: {
+    bg: "bg-emerald-50/50 dark:bg-emerald-600/5",
+    iconColor: "text-emerald-500 dark:text-emerald-300",
+    titleColor:
+      "text-emerald-500 dark:text-emerald-300 font-medium text-base leading-6",
+    textColor: "text-base-600 dark:text-base-400 text-sm leading-5",
+    linkColor:
+      "text-base-900 dark:text-white hover:text-emerald-500 dark:hover:text-emerald-300 text-sm underline",
+    outlineColor: "outline-emerald-100 dark:outline-emerald-500/15",
+    defaultIcon: Success,
+  },
+  neutral: {
+    bg: "bg-base-50/50 dark:bg-base-600/5",
+    iconColor: "text-base-500 dark:text-emerald-300",
+    titleColor:
+      "text-base-500 dark:text-base-300 font-medium text-base leading-6",
+    textColor: "text-base-600 dark:text-base-400 text-sm leading-5",
+    linkColor:
+      "text-base-900 dark:text-white hover:text-base-600 dark:hover:text-base-300 text-sm underline",
+    outlineColor: "outline-base-100 dark:outline-base-500/15",
+    defaultIcon: Resources,
+  },
+};
+
+const currentVariant = variants[variant] || variants.warning;
+const Icon =
+  customIcon === null ? null : customIcon || currentVariant.defaultIcon;
+---
+
+<div
+  class={`rounded-none outline p-4 relative ${currentVariant.bg} ${currentVariant.outlineColor}`}
+  role={role}
+  aria-live={variant === "error" ? "assertive" : "polite"}
+>
+  <div class="flex items-start">
+    {
+      Icon && (
+        <div class="shrink-0">
+          <Icon size="sm" aria-hidden="true" class={currentVariant.iconColor} />
+        </div>
+      )
+    }
+    <div class={Icon ? "ml-3" : ""}>
+      {title && <h3 class={`-mt-1 ${currentVariant.titleColor}`}>{title}</h3>}
+      {
+        description && (
+          <div class={`mt-2 ${currentVariant.textColor}`}>{description}</div>
+        )
+      }
+      {
+        list.length > 0 && (
+          <ul class={`mt-2 list-disc list-inside ${currentVariant.textColor}`}>
+            {list.map((item) => (
+              <li>{item}</li>
+            ))}
+          </ul>
+        )
+      }
+      {
+        links.length > 0 && (
+          <div class="flex flex-wrap mt-4 gap-4">
+            {links.map((link) => (
+              <a
+                href={link.href}
+                class={`${currentVariant.linkColor} focus:outline-none `}
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
+        )
+      }
+    </div>
+    {
+      dismissible && (
+        <div class="pl-3 ml-auto">
+          <button
+            type="button"
+            class={`inline-flex rounded-none p-1.5 ${currentVariant.iconColor} hover:bg-black/5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500`}
+            aria-label="Dismiss alert"
+            onclick="this.closest('[role=alert]').remove()"
+          >
+            <Close size="sm" />
+          </button>
+        </div>
+      )
+    }
+  </div>
+</div>

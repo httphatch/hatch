@@ -1,0 +1,22 @@
+---
+// src/components/Tabs.astro
+export interface Props {
+  defaultTab?: string;
+  class?: string;
+}
+const { defaultTab, class: className = "" } = Astro.props;
+---
+
+<div
+  class={`bg-white dark:bg-base-900 p-1 outline outline-base-200 dark:outline-base-800 rounded-none overflow-hidden ${className}`}
+  data-tabs-container
+  data-default-tab={defaultTab}
+  role="tablist"
+>
+  <div class="flex items-center">
+    <slot name="tabs" />
+  </div>
+  <div class="relative scrollbar-hide">
+    <slot name="content" />
+  </div>
+</div>

@@ -1,0 +1,29 @@
+---
+// src/components/TabPanel.astro
+export interface Props {
+  tab: string;
+  class?: string;
+  selected?: boolean;
+  id?: string;
+  labelledBy?: string;
+}
+
+const {
+  tab,
+  class: className = "",
+  selected = false,
+  id = `panel-${tab}`,
+  labelledBy = `tab-${tab}`,
+} = Astro.props;
+---
+
+<div
+  id={id}
+  role="tabpanel"
+  aria-labelledby={labelledBy}
+  hidden={!selected}
+  data-tab-panel={tab}
+  class={`scrollbar-hide ${className}`}
+>
+  <slot />
+</div>

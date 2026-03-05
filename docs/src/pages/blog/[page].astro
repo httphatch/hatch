@@ -1,0 +1,108 @@
+---
+// Fundations
+import DocsLayout from "@/layouts/DocsLayout.astro";
+import RightSidebarLayout from "@/layouts/RightSidebarLayout.astro";
+import Text from "@/components/fundations/elements/Text.astro";
+import Header from "@/components/fundations/containers/Header.astro";
+// Component
+import BlogCard from "@/components/blog/BlogCard.astro";
+// Content
+// Get all posts
+import { getCollection } from "astro:content";
+// Needed for dynamic pagination
+export async function getStaticPaths() {
+  const POSTS_PER_PAGE = 6;
+  const allPosts = await getCollection("posts");
+  const totalPages = Math.ceil(allPosts.length / POSTS_PER_PAGE);
+  return Array.from({ length: totalPages }, (_, i) => ({
+    params: { page: String(i + 1) },
+  }));
+}
+// Get the current page from URL
+const { page } = Astro.params;
+const currentPage = parseInt(page);
+// Fetch posts and paginate
+const POSTS_PER_PAGE = 6;
+const allPosts = await getCollection("posts");
+const sortedPosts = allPosts
+  .filter((post) => post.data?.pubDate)
+  .sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
+const totalPages = Math.ceil(sortedPosts.length / POSTS_PER_PAGE);
+const start = (currentPage - 1) * POSTS_PER_PAGE;
+const paginatedPosts = sortedPosts.slice(start, start + POSTS_PER_PAGE);
+// Tags
+const tags = [...new Set(allPosts.map((post) => post.data.tags).flat())];
+---
+
+<DocsLayout>
+  <section>
+    <RightSidebarLayout>
+      <div slot="main">
+        <Header
+          title="Blog"
+          description="Updates, guides, and announcements from the Hatch team."
+          innerClass="pt-24"
+        />
+        <div class="flex flex-col px-8 pb-8 mt-4 gap-2">
+          {paginatedPosts.map((post) => <BlogCard post={post} />)}
+        </div>
+      </div>
+      <div slot="rightAside">
+        <Text
+          tag="h4"
+          variant="textSM"
+          class="ml-4 text text-base-900 dark:text-white"
+        >
+          Tags
+        </Text>
+        <ul class="flex flex-col justify-between mt-4">
+          {
+            tags.map((tag) => (
+              <a
+                href={`/blog/tags/${tag}`}
+                class="capitalize block py-0.5 text-xs text-base-500 dark:text-base-400 hover:text-accent-600 dark:hover:text-accent-400 transition-all duration-200 border-l-2 border-transparent pl-4"
+              >
+                {tag}
+              </a>
+            ))
+          }
+        </ul>
+      </div>
+    </RightSidebarLayout>
+    <nav
+      class="w-full border-t grid grid-cols-1 md:grid-cols-2 divide-y divide-base-200 dark:divide-base-800 lg:divide-y-0 lg:divide-x border-base-200 dark:border-base-800"
+      aria-label="Pagination"
+    >
+      <div>
+        {
+          currentPage > 1 && (
+            <a
+              class="flex flex-col w-full p-8 gap-12 group  hover:bg-base-50 dark:hover:bg-white/1 duration-200"
+              href={`/blog/${currentPage - 1}`}
+              aria-label="Go to previous page"
+            >
+              <span class="text-xs font-medium tracking-wide uppercase text-base-500 dark:text-base-400 font-mon">
+                Previous
+              </span>
+            </a>
+          )
+        }
+      </div>
+      <div>
+        {
+          currentPage < totalPages && (
+            <a
+              class="flex flex-col w-full p-8 gap-12 group  hover:bg-base-50 dark:hover:bg-white/1 duration-200"
+              href={`/blog/${currentPage + 1}`}
+              aria-label="Go to next page"
+            >
+              <span class="font-mono text-xs font-medium tracking-wide uppercase text-base-500 dark:text-base-400">
+                Next
+              </span>
+            </a>
+          )
+        }
+      </div>
+    </nav>
+  </section>
+</DocsLayout>

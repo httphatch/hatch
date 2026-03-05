@@ -74,12 +74,12 @@ This gives you:
 
 Full docs at [httphatch.com](https://httphatch.com):
 
-- [Getting Started](https://httphatch.com/guide/getting-started) — install, init, first project
-- [CLI Reference](https://httphatch.com/reference/cli) — all commands and flags
-- [Configuration](https://httphatch.com/reference/config) — global config options
-- [hatch.yml](https://httphatch.com/reference/hatch-yml) — per-project config format
-- [How It Works](https://httphatch.com/advanced/how-it-works) — architecture and internals
-- [Troubleshooting](https://httphatch.com/advanced/troubleshooting) — common issues and fixes
+- [Getting Started](https://httphatch.com/docs/getting-started/quick-start) — install, init, first project
+- [CLI Reference](https://httphatch.com/docs/reference/cli) — all commands and flags
+- [Configuration](https://httphatch.com/docs/reference/config-yml) — global config options
+- [hatch.yml](https://httphatch.com/docs/reference/hatch-yml) — per-project config format
+- [Architecture](https://httphatch.com/docs/advanced/architecture) — architecture and internals
+- [Troubleshooting](https://httphatch.com/docs/advanced/troubleshooting) — common issues and fixes
 
 ## License
 

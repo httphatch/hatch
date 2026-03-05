@@ -1,0 +1,199 @@
+---
+// Assets
+import Search from "@/components/fundations/icons/Search.astro";
+import Command from "@/components/fundations/icons/Command.astro";
+// Content
+import { getCollection } from "astro:content";
+const { searchId = "default" } = Astro.props;
+const docs = await Promise.all(
+  (await getCollection("docs")).map(async (entry) => ({
+    title: entry.data.title,
+    content: entry.data.description || entry.body.slice(0, 200),
+    category: entry.data.category || "Docs",
+    url: `/docs/${entry.slug}`,
+  }))
+);
+const inputId = `search-input-${searchId}`;
+const resultsId = `search-results-${searchId}`;
+const modalId = `search-modal-${searchId}`;
+---
+
+<!-- Trigger Button -->
+<button
+  onclick={`document.getElementById('${modalId}').classList.remove('hidden')`}
+  class="flex items-center justify-between w-full px-4 py-2 text-xs leading-tight align-middle bg-white border border-transparent dark:bg-base-900 transition duration-300 ease-in-out focus:z-10 h-9 rounded-none text-base-500 ring-1 ring-base-200 dark:ring-base-800 placeholder-base-400 focus:border-accent-500 focus:ring-2 focus:ring-accent-100 focus:outline-none shadow-sm focus:ring-offset-white dark:focus:ring-offset-base-900"
+>
+  <div class="flex items-center gap-2">
+    <Search slot="icon" size="sm" />
+    <span>Search docs</span>
+  </div>
+  <kbd
+    class="hidden ml-4 text-sm sm:inline-block text-base-400 dark:text-base-500"
+  >
+    <div class="flex items-center gap-1">
+      <Command slot="icon" size="sm" />
+      K
+    </div>
+  </kbd>
+</button>
+
+<!-- Modal -->
+<div
+  id={modalId}
+  class="fixed inset-0 flex items-start justify-center hidden p-6 z-60 bg-black/40 backdrop-blur"
+>
+  <!-- Click-outside area -->
+  <div
+    class="absolute inset-0"
+    onclick={`document.getElementById('${modalId}').classList.add('hidden')`}
+  >
+  </div>
+  <!-- Modal content -->
+  <div
+    class="relative z-50 w-full max-w-md mt-24"
+    onclick="event.stopPropagation()"
+  >
+    <!--
+      // In case you want  a close button.
+      // But it's not necessary, the modal can be closed by clicking outside of it or pressing the ESC key.
+   Close button
+   <Button
+   iconOnly
+   size="xs"
+   variant="muted"
+   class="hidden ml-auto"
+   onclick={`document.getElementById('${modalId}').classList.add('hidden')`}
+   >
+   <RoundedX slot="icon" size="sm" />
+  </Button>
+  -->
+    <!-- Search Input -->
+    <div class="relative w-full bg-white dark:bg-base-900 rounded-none">
+      <input
+        id={inputId}
+        type="text"
+        autofocus
+        placeholder="Search documentation..."
+        class="block w-full py-2 pl-10 text-xs leading-tight align-middle bg-white border border-transparent dark:bg-base-900 transition duration-300 ease-in-out focus:z-10 h-9 rounded-none text-base-500 ring-1 ring-base-200 dark:ring-base-800 placeholder-base-400 focus:border-accent-500 focus:ring-2 focus:ring-accent-100 focus:outline-none shadow-sm focus:ring-offset-white dark:focus:ring-offset-base-900"
+      />
+      <div
+        class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none"
+      >
+        <Search slot="icon" size="sm" class="text-base-400" />
+      </div>
+    </div>
+    <!-- Results -->
+    <div
+      id={resultsId}
+      class="flex flex-col w-full overflow-y-auto bg-white dark:bg-base-800 max-h-80 rounded-none scrollbar-hide focus:outline-none space-y-1 focus:ring-2 focus:ring-accent-500"
+    >
+    </div>
+  </div>
+</div>
+<script is:inline define:vars={{ docs, inputId, resultsId, modalId }}>
+  if (!window.fuseLoaded) {
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/fuse.js@7.1.0/dist/fuse.min.js";
+    script.onload = () => {
+      window.fuseLoaded = true;
+      window.dispatchEvent(new Event("fuseReady"));
+    };
+    document.head.appendChild(script);
+  }
+  function initializeSearch() {
+    if (typeof Fuse === "undefined") {
+      window.addEventListener("fuseReady", initializeSearch, { once: true });
+      return;
+    }
+    const searchInput = document.getElementById(inputId);
+    const resultsContainer = document.getElementById(resultsId);
+    const modal = document.getElementById(modalId);
+    if (!searchInput || !resultsContainer || !modal) return;
+    if (searchInput.dataset.initialized) return;
+    searchInput.dataset.initialized = "true";
+    const fuse = new Fuse(docs, {
+      keys: ["title", "content", "category"],
+      threshold: 0.3,
+      includeMatches: true,
+    });
+    function highlightMatches(text, matches = [], key = "") {
+      if (!matches || !text) return text;
+      const relevant = matches.find((match) => match.key === key);
+      if (!relevant || !relevant.indices) return text;
+      const indices = [...relevant.indices];
+      let result = "";
+      let lastIndex = 0;
+      for (const [start, end] of indices) {
+        result += text.slice(lastIndex, start);
+        result += `<mark class="font-medium text-accent-600 bg-accent-50 dark:bg-base-700 dark:text-accent-300">${text.slice(start, end + 1)}</mark>`;
+        lastIndex = end + 1;
+      }
+      result += text.slice(lastIndex);
+      return result;
+    }
+    function renderResults(results, query) {
+      if (!query.trim()) {
+        resultsContainer.innerHTML = "";
+        return;
+      }
+      if (results.length === 0) {
+        const noResultsDiv = document.createElement("div");
+        noResultsDiv.className = "block p-4 hover:bg-base-50 text-base-900 dark:text-white dark:hover:bg-base-700 transition-colors";
+        noResultsDiv.textContent = `No results for "${query}"`;
+        resultsContainer.innerHTML = "";
+        resultsContainer.appendChild(noResultsDiv);
+      } else {
+        resultsContainer.innerHTML = results
+
+          .map((result) => {
+            const { title, content, category, url } = result.item;
+            const matches = result.matches;
+            return `
+              <a href="${url}" class="block p-4 hover:bg-base-50 transition-colors dark:hover:bg-base-700">
+                <div class="text-sm font-medium text-base-900 dark:text-white">${highlightMatches(title, matches, "title")}</div>
+                <div class="mt-1 text-xs capitalize text-base-500 dark:text-base-300">${category}</div>
+                <div class="mt-1 text-sm text-base-600 line-clamp-2 dark:text-base-300">${highlightMatches(content, matches, "content")}</div>
+              </a>
+            `;
+          })
+          .join("");
+      }
+    }
+    searchInput.addEventListener("input", (e) => {
+      const query = e.target.value;
+      const results = query.trim() ? fuse.search(query) : [];
+      renderResults(results, query);
+    });
+    searchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        modal.classList.add("hidden");
+      }
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        modal.classList.add("hidden");
+      }
+    });
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initializeSearch);
+  } else {
+    initializeSearch();
+  }
+
+  // CMD+K / CTRL+K shortcut here 👇
+  document.addEventListener("keydown", (e) => {
+    const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+    const openKeys = (isMac && e.metaKey) || (!isMac && e.ctrlKey);
+
+    if (openKeys && e.key.toLowerCase() === "k") {
+      e.preventDefault();
+      const modal = document.getElementById(modalId);
+      const input = document.getElementById(inputId);
+      if (modal && input) {
+        modal.classList.remove("hidden");
+        setTimeout(() => input.focus(), 10);
+      }
+    }
+  });
+</script>

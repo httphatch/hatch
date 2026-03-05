@@ -1,0 +1,12 @@
+---
+// src/components/Accordion.astro
+export interface Props {
+  className?: string;
+}
+
+const { className = "" } = Astro.props;
+---
+
+<div class={` ${className}`}>
+  <slot />
+</div>
