@@ -1,0 +1,14 @@
+<script type="module">
+  document.addEventListener("DOMContentLoaded", () => {
+    const yesBtn = document.getElementById("yes-btn");
+    const noBtn = document.getElementById("no-btn");
+    const feedbackButtons = document.getElementById("feedback-buttons");
+    const thankYou = document.getElementById("thank-you");
+    const handleFeedback = () => {
+      feedbackButtons.classList.add("hidden");
+      thankYou.classList.remove("hidden");
+    };
+    yesBtn.addEventListener("click", handleFeedback);
+    noBtn.addEventListener("click", handleFeedback);
+  });
+</script>

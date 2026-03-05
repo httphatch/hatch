@@ -1,0 +1,86 @@
+---
+import Text from "@/components/fundations/elements/Text.astro";
+import ChevronRight from "@/components/fundations/icons/ChevronRight.astro";
+
+const resources = [
+  {
+    id: "github",
+    title: "GitHub",
+    description: "Source code, issues, and releases.",
+    href: "https://github.com/httphatch/hatch",
+  },
+  {
+    id: "troubleshooting",
+    title: "Troubleshooting",
+    description: "Diagnose DNS, certificate, port, and daemon issues.",
+    href: "/docs/advanced/troubleshooting",
+  },
+  {
+    id: "contributing",
+    title: "Contributing",
+    description: "Set up your development environment and submit pull requests.",
+    href: "/docs/contributing/development-setup",
+  },
+  {
+    id: "blog",
+    title: "Blog",
+    description: "Updates, guides, and announcements.",
+    href: "/blog",
+  },
+];
+---
+
+<section>
+  <div class="px-8 py-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+    <div>
+      <Text
+        tag="h2"
+        id="resources-heading"
+        variant="textLG"
+        class="mt-auto font-medium text-base-900 dark:text-white"
+      >
+        Resources
+      </Text>
+      <Text
+        tag="p"
+        variant="textSM"
+        class="mt-4 text-base-500 dark:text-base-300 leading-6 text-balance"
+      >
+        Everything you need to get help, contribute, and stay up to date with Hatch development.
+      </Text>
+    </div>
+    <div
+      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2 lg:col-span-2"
+    >
+      {
+        resources.map((item) => (
+          <div class="relative flex flex-col justify-between h-full p-6 bg-base-50 dark:bg-white/2 gap-8">
+            <div>
+              <Text
+                tag="h3"
+                variant="textBase"
+                class="font-medium text-base-900 dark:text-white"
+              >
+                {item.title}
+              </Text>
+              <Text tag="p" variant="textSM" class="mt-2 text-base-500 dark:text-base-400">
+                {item.description}
+              </Text>
+            </div>
+            <a
+              href={item.href}
+              class="flex items-center text-sm text-accent-600 hover:text-accent-500 dark:text-accent-400 gap-2 group"
+              aria-label={`${item.title}: ${item.description}`}
+            >
+              Explore
+              <ChevronRight
+                size="sm"
+                class="group-hover:translate-x-2 duration-300"
+              />
+            </a>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>

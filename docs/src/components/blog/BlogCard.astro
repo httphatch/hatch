@@ -1,0 +1,52 @@
+---
+// Fundations
+import Text from "@/components/fundations/elements/Text.astro";
+// Icons
+import ChevronRight from "@/components/fundations/icons/ChevronRight.astro";
+// Content
+const { url, title, description, pubDate } = {
+  url: "/blog/posts/" + Astro.props.post.slug,
+  title: Astro.props.post.data.title,
+  description: Astro.props.post.data.description,
+  pubDate: new Date(Astro.props.post.data.pubDate).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "2-digit",
+  }),
+};
+---
+
+<div
+  class="p-6 bg-base-50 dark:bg-white/2 rounded-none text-balance grid grid-cols-1 lg:grid-cols-3 gap-4"
+>
+  <Text tag="p" variant="textXS" class="uppercase text-base-500">
+    <time datetime={pubDate}>{pubDate}</time>
+  </Text>
+  <div class="lg:col-span-2">
+    <Text
+      tag="h3"
+      variant="textBase"
+      class="font-medium text-base-900 dark:text-white"
+    >
+      {title}
+    </Text>
+    <Text
+      tag="p"
+      variant="textSM"
+      class="text-base-500 dark:text-base-400 mt-1"
+    >
+      {description}
+    </Text>
+    <a
+      href={url}
+      title={`Read more: ${title}`}
+      aria-label={`Read blog post: ${title}`}
+      class="flex items-center mt-8 text-sm text-accent-600 hover:text-accent-500 dark:text-accent-400 gap-2 group"
+    >
+      View Details <ChevronRight
+        size="sm"
+        class="group-hover:translate-x-2 duration-300"
+      /></a
+    >
+  </div>
+</div>

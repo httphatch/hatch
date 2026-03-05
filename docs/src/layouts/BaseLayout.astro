@@ -1,0 +1,26 @@
+---
+// Fundations
+import "@/styles/global.css";
+import BaseHead from "@/components/fundations/head/BaseHead.astro";
+// Sections
+import Footer from "@/components/global/footers/Footer.astro";
+import Navigation from "@/components/global/navigation/Navigation.astro";
+// Hides nav and footer on selected screens by passing
+// the hideNav and hideFooter props
+// <BaseLayout hideNav={true} hideFooter={true}>
+const { hideNav = false, hideFooter = false, title, description } = Astro.props;
+import ToggleLocalStorage from "@/components/fundations/scripts/ToggleLocalStorage.astro";
+---
+
+<!doctype html>
+<html lang="en" class="scroll-smooth dark">
+  <head>
+    <BaseHead title={title} description={description} />
+  </head>
+  <body class="flex flex-col bg-white dark:bg-base-900 min-h-svh">
+    {!hideNav && <Navigation />}
+    <main><slot /></main>
+    {!hideFooter && <Footer />}
+    <ToggleLocalStorage />
+  </body>
+</html>

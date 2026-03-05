@@ -1,0 +1,29 @@
+---
+import { AstroSeo } from "@astrolib/seo";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title = "Hatch", description = "Local HTTPS development for macOS. Trusted certificates, .test domains, and reverse proxying." } = Astro.props;
+const pageTitle = title === "Hatch" ? title : `${title} — Hatch`;
+const canonicalUrl = new URL(Astro.url.pathname, "https://httphatch.com").href;
+---
+
+<AstroSeo
+  title={pageTitle}
+  description={description}
+  canonical={canonicalUrl}
+  openGraph={{
+    url: canonicalUrl,
+    title: pageTitle,
+    description: description,
+    site_name: "Hatch",
+    type: "website",
+    locale: "en_US",
+  }}
+  twitter={{
+    cardType: "summary_large_image",
+  }}
+/>

@@ -1,0 +1,70 @@
+<script type="module">
+  document.addEventListener("DOMContentLoaded", () => {
+    const tocLinks = document.querySelectorAll("aside nav a"); // Target your aside links
+    const sections = document.querySelectorAll("section[id^='tag-']"); // Target sections with IDs starting with 'tag-'
+    // Function to update active TOC link
+    function updateActiveTocLink() {
+      let activeSection = null;
+      const scrollPosition = window.scrollY + 100; // Offset for better UX
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+      // Check if we're near the bottom of the page (within 100px)
+      const isNearBottom =
+        scrollPosition + windowHeight >= documentHeight - 100;
+      if (isNearBottom && sections.length > 0) {
+        // If near bottom, activate the last section
+        activeSection = sections[sections.length - 1];
+      } else {
+        // Find the current active section based on scroll position
+        sections.forEach((section) => {
+          const sectionTop = section.offsetTop;
+          if (scrollPosition >= sectionTop) {
+            activeSection = section;
+          }
+        });
+      }
+      // Update TOC links
+      tocLinks.forEach((link) => {
+        const linkHref = link.getAttribute("href");
+        const isActive = activeSection && linkHref === `#${activeSection.id}`;
+        if (isActive) {
+          // Active styles with border
+          link.classList.add(
+            "text-accent-600",
+            "dark:text-accent-400",
+            "border-l-accent-500",
+            "dark:border-l-accent-400",
+            "pl-4"
+          );
+          link.classList.remove(
+            "text-base-500", 
+            "dark:text-base-400",
+            "border-transparent"
+          );
+        } else {
+          // Inactive styles
+          link.classList.remove(
+            "text-accent-600",
+            "dark:text-accent-400",
+            "font-medium",
+            "border-l-accent-500",
+            "dark:border-l-accent-400",
+            "pl-2"
+          );
+          link.classList.add(
+            "text-base-500", 
+            "dark:text-base-400",
+            "border-transparent"
+          );
+        }
+      });
+    }
+    // Initialize and listen for scroll
+    updateActiveTocLink();
+    window.addEventListener("scroll", updateActiveTocLink);
+    // Also update when hash changes (direct clicks)
+    window.addEventListener("hashchange", () => {
+      setTimeout(updateActiveTocLink, 100);
+    });
+  });
+</script>

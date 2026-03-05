@@ -1,0 +1,41 @@
+---
+// Fundations
+import BaseLayout from "@/layouts/BaseLayout.astro";
+// Components
+import Sidebar from "@/components/global/navigation/Sidebar.astro";
+import MobileTopBar from "@/components/global/navigation/MobileTopBar.astro";
+import DesktopTopBar from "@/components/global/navigation/DesktopTopBar.astro";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title, description } = Astro.props;
+---
+
+<BaseLayout hideNav={true} hideFooter={true} title={title} description={description}>
+  <div class="min-h-screen bg-base-100 dark:bg-base-700">
+    <!-- Mobile header -->
+    <div class="bg-base-100 dark:bg-base-700">
+      <MobileTopBar />
+      <div class="flex">
+        <!-- Sidebar -->
+        <Sidebar />
+        <!-- Main content -->
+        <main
+          class="flex-1 min-w-0 bg-white lg:pl-72 lg:mr-1 dark:bg-base-900 lg:border-r lg:border-base-200 dark:border-base-800"
+        >
+          <!-- Desktop header -->
+          <DesktopTopBar />
+          <!-- Content -->
+          <div class="lg:pt-15.5 2xl:max-w-6xl mx-auto">
+            <article>
+              <slot />
+            </article>
+          </div>
+        </main>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

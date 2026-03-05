@@ -1,0 +1,101 @@
+---
+export interface Props {
+  variant?:
+    | "default"
+    | "muted"
+    | "accent"
+    | "info"
+    | "success"
+    | "warning"
+    | "danger";
+  size?: "sm" | "md" | "lg";
+  class?: string;
+}
+const { variant = "default", size = "md", class: className = "" } = Astro.props;
+// Variants
+const variants: Record<string, string[]> = {
+  default: [
+    "bg-base-900",
+    "text-white",
+    "outline-base-800",
+    "dark:bg-base-50",
+    "dark:text-base-500",
+    "dark:outline-base-200",
+  ],
+  muted: [
+    "bg-base-50",
+    "text-base-500",
+    "outline-base-200",
+    "dark:bg-base-900",
+    "dark:text-white",
+    "dark:outline-base-800",
+  ],
+  accent: [
+    "bg-accent-50/50",
+    "text-accent-700",
+    "outline-accent-100",
+    "dark:bg-accent-500/10",
+    "dark:text-accent-400",
+    "dark:outline-accent-400/20",
+  ],
+  info: [
+    "bg-cyan-50/50",
+    "text-cyan-800",
+    "outline-cyan-100",
+    "dark:bg-cyan-500/10",
+    "dark:text-cyan-100",
+    "dark:outline-cyan-300/30",
+  ],
+  success: [
+    "bg-emerald-50/50",
+    "text-emerald-700",
+    "outline-emerald-100",
+    "dark:bg-emerald-500/10",
+    "dark:text-emerald-100",
+    "dark:outline-emerald-400/20",
+  ],
+  warning: [
+    "bg-orange-50/50",
+    "text-orange-800",
+    "outline-orange-100",
+    "dark:bg-orange-500/10",
+    "dark:text-orange-100",
+    "dark:outline-orange-300/30",
+  ],
+  danger: [
+    "bg-rose-50/50",
+    "text-rose-700",
+    "outline-rose-100",
+    "dark:bg-rose-500/10",
+    "dark:text-rose-100",
+    "dark:outline-rose-300/30",
+  ],
+};
+// Sizes – consistent with your button sizing
+const sizes: Record<string, string[]> = {
+  sm: ["h-6", "px-3.5", "text-xs", "gap-1.5"],
+  md: ["h-7", "px-4", "text-sm", "gap-2"],
+  lg: ["h-8", "px-5", "text-base", "gap-2.5"],
+};
+// Base layout
+const baseClass = [
+  "flex",
+  "w-fit",
+  "outline",
+  "items-center",
+  "font-medium",
+  "rounded-none",
+];
+const finalClass = [
+  ...baseClass,
+  ...(variants[variant] || variants.default),
+  ...(sizes[size] || sizes.md),
+  className,
+].join(" ");
+---
+
+<span class={finalClass}>
+  <slot name="left-icon" />
+  <slot />
+  <slot name="right-icon" />
+</span>

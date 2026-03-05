@@ -1,0 +1,88 @@
+---
+import Text from "@/components/fundations/elements/Text.astro";
+import ChevronRight from "@/components/fundations/icons/ChevronRight.astro";
+
+const features = [
+  {
+    title: "Quick Start",
+    description: "Install Hatch and add your first project in under a minute.",
+    href: "/docs/getting-started/quick-start",
+  },
+  {
+    title: "Concepts",
+    description: "Understand how domains, HTTPS, routing, and process management work.",
+    href: "/docs/concepts/domains-and-dns",
+  },
+  {
+    title: "CLI Reference",
+    description: "Complete reference for all commands, flags, and options.",
+    href: "/docs/reference/cli",
+  },
+  {
+    title: "Guides",
+    description: "Task-based walkthroughs for common setups and workflows.",
+    href: "/docs/guides/multi-service-project",
+  },
+];
+---
+
+<section>
+  <div class="px-8 py-12">
+    <div class="max-w-2xl">
+      <Text
+        tag="h2"
+        id="get-started-heading"
+        variant="textLG"
+        class="mt-auto font-medium text-base-900 dark:text-white"
+      >
+        Getting started
+      </Text>
+      <Text
+        tag="p"
+        variant="textSM"
+        class="mt-4 text-base-500 dark:text-base-300 leading-6 text-pretty"
+      >
+        Hatch gives every project a .test domain with trusted HTTPS. Install it,
+        run hatch init, and your local dev servers are accessible at real URLs
+        with green locks. No port numbers, no certificate warnings.
+      </Text>
+    </div>
+    <div class="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {
+        features.map((feature) => {
+          return (
+            <div class="flex flex-col justify-between h-full">
+              <div>
+                <Text
+                  tag="h3"
+                  variant="textBase"
+                  class="font-medium text-base-900 dark:text-white"
+                >
+                  {feature.title}
+                </Text>
+                <Text
+                  tag="p"
+                  variant="textSM"
+                  class="mt-2 text-base-600 dark:text-base-400 text-pretty"
+                >
+                  {feature.description}
+                </Text>
+              </div>
+              <a
+                href={feature.href}
+                class="flex items-center mt-8 text-sm text-accent-600 hover:text-accent-500 dark:text-accent-400 gap-2 group"
+                aria-label={`${feature.title}: ${feature.description}`}
+              >
+                Read further
+                <ChevronRight
+                  size="sm"
+                  class="group-hover:translate-x-2 duration-300"
+                />
+              </a>
+            </div>
+          );
+        })
+      }
+    </div>
+  </div>
+</section>
