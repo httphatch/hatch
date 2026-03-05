@@ -12,6 +12,11 @@ const routes = [
     <div class="flow-col" id="flow-domains">
       {routes.map((route, i) => (
         <div class="flow-card flow-card--domain" data-index={i}>
+          <svg class="flow-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M2 12h20" />
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+          </svg>
           <span class="flow-card__text">{route.domain}</span>
           <div class="flow-card__lock" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -23,38 +28,25 @@ const routes = [
       ))}
     </div>
 
-    <svg class="flow-svg" id="flow-svg-left">
-      <defs>
-        <linearGradient id="pulse-grad-l" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="var(--color-accent-400)" stop-opacity="0" />
-          <stop offset="40%" stop-color="var(--color-accent-400)" stop-opacity="0.9" />
-          <stop offset="60%" stop-color="var(--color-accent-400)" stop-opacity="0.9" />
-          <stop offset="100%" stop-color="var(--color-accent-400)" stop-opacity="0" />
-        </linearGradient>
-      </defs>
-    </svg>
+    <svg class="flow-svg" id="flow-svg-left"></svg>
 
     <div class="flow-hub" id="flow-hub">
       <div class="flow-hub__pill">
+        <canvas class="flow-hub__matrix" id="hub-matrix" width="120" height="48"></canvas>
         <span class="flow-hub__text">HATCH</span>
-        <div class="flow-hub__glow"></div>
       </div>
     </div>
 
-    <svg class="flow-svg" id="flow-svg-right">
-      <defs>
-        <linearGradient id="pulse-grad-r" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="var(--color-accent-400)" stop-opacity="0" />
-          <stop offset="40%" stop-color="var(--color-accent-400)" stop-opacity="0.9" />
-          <stop offset="60%" stop-color="var(--color-accent-400)" stop-opacity="0.9" />
-          <stop offset="100%" stop-color="var(--color-accent-400)" stop-opacity="0" />
-        </linearGradient>
-      </defs>
-    </svg>
+    <svg class="flow-svg" id="flow-svg-right"></svg>
 
     <div class="flow-col" id="flow-ports">
       {routes.map((route, i) => (
         <div class="flow-card flow-card--port" data-index={i}>
+          <svg class="flow-card__icon flow-card__icon--port" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <rect x="2" y="3" width="20" height="18" rx="2" />
+            <path d="M7 8l4 4-4 4" />
+            <line x1="13" y1="16" x2="17" y2="16" />
+          </svg>
           <span class="flow-card__text">{route.port}</span>
         </div>
       ))}
@@ -66,6 +58,11 @@ const routes = [
     <div class="flow-mobile-col">
       {routes.map((route) => (
         <div class="flow-card flow-card--domain">
+          <svg class="flow-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M2 12h20" />
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+          </svg>
           <span class="flow-card__text">{route.domain}</span>
           <div class="flow-card__lock" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -85,8 +82,8 @@ const routes = [
 
     <div class="flow-hub">
       <div class="flow-hub__pill">
+        <canvas class="flow-hub__matrix" id="hub-matrix-mobile" width="120" height="48"></canvas>
         <span class="flow-hub__text">HATCH</span>
-        <div class="flow-hub__glow"></div>
       </div>
     </div>
 
@@ -99,6 +96,11 @@ const routes = [
     <div class="flow-mobile-col">
       {routes.map((route) => (
         <div class="flow-card flow-card--port">
+          <svg class="flow-card__icon flow-card__icon--port" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <rect x="2" y="3" width="20" height="18" rx="2" />
+            <path d="M7 8l4 4-4 4" />
+            <line x1="13" y1="16" x2="17" y2="16" />
+          </svg>
           <span class="flow-card__text">{route.port}</span>
         </div>
       ))}
@@ -138,7 +140,6 @@ const routes = [
     display: none;
     flex-direction: column;
     align-items: center;
-    padding: 0;
   }
 
   .flow-mobile-col {
@@ -168,12 +169,11 @@ const routes = [
   .flow-card {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     padding: 10px 16px;
-    background: white;
+    background: var(--color-base-50);
     border: 1.5px solid var(--color-base-200);
     white-space: nowrap;
-    justify-content: center;
   }
 
   :global(.dark) .flow-card {
@@ -184,6 +184,38 @@ const routes = [
   .flow-card--domain {
     position: relative;
     padding-right: 28px;
+    border-left: 3px solid var(--color-accent-400);
+  }
+
+  :global(.dark) .flow-card--domain {
+    border-left-color: var(--color-accent-500);
+  }
+
+  .flow-card--port {
+    border-right: 3px solid var(--color-base-300);
+  }
+
+  :global(.dark) .flow-card--port {
+    border-right-color: var(--color-base-600);
+  }
+
+  .flow-card__icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    color: var(--color-accent-400);
+  }
+
+  :global(.dark) .flow-card__icon {
+    color: var(--color-accent-500);
+  }
+
+  .flow-card__icon--port {
+    color: var(--color-base-400);
+  }
+
+  :global(.dark) .flow-card__icon--port {
+    color: var(--color-base-500);
   }
 
   .flow-card__text {
@@ -215,7 +247,7 @@ const routes = [
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: linear-gradient(90deg, white 50%, var(--color-base-200) 50%);
+    background: linear-gradient(90deg, var(--color-base-50) 50%, var(--color-base-200) 50%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -231,7 +263,7 @@ const routes = [
     position: absolute;
     inset: 1.5px;
     border-radius: 50%;
-    background: white;
+    background: var(--color-base-50);
   }
 
   :global(.dark) .flow-card__lock::before {
@@ -261,51 +293,33 @@ const routes = [
 
   .flow-hub__pill {
     position: relative;
-    padding: 12px 28px;
-    background: var(--color-accent-100);
-    border: 1.5px solid var(--color-accent-300);
+    padding: 14px 32px;
+    background: var(--color-accent-950);
+    border: 1.5px solid var(--color-accent-700);
     overflow: hidden;
   }
 
   :global(.dark) .flow-hub__pill {
     background: var(--color-accent-950);
-    border-color: var(--color-accent-700);
+    border-color: var(--color-accent-600);
+  }
+
+  .flow-hub__matrix {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.3;
   }
 
   .flow-hub__text {
     position: relative;
     z-index: 1;
     font-family: "Fugaz One", cursive;
-    font-size: 1rem;
-    color: var(--color-accent-500);
-    letter-spacing: 0.06em;
-  }
-
-  .flow-hub__glow {
-    position: absolute;
-    inset: -1px;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      var(--color-accent-400) 50%,
-      transparent 100%
-    );
-    opacity: 0;
-    animation: hub-glow 3s ease-in-out infinite;
-  }
-
-  :global(.dark) .flow-hub__glow {
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      var(--color-accent-500) 50%,
-      transparent 100%
-    );
-  }
-
-  @keyframes hub-glow {
-    0%, 100% { opacity: 0; }
-    50% { opacity: 0.15; }
+    font-size: 1.1rem;
+    color: var(--color-accent-400);
+    letter-spacing: 0.08em;
+    text-shadow: 0 0 12px oklch(0.7 0.15 192 / 0.5);
   }
 
   /* Connector base path */
@@ -317,8 +331,19 @@ const routes = [
     stroke: var(--color-accent-700);
   }
 
+  /* Pulse overlay on lines */
+  .flow-pulse {
+    stroke: var(--color-accent-400);
+    opacity: 0.7;
+  }
+
+  :global(.dark) .flow-pulse {
+    stroke: var(--color-accent-400);
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    .flow-hub__glow { animation: none; opacity: 0; }
+    .flow-pulse { display: none; }
+    .flow-hub__matrix { display: none; }
   }
 
   /* Tablet */
@@ -326,14 +351,63 @@ const routes = [
     .flow-card { padding: 8px 12px; }
     .flow-card--domain { padding-right: 24px; }
     .flow-card__text { font-size: 0.8rem; }
+    .flow-card__icon { width: 15px; height: 15px; }
     .flow-card__lock { width: 24px; height: 24px; right: -12px; }
     .flow-card__lock svg { width: 11px; height: 11px; }
-    .flow-hub__pill { padding: 10px 20px; }
-    .flow-hub__text { font-size: 0.88rem; }
+    .flow-hub__pill { padding: 10px 24px; }
+    .flow-hub__text { font-size: 0.95rem; }
   }
 </style>
 
 <script>
+  // --- Matrix rain in hub ---
+  function initMatrix(canvasId: string) {
+    const canvas = document.getElementById(canvasId) as HTMLCanvasElement | null;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const pill = canvas.parentElement!;
+    const rect = pill.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const fontSize = 10;
+    const cols = Math.floor(rect.width / fontSize);
+    const drops: number[] = Array.from({ length: cols }, () => Math.random() * -20);
+    const chars = '01';
+
+    const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--color-accent-500').trim() || '#22d3ee';
+
+    function draw() {
+      ctx!.fillStyle = 'rgba(0, 0, 0, 0.15)';
+      ctx!.fillRect(0, 0, rect.width, rect.height);
+      ctx!.font = `${fontSize}px Geist Mono, monospace`;
+      ctx!.fillStyle = accentColor;
+
+      for (let i = 0; i < drops.length; i++) {
+        const char = chars[Math.floor(Math.random() * chars.length)];
+        const x = i * fontSize;
+        const y = drops[i] * fontSize;
+
+        if (y > 0 && y < rect.height) {
+          ctx!.globalAlpha = 0.4 + Math.random() * 0.4;
+          ctx!.fillText(char, x, y);
+        }
+
+        if (y > rect.height && Math.random() > 0.95) {
+          drops[i] = 0;
+        }
+        drops[i] += 0.3 + Math.random() * 0.2;
+      }
+    }
+
+    setInterval(draw, 80);
+  }
+
+  // --- Connector lines with pulse ---
   function initFlowDiagram() {
     const layout = document.getElementById('flow-desktop');
     if (!layout || getComputedStyle(layout).display === 'none') return;
@@ -345,7 +419,6 @@ const routes = [
 
     const domains = layout.querySelectorAll('#flow-domains .flow-card');
     const ports = layout.querySelectorAll('#flow-ports .flow-card');
-
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     function getCenter(el: Element, relativeTo: Element) {
@@ -363,9 +436,7 @@ const routes = [
       const h = svgRect.height;
 
       svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
-
-      // Remove old paths (keep defs)
-      svg.querySelectorAll('path, rect').forEach(el => el.remove());
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
 
       const hubCenter = getCenter(hubEl, svg);
 
@@ -383,34 +454,38 @@ const routes = [
           d = `M ${hubCenter.x} ${hubCenter.y} C ${cp1x} ${hubCenter.y}, ${cp2x} ${cardCenter.y}, ${cardCenter.x} ${cardCenter.y}`;
         }
 
-        // Base path
+        // Base line
         const basePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         basePath.setAttribute('d', d);
         basePath.setAttribute('fill', 'none');
         basePath.setAttribute('class', 'flow-path');
-        basePath.setAttribute('stroke-width', '2');
+        basePath.setAttribute('stroke-width', '1.5');
         svg.appendChild(basePath);
 
         if (reducedMotion) return;
 
-        // Pulse overlay: a shorter path segment that moves along the curve
-        const pulsePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        pulsePath.setAttribute('d', d);
-        pulsePath.setAttribute('fill', 'none');
-        pulsePath.setAttribute('stroke', `url(#pulse-grad-${side === 'left' ? 'l' : 'r'})`);
-        pulsePath.setAttribute('stroke-width', '4');
+        // Pulse: a bright segment that travels the full length of the line
+        const pulse = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        pulse.setAttribute('d', d);
+        pulse.setAttribute('fill', 'none');
+        pulse.setAttribute('class', 'flow-pulse');
+        pulse.setAttribute('stroke-width', '2.5');
 
         const pathLength = basePath.getTotalLength();
-        const pulseLen = pathLength * 0.3;
-        pulsePath.setAttribute('stroke-dasharray', `${pulseLen} ${pathLength}`);
-        pulsePath.setAttribute('stroke-dashoffset', `${pulseLen}`);
+        const segLen = pathLength * 0.25;
+        const gap = pathLength - segLen;
 
-        pulsePath.style.animation = `pulse-flow ${1.8 + i * 0.15}s ease-in-out infinite`;
-        pulsePath.style.animationDelay = `${i * 0.5}s`;
-        pulsePath.dataset.pathLength = String(pathLength);
-        pulsePath.dataset.pulseLen = String(pulseLen);
+        pulse.setAttribute('stroke-dasharray', `${segLen} ${gap}`);
+        pulse.setAttribute('stroke-dashoffset', String(pathLength + segLen));
 
-        svg.appendChild(pulsePath);
+        const duration = 2.2 + i * 0.2;
+        const delay = i * 0.6;
+        pulse.style.animation = `line-pulse ${duration}s linear infinite`;
+        pulse.style.animationDelay = `${delay}s`;
+        pulse.style.setProperty('--dash-start', String(pathLength + segLen));
+        pulse.style.setProperty('--dash-end', String(-segLen));
+
+        svg.appendChild(pulse);
       });
     }
 
@@ -429,33 +504,28 @@ const routes = [
     });
   }
 
-  // Inject the keyframe dynamically since stroke-dashoffset end depends on path length
+  // Inject pulse keyframe
   const style = document.createElement('style');
   style.textContent = `
-    @keyframes pulse-flow {
-      0% { stroke-dashoffset: var(--pulse-start); opacity: 0; }
-      10% { opacity: 1; }
-      90% { opacity: 1; }
-      100% { stroke-dashoffset: var(--pulse-end); opacity: 0; }
+    @keyframes line-pulse {
+      from { stroke-dashoffset: var(--dash-start); }
+      to { stroke-dashoffset: var(--dash-end); }
     }
   `;
   document.head.appendChild(style);
 
-  // Override animation with computed values after paths are drawn
-  function activatePulses() {
-    document.querySelectorAll('#flow-svg-left path[data-path-length], #flow-svg-right path[data-path-length]').forEach(p => {
-      const el = p as SVGPathElement;
-      const pathLen = parseFloat(el.dataset.pathLength || '0');
-      const pulseLen = parseFloat(el.dataset.pulseLen || '0');
-      el.style.setProperty('--pulse-start', String(pulseLen));
-      el.style.setProperty('--pulse-end', String(-pathLen));
-    });
+  function init() {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    initFlowDiagram();
+    if (!reducedMotion) {
+      initMatrix('hub-matrix');
+      initMatrix('hub-matrix-mobile');
+    }
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { initFlowDiagram(); activatePulses(); });
+    document.addEventListener('DOMContentLoaded', init);
   } else {
-    initFlowDiagram();
-    activatePulses();
+    init();
   }
 </script>
