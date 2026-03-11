@@ -263,6 +263,7 @@ func (d *Daemon) Shutdown() error {
 	d.running = false
 	if d.tunnelReadyTimer != nil {
 		d.tunnelReadyTimer.Stop()
+		d.tunnelReadyTimer = nil
 	}
 	d.mu.Unlock()
 
@@ -513,6 +514,12 @@ func (d *Daemon) debounceTunnelReload() {
 		d.tunnelReadyTimer.Stop()
 	}
 	d.tunnelReadyTimer = time.AfterFunc(3*time.Second, func() {
+		d.mu.Lock()
+		if !d.running {
+			d.mu.Unlock()
+			return
+		}
+		d.mu.Unlock()
 		log.Info().Msg("reloading config after tunnel ready")
 		if err := d.ReloadConfig(); err != nil {
 			log.Error().Err(err).Msg("failed to reload config after tunnel ready")
