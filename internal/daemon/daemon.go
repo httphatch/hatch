@@ -37,6 +37,7 @@ type Daemon struct {
 	caPaths        certs.CAPaths
 	cfg            config.Config
 	rewriteProxies map[string]*tunnel.RewriteProxy
+	tunnelReadyTimer *time.Timer
 	mu             sync.Mutex
 	running        bool
 	version        string
@@ -200,6 +201,10 @@ func (d *Daemon) Run(ctx context.Context) error {
 			Msg(line)
 		d.outputHub.Write(project, service, source, line)
 	})
+	tunnelMgr.OnTunnelReady(func(id tunnel.TunnelID) {
+		log.Info().Str("tunnel", id.String()).Msg("named tunnel ready, scheduling config reload")
+		d.debounceTunnelReload()
+	})
 	if err := tunnelMgr.ApplyConfig(cfg); err != nil {
 		log.Warn().Err(err).Msg("failed to apply tunnel config")
 	}
@@ -256,6 +261,10 @@ func (d *Daemon) Shutdown() error {
 		return nil
 	}
 	d.running = false
+	if d.tunnelReadyTimer != nil {
+		d.tunnelReadyTimer.Stop()
+		d.tunnelReadyTimer = nil
+	}
 	d.mu.Unlock()
 
 	var errs []error
@@ -489,6 +498,33 @@ func (d *Daemon) stopTunnelProxies() {
 		proxy.Close()
 		log.Info().Str("service", key).Msg("rewrite proxy stopped")
 	}
+}
+
+// debounceTunnelReload coalesces multiple tunnel-ready callbacks into a
+// single ReloadConfig call after a 3-second quiet period.
+func (d *Daemon) debounceTunnelReload() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	if !d.running {
+		return
+	}
+
+	if d.tunnelReadyTimer != nil {
+		d.tunnelReadyTimer.Stop()
+	}
+	d.tunnelReadyTimer = time.AfterFunc(3*time.Second, func() {
+		d.mu.Lock()
+		if !d.running {
+			d.mu.Unlock()
+			return
+		}
+		d.mu.Unlock()
+		log.Info().Msg("reloading config after tunnel ready")
+		if err := d.ReloadConfig(); err != nil {
+			log.Error().Err(err).Msg("failed to reload config after tunnel ready")
+		}
+	})
 }
 
 // upstreamForKey returns the proxy URL for a "project/service" key.

@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -226,6 +228,140 @@ func TestStartTunnel_NamedTunnelNoToken(t *testing.T) {
 
 	if len(resolver.calls) != 0 {
 		t.Errorf("resolver should not be called when token is empty, got %d calls", len(resolver.calls))
+	}
+
+	_ = mgr.StopAll()
+}
+
+func TestOnTunnelReady_FiresForNamedTunnels(t *testing.T) {
+	dir := t.TempDir()
+	script := filepath.Join(dir, "cloudflared")
+	err := os.WriteFile(script, []byte(`#!/bin/sh
+echo "INF Registered tunnel connection" >&2
+sleep 60
+`), 0755)
+	if err != nil {
+		t.Fatalf("writing mock script: %v", err)
+	}
+	t.Setenv("PATH", dir+":"+os.Getenv("PATH"))
+
+	resolver := &mockTokenResolver{token: "jwt"}
+
+	stateFile := filepath.Join(dir, "tunnels.json")
+	mgr := NewManager(stateFile, nil)
+	mgr.tokenResolver = resolver
+
+	var readyIDs []TunnelID
+	var readyMu sync.Mutex
+	mgr.OnTunnelReady(func(id TunnelID) {
+		readyMu.Lock()
+		readyIDs = append(readyIDs, id)
+		readyMu.Unlock()
+	})
+
+	cfg := config.Config{
+		Version: 1,
+		Settings: config.Settings{
+			TLD:                 "test",
+			CloudflareToken:     "token",
+			CloudflareAccountID: "acc",
+		},
+		Projects: map[string]config.Project{
+			"myapp": {
+				Domain:  "myapp.test",
+				Path:    "/tmp/myapp",
+				Enabled: true,
+				Services: map[string]config.Service{
+					"web": {
+						Proxy:  "http://localhost:3000",
+						Tunnel: "my-tunnel",
+					},
+				},
+			},
+		},
+	}
+
+	if err := mgr.ApplyConfig(cfg); err != nil {
+		t.Fatalf("ApplyConfig: %v", err)
+	}
+
+	// Wait for the background goroutine to start the tunnel and fire the callback.
+	deadline := time.After(5 * time.Second)
+	for {
+		readyMu.Lock()
+		n := len(readyIDs)
+		readyMu.Unlock()
+		if n > 0 {
+			break
+		}
+		select {
+		case <-deadline:
+			t.Fatal("timed out waiting for OnTunnelReady callback")
+		case <-time.After(50 * time.Millisecond):
+		}
+	}
+
+	readyMu.Lock()
+	defer readyMu.Unlock()
+	if len(readyIDs) != 1 {
+		t.Fatalf("expected 1 ready callback, got %d", len(readyIDs))
+	}
+	if readyIDs[0].Project != "myapp" || readyIDs[0].Service != "web" {
+		t.Errorf("unexpected tunnel ID: %v", readyIDs[0])
+	}
+
+	_ = mgr.StopAll()
+}
+
+func TestOnTunnelReady_DoesNotFireForQuickTunnels(t *testing.T) {
+	dir := t.TempDir()
+	script := filepath.Join(dir, "cloudflared")
+	err := os.WriteFile(script, []byte(`#!/bin/sh
+echo "https://test-abc.trycloudflare.com"
+sleep 60
+`), 0755)
+	if err != nil {
+		t.Fatalf("writing mock script: %v", err)
+	}
+	t.Setenv("PATH", dir+":"+os.Getenv("PATH"))
+
+	stateFile := filepath.Join(dir, "tunnels.json")
+	mgr := NewManager(stateFile, nil)
+
+	var called atomic.Bool
+	mgr.OnTunnelReady(func(id TunnelID) {
+		called.Store(true)
+	})
+
+	cfg := config.Config{
+		Version: 1,
+		Settings: config.Settings{
+			TLD: "test",
+		},
+		Projects: map[string]config.Project{
+			"myapp": {
+				Domain:  "myapp.test",
+				Path:    "/tmp/myapp",
+				Enabled: true,
+				Services: map[string]config.Service{
+					"web": {
+						Proxy:  "http://localhost:3000",
+						Tunnel: "true",
+					},
+				},
+			},
+		},
+	}
+
+	if err := mgr.ApplyConfig(cfg); err != nil {
+		t.Fatalf("ApplyConfig: %v", err)
+	}
+
+	// Give the background goroutine time to start the tunnel.
+	time.Sleep(500 * time.Millisecond)
+
+	if called.Load() {
+		t.Error("OnTunnelReady should not fire for quick tunnels")
 	}
 
 	_ = mgr.StopAll()

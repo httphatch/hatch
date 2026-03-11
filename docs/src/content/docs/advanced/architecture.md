@@ -144,6 +144,8 @@ The daemon watches `~/.hatch/config.yml` for changes using filesystem notificati
 
 No daemon restart is required for config changes.
 
+A config reload also triggers automatically when a named tunnel finishes connecting. This ensures Caddy learns about the tunnel's external domains even if the Cloudflare API returned empty results at startup. Multiple tunnel starts within 3 seconds are coalesced into a single reload.
+
 ## API server
 
 The daemon exposes a local HTTP API on `127.0.0.1:42824` for the CLI and dashboard.
@@ -193,7 +195,7 @@ Hatch runs cloudflared as a subprocess, one per active tunnel. See [Tunnels](/do
 
 **Binary discovery:** `exec.LookPath` with fallbacks to `/opt/homebrew/bin/cloudflared` and `/usr/local/bin/cloudflared` for launchd environments.
 
-**Lifecycle:** Tunnels start in background goroutines on daemon boot or config reload. If a tunnel process exits unexpectedly, it stays stopped until manually restarted or the config reloads.
+**Lifecycle:** Tunnels start in background goroutines on daemon boot or config reload. When a named tunnel finishes starting, it fires an `OnTunnelReady` callback that triggers a debounced config reload. This re-resolves the tunnel's external domains from the Cloudflare API and rebuilds the Caddy config so requests route correctly. If a tunnel process exits unexpectedly, it stays stopped until manually restarted or the config reloads.
 
 **State persistence:** Running tunnel metadata is written to `~/.hatch/tunnels.json` for CLI status display. Tunnels are not restored from this file on startup.
 
