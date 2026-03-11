@@ -52,6 +52,15 @@ type Manager struct {
 	stateFile     string
 	onOutput      func(project, service, source, line string)
 	tokenResolver TokenResolver
+	onTunnelReady func(id TunnelID)
+}
+
+// OnTunnelReady registers a callback that fires when a named tunnel
+// finishes starting via ApplyConfig.
+func (m *Manager) OnTunnelReady(fn func(id TunnelID)) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.onTunnelReady = fn
 }
 
 // NewManager creates a new tunnel Manager.
@@ -263,6 +272,18 @@ func (m *Manager) ApplyConfig(cfg config.Config) error {
 		go func(id TunnelID, want desiredTunnel) {
 			if err := m.StartTunnel(id, want.upstream, want.tunnelName, want.token, want.accountID); err != nil {
 				log.Warn().Err(err).Str("tunnel", id.String()).Msg("failed to start tunnel")
+				return
+			}
+			// Fire for named tunnels only. The resulting reload calls
+			// ApplyConfig again, but the tunnel already exists so it
+			// skips starting it, and the callback does not fire again.
+			if want.tunnelName != "" && want.tunnelName != "true" {
+				m.mu.Lock()
+				fn := m.onTunnelReady
+				m.mu.Unlock()
+				if fn != nil {
+					fn(id)
+				}
 			}
 		}(id, want)
 	}
