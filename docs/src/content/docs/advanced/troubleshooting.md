@@ -63,7 +63,9 @@ See [HTTPS and Certificates](/docs/concepts/https-and-certificates) for how the 
 
 ### Daemon failed to start
 
-**Symptoms:** `hatch up` prints `daemon failed to start` and exits.
+**Symptoms:** `hatch up` shows progress lines then prints `daemon process exited` or `timeout waiting for daemon after 120s`.
+
+During startup, `hatch up` shows each subsystem as it initializes (DNS server, Caddy, tunnel domains, etc.). If the daemon process crashes, you will see `daemon process exited; check logs with: hatch logs`. If it stalls, you will see periodic `Waiting for daemon...` messages until the 120-second timeout.
 
 **Fixes:**
 - Run `hatch logs` to see what went wrong
