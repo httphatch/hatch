@@ -110,6 +110,15 @@ func TestTranslate_SingleService(t *testing.T) {
 		t.Errorf("expected dial localhost:3000, got %s", upstreams[0]["dial"])
 	}
 
+	// Verify X-Forwarded-Proto is set on the reverse_proxy handler.
+	rpHeaders := proxyHandlers[1]["headers"].(map[string]any)
+	rpReqHeaders := rpHeaders["request"].(map[string]any)
+	rpSetHeaders := rpReqHeaders["set"].(map[string]any)
+	xfp := rpSetHeaders["X-Forwarded-Proto"].([]string)
+	if xfp[0] != "https" {
+		t.Errorf("expected X-Forwarded-Proto https, got %s", xfp[0])
+	}
+
 	if route["terminal"] != true {
 		t.Error("expected terminal: true")
 	}
@@ -249,6 +258,12 @@ func TestTranslate_WebSocket(t *testing.T) {
 	upgradeHeader := setHeaders["Upgrade"].([]string)
 	if upgradeHeader[0] != "{http.request.header.Upgrade}" {
 		t.Errorf("unexpected Upgrade header: %s", upgradeHeader[0])
+	}
+
+	// Verify X-Forwarded-Proto is also set on WebSocket handlers.
+	xfp := setHeaders["X-Forwarded-Proto"].([]string)
+	if xfp[0] != "https" {
+		t.Errorf("expected X-Forwarded-Proto https, got %s", xfp[0])
 	}
 }
 

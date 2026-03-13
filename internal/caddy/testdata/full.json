@@ -205,6 +205,9 @@
                                 ],
                                 "Upgrade": [
                                   "{http.request.header.Upgrade}"
+                                ],
+                                "X-Forwarded-Proto": [
+                                  "https"
                                 ]
                               }
                             }
@@ -349,6 +352,15 @@
                             }
                           ],
                           "handler": "reverse_proxy",
+                          "headers": {
+                            "request": {
+                              "set": {
+                                "X-Forwarded-Proto": [
+                                  "https"
+                                ]
+                              }
+                            }
+                          },
                           "upstreams": [
                             {
                               "dial": "localhost:8000"
@@ -492,6 +504,15 @@
                             }
                           ],
                           "handler": "reverse_proxy",
+                          "headers": {
+                            "request": {
+                              "set": {
+                                "X-Forwarded-Proto": [
+                                  "https"
+                                ]
+                              }
+                            }
+                          },
                           "upstreams": [
                             {
                               "dial": "localhost:3000"
