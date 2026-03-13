@@ -1,9 +1,13 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/fatih/color"
@@ -17,10 +21,12 @@ import (
 	"github.com/httphatch/hatch/internal/dns"
 )
 
+const daemonStartTimeout = 120 * time.Second
+
 var upCmd = &cobra.Command{
 	Use:     "up",
 	Aliases: []string{"start"},
-	Short: "Start the Hatch daemon",
+	Short:   "Start the Hatch daemon",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runUp()
 	},
@@ -111,7 +117,7 @@ func runUp() error {
 
 	// Verify the daemon actually started by polling the API.
 	if err := waitForDaemon(); err != nil {
-		return fmt.Errorf("daemon failed to start; check logs with: hatch logs")
+		return err
 	}
 
 	// Launch the tray app as a separate process if enabled.
@@ -123,32 +129,122 @@ func runUp() error {
 	return nil
 }
 
-// waitForDaemon polls the daemon API until it responds or the timeout expires.
+// waitForDaemon polls the daemon API while tailing the log file for progress.
+// It returns when the API responds, or fails if the daemon process exits.
 func waitForDaemon() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), daemonStartTimeout)
 	defer cancel()
 
-	client := &http.Client{}
-	url := "http://" + api.DefaultAddr + "/api/status"
+	client := &http.Client{Timeout: 2 * time.Second}
+	statusURL := "http://" + api.DefaultAddr + "/api/status"
+
+	// Open the log file for tailing progress.
+	logPath := config.LogFile()
+	logFile, err := os.Open(logPath)
+	if err != nil {
+		logFile = nil
+	} else {
+		_, _ = logFile.Seek(0, 2)
+		defer logFile.Close()
+	}
+
+	dim := color.New(color.Faint)
+	lastProgress := time.Now()
+	readBuf := make([]byte, 4096)
+	var lineBuf []byte
 
 	for {
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-		if err != nil {
-			return fmt.Errorf("creating request: %w", err)
+		// Read new log data and show progress lines.
+		if logFile != nil {
+			for {
+				n, _ := logFile.Read(readBuf)
+				if n == 0 {
+					break
+				}
+				lineBuf = append(lineBuf, readBuf[:n]...)
+				for {
+					idx := bytes.IndexByte(lineBuf, '\n')
+					if idx < 0 {
+						break
+					}
+					line := string(lineBuf[:idx])
+					lineBuf = lineBuf[idx+1:]
+					if label := startupLabel(line); label != "" {
+						dim.Fprintf(os.Stderr, "  %s\n", label)
+						lastProgress = time.Now()
+					}
+				}
+			}
 		}
-		resp, err := client.Do(req)
-		if err == nil {
+
+		// Periodic nudge if no progress has been shown for a while.
+		if time.Since(lastProgress) > 10*time.Second {
+			dim.Fprintf(os.Stderr, "  Waiting for daemon...\n")
+			lastProgress = time.Now()
+		}
+
+		// Check if the API is up.
+		req, reqErr := http.NewRequestWithContext(ctx, http.MethodGet, statusURL, nil)
+		if reqErr != nil {
+			return fmt.Errorf("creating request: %w", reqErr)
+		}
+		resp, respErr := client.Do(req)
+		if respErr == nil {
 			_ = resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
 				return nil
 			}
 		}
+
+		// Check if the daemon process died.
+		alive, _, _ := daemon.IsRunning()
+		if !alive {
+			// Give it a moment; the PID file may not be written yet.
+			if time.Since(lastProgress) > 5*time.Second {
+				return fmt.Errorf("daemon process exited; check logs with: hatch logs")
+			}
+		}
+
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("timeout waiting for daemon")
+			return fmt.Errorf("timeout waiting for daemon after 120s; check logs with: hatch logs")
 		case <-time.After(250 * time.Millisecond):
 		}
 	}
+}
+
+// startupLabel maps a daemon log message to a user-friendly progress label.
+func startupLabel(line string) string {
+	var entry struct {
+		Message string `json:"message"`
+	}
+	if err := json.Unmarshal([]byte(line), &entry); err != nil {
+		return ""
+	}
+	msg := entry.Message
+
+	labels := []struct {
+		match string
+		label string
+	}{
+		{"dns server started", "Starting DNS server"},
+		{"caddy server started", "Starting Caddy server"},
+		{"resolved tunnel domains", "Resolving tunnel domains"},
+		{"caddy config loaded", "Loading Caddy config"},
+		{"health checker started", "Starting health checker"},
+		{"process manager started", "Starting process manager"},
+		{"tunnel manager started", "Starting tunnel manager"},
+		{"api server started", "Starting API server"},
+		{"config watcher started", "Starting config watcher"},
+		{"daemon running", "Ready"},
+	}
+
+	for _, l := range labels {
+		if strings.Contains(msg, l.match) {
+			return l.label
+		}
+	}
+	return ""
 }
 
 func init() {
