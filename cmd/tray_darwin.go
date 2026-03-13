@@ -173,6 +173,19 @@ func acquireTrayLock() (*os.File, error) {
 		_ = f.Close()
 		return nil, err
 	}
+	// Write PID so other commands can find and signal this process.
+	if err := f.Truncate(0); err != nil {
+		_ = f.Close()
+		return nil, fmt.Errorf("truncate tray lock: %w", err)
+	}
+	if _, err := fmt.Fprintf(f, "%d\n", os.Getpid()); err != nil {
+		_ = f.Close()
+		return nil, fmt.Errorf("write tray pid: %w", err)
+	}
+	if err := f.Sync(); err != nil {
+		_ = f.Close()
+		return nil, fmt.Errorf("sync tray lock: %w", err)
+	}
 	return f, nil
 }
 

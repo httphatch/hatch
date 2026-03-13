@@ -22,9 +22,9 @@ hatch up
 
 ### `hatch down`
 
-Stop the Hatch daemon.
+Stop the Hatch daemon and tray app.
 
-Unloads the launchd plist and stops the daemon gracefully.
+Unloads the launchd plist, stops the daemon gracefully, and terminates the tray app if running.
 
 ```bash
 hatch down
@@ -32,7 +32,7 @@ hatch down
 
 ### `hatch restart`
 
-Restart the daemon (stops then starts).
+Restart the daemon and tray app (stops then starts).
 
 ```bash
 hatch restart

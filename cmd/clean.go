@@ -45,7 +45,8 @@ func runClean(cmd *cobra.Command, args []string) error {
 
 	anyCleaned := false
 
-	// Step 1: Stop daemon
+	// Step 1: Stop tray and daemon
+	stopTray()
 	if daemon.IsLoaded() {
 		if err := daemon.UninstallPlist(); err != nil {
 			fmt.Printf("  %s Failed to remove daemon plist: %v\n", red("✗"), err)
