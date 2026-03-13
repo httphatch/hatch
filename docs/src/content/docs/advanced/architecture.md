@@ -112,11 +112,11 @@ A plist file is installed at `~/Library/LaunchAgents/dev.hatch.daemon.plist`:
 | RunAtLoad | `true` if `auto_start` enabled |
 | KeepAlive | `true` if `auto_start` enabled |
 
-`hatch up` installs and loads the plist. `hatch down` unloads it.
+`hatch up` installs and loads the plist. `hatch down` unloads it and stops the tray app.
 
 ### Tray process
 
-The system tray app runs as a separate process (`hatch _tray`). `hatch up` spawns it automatically when `tray_icon` is enabled. The tray communicates with the daemon over the local HTTP API at `127.0.0.1:42824`. A file lock at `~/.hatch/tray.lock` prevents duplicate tray instances.
+The system tray app runs as a separate process (`hatch _tray`). `hatch up` spawns it automatically when `tray_icon` is enabled. The tray communicates with the daemon over the local HTTP API at `127.0.0.1:42824`. A file lock at `~/.hatch/tray.lock` prevents duplicate tray instances and stores the tray PID so that `hatch down` can send SIGTERM to stop it.
 
 ### Startup sequence
 

@@ -79,7 +79,7 @@ Changes in General are saved to `config.yml` and the daemon reloads automaticall
 
 ## Tray icon
 
-The tray icon in the macOS menu bar provides quick access to all running projects and daemon controls. The tray runs as a separate process from the daemon, so it stays visible when the daemon stops.
+The tray icon in the macOS menu bar provides quick access to all running projects and daemon controls. The tray runs as a separate process from the daemon. Running `hatch down` or `hatch restart` stops both the daemon and the tray. Running `hatch up` or `hatch restart` relaunches the tray automatically when `tray_icon` is enabled.
 
 Menu items:
 - **Open Dashboard** — shows the dashboard window
