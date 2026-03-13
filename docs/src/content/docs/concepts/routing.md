@@ -3,7 +3,7 @@ title: "Routing"
 description: "How Hatch maps domains, paths, and subdomains to your local services."
 category: "concepts"
 order: 3
-lastUpdated: 2025-03-05
+lastUpdated: 2026-03-13
 ---
 
 # Routing
@@ -93,6 +93,12 @@ services:
 ```
 
 This adds the necessary `Connection` and `Upgrade` headers and enables instant response flushing so WebSocket frames pass through immediately.
+
+## Proxy headers
+
+Hatch terminates TLS and forwards requests to your local HTTP upstreams. It sets `X-Forwarded-Proto: https` on every proxied request so your application knows the original protocol. Frameworks like Laravel, Rails, Django, and Express use this header to generate correct URLs, set secure cookies, and handle HTTPS redirects.
+
+CORS headers are added automatically to all responses. See [Architecture](/docs/advanced/architecture) for details.
 
 ## How routing connects to the proxy
 

@@ -85,6 +85,7 @@ Hatch embeds [Caddy](https://caddyserver.com) as a library. Caddy handles TLS te
 - **Host matching** — routes are matched by domain (e.g., `myapp.test`)
 - **Path matching** — services with a `route` field match a path prefix (e.g., `/api/*`)
 - **Subdomain matching** — services with a `subdomain` field match `<sub>.<domain>`
+- **Proxy headers** — all upstreams receive `X-Forwarded-Proto: https` so frameworks generate correct URLs and set secure cookies
 - **WebSocket support** — services with `websocket: true` get `Connection`/`Upgrade` header forwarding and instant response flushing
 
 Routes are sorted by specificity: subdomains first, then path routes, then catch-all.

@@ -257,21 +257,25 @@ func buildRoute(domain string, svc config.Service, proxyURL string) map[string]a
 // rewrite proxy sits between Caddy and the real upstream.
 func buildReverseProxyHandler(proxyURL string, websocket bool, domain, displayUpstream string) map[string]any {
 	handler := map[string]any{
-		"handler":          "reverse_proxy",
-		"upstreams":        []map[string]any{{"dial": extractDialAddress(proxyURL)}},
-		"handle_response":  buildErrorResponse(domain, displayUpstream),
+		"handler":         "reverse_proxy",
+		"upstreams":       []map[string]any{{"dial": extractDialAddress(proxyURL)}},
+		"handle_response": buildErrorResponse(domain, displayUpstream),
+	}
+
+	requestHeaders := map[string]any{
+		"X-Forwarded-Proto": []string{"https"},
 	}
 
 	if websocket {
 		handler["flush_interval"] = -1
-		handler["headers"] = map[string]any{
-			"request": map[string]any{
-				"set": map[string]any{
-					"Connection": []string{"{http.request.header.Connection}"},
-					"Upgrade":    []string{"{http.request.header.Upgrade}"},
-				},
-			},
-		}
+		requestHeaders["Connection"] = []string{"{http.request.header.Connection}"}
+		requestHeaders["Upgrade"] = []string{"{http.request.header.Upgrade}"}
+	}
+
+	handler["headers"] = map[string]any{
+		"request": map[string]any{
+			"set": requestHeaders,
+		},
 	}
 
 	return handler
