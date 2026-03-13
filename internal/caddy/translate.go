@@ -284,7 +284,10 @@ func buildFallbackRoute(infos []routeInfo) map[string]any {
 	sorted := make([]routeInfo, len(infos))
 	copy(sorted, infos)
 	sort.SliceStable(sorted, func(i, j int) bool {
-		return sorted[i].domain < sorted[j].domain
+		if sorted[i].domain != sorted[j].domain {
+			return sorted[i].domain < sorted[j].domain
+		}
+		return sorted[i].service.Proxy < sorted[j].service.Proxy
 	})
 
 	var rows []string
@@ -456,7 +459,10 @@ func buildServerErrorRoutes(infos []routeInfo) map[string]any {
 	sorted := make([]routeInfo, len(infos))
 	copy(sorted, infos)
 	sort.SliceStable(sorted, func(i, j int) bool {
-		return sorted[i].domain < sorted[j].domain
+		if sorted[i].domain != sorted[j].domain {
+			return sorted[i].domain < sorted[j].domain
+		}
+		return sorted[i].service.Proxy < sorted[j].service.Proxy
 	})
 
 	var rows []string
