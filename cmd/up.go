@@ -145,7 +145,7 @@ func waitForDaemon() error {
 		logFile = nil
 	} else {
 		_, _ = logFile.Seek(0, 2)
-		defer logFile.Close()
+		defer logFile.Close() //nolint:errcheck // best-effort close on read-only file
 	}
 
 	dim := color.New(color.Faint)
@@ -170,7 +170,7 @@ func waitForDaemon() error {
 					line := string(lineBuf[:idx])
 					lineBuf = lineBuf[idx+1:]
 					if label := startupLabel(line); label != "" {
-						dim.Fprintf(os.Stderr, "  %s\n", label)
+						_, _ = dim.Fprintf(os.Stderr, "  %s\n", label)
 						lastProgress = time.Now()
 					}
 				}
@@ -179,7 +179,7 @@ func waitForDaemon() error {
 
 		// Periodic nudge if no progress has been shown for a while.
 		if time.Since(lastProgress) > 10*time.Second {
-			dim.Fprintf(os.Stderr, "  Waiting for daemon...\n")
+			_, _ = dim.Fprintf(os.Stderr, "  Waiting for daemon...\n")
 			lastProgress = time.Now()
 		}
 
