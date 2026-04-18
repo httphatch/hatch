@@ -3,12 +3,12 @@ title: "Architecture"
 description: "Deep technical overview of how Hatch's DNS, TLS, proxy, daemon, and tunnel systems work."
 category: "advanced"
 order: 1
-lastUpdated: 2025-03-05
+lastUpdated: 2026-04-18
 ---
 
 # Architecture
 
-Hatch is a single daemon that orchestrates four subsystems: DNS resolution, TLS certificate management, HTTPS reverse proxying, and a management API. This page explains each one.
+Hatch is a single daemon that orchestrates five subsystems: DNS resolution, TLS certificate management, HTTPS reverse proxying, session management, and a management API. This page explains each one.
 
 ## Architecture overview
 
@@ -125,23 +125,28 @@ The system tray app runs as a separate process (`hatch _tray`). `hatch up` spawn
 3. Load and validate config
 4. Verify ports are available
 5. Start DNS server
-6. Start Caddy with translated config
-7. Start health checker
-8. Start process manager (supervised commands)
-9. Start tunnel manager (Cloudflare Tunnels)
-10. Start API server (`127.0.0.1:42824`)
-11. Start config file watcher
-12. Block until shutdown signal
+6. Start session manager (restore sessions from state file)
+7. Start Caddy with translated config (including session routes)
+8. Start health checker
+9. Start process manager (supervised commands)
+10. Start tunnel manager (Cloudflare Tunnels)
+11. Start API server (`127.0.0.1:42824`)
+12. Start config file watcher
+13. Start session idle ticker (checks every 60 seconds)
+14. Block until shutdown signal
 
 ### Config watching
 
 The daemon watches `~/.hatch/config.yml` for changes using filesystem notifications. When a change is detected:
 
 1. Reload and validate the config
-2. Re-translate to Caddy JSON
-3. Push to Caddy via admin API
-4. Update health checker targets
-5. Reconcile tunnels (start new, stop removed)
+2. Reconcile sessions (destroy sessions whose parent project was disabled or removed)
+3. Merge session synthetic projects into config
+4. Re-translate to Caddy JSON
+5. Push to Caddy via admin API
+6. Update health checker targets
+7. Reconcile managed processes
+8. Reconcile tunnels (start new, stop removed)
 
 No daemon restart is required for config changes.
 
@@ -171,6 +176,10 @@ The daemon exposes a local HTTP API on `127.0.0.1:42824` for the CLI and dashboa
 | POST | `/api/tunnels/{project}/{service}/start` | Start a tunnel |
 | POST | `/api/tunnels/{project}/{service}/stop` | Stop a tunnel |
 | POST | `/api/restart` | Reload config |
+| POST | `/api/sessions` | Create a session |
+| GET | `/api/sessions` | List sessions |
+| GET | `/api/sessions/{project}/{name}` | Get session details |
+| DELETE | `/api/sessions/{project}/{name}` | Destroy a session |
 
 The API is localhost-only.
 
@@ -183,6 +192,41 @@ The tray process serves additional endpoints for daemon lifecycle control:
 | POST | `/api/tray/start` | Start the daemon via launchd |
 | POST | `/api/tray/stop` | Stop the daemon via launchd |
 | POST | `/api/tray/restart` | Restart the daemon via launchd |
+
+## Sessions
+
+Sessions are ephemeral project instances with dynamically allocated ports and unique subdomains. See [Sessions](/docs/concepts/sessions) for the user-facing explanation.
+
+**Synthetic config:** When sessions exist, the session manager generates synthetic project entries and merges them into the config before Caddy translation. Each session service gets a `proxy` pointing to its allocated port and a `command` with `{{port}}` substituted. This means Caddy, the health checker, and the process manager all handle session services through the existing pipeline with zero code changes.
+
+**Port allocation:** The port allocator scans the ephemeral range (49152-65535 by default) for free TCP ports using `net.Listen` probes. Ports used by static project `proxy` URLs are excluded. Allocated ports are tracked in memory and released when a session is destroyed.
+
+**Idle tracking:** A background ticker runs every 60 seconds and checks each session's `LastActive` timestamp against its TTL. Sessions that exceed their TTL are destroyed. The `LastActive` timestamp is updated when HTTP traffic hits the session's subdomain (via Caddy access log parsing or API activity).
+
+**State persistence:** Running sessions are written to `~/.hatch/sessions.json` on every create/destroy. On daemon restart, sessions are restored from this file. If previously allocated ports are taken, new ones are allocated and service commands are re-templated.
+
+**Limits:** A maximum of 20 concurrent sessions is enforced. Session names are validated as DNS hostname labels.
+
+## MCP server
+
+The `hatch mcp` command starts a Model Context Protocol server using stdio transport. AI coding tools (Claude Code, Cursor, etc.) connect to it for programmatic session and project management.
+
+**Configuration:**
+
+```json
+{
+  "mcpServers": {
+    "hatch": {
+      "command": "hatch",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+**Architecture:** The MCP server is a thin client that translates MCP tool calls into HTTP requests to the daemon REST API at `127.0.0.1:42824`. It does not manage state directly.
+
+**Tools:** `create_session`, `stop_session`, `list_sessions`, `list_projects`, `restart_service`, `get_daemon_status`.
 
 ## Tunnels
 
@@ -221,6 +265,7 @@ See [Process Management](/docs/concepts/process-management) for the user-facing 
 | `~/.hatch/tray.lock` | Tray instance lock file |
 | `~/.hatch/processes.json` | Managed process PID state file |
 | `~/.hatch/tunnels.json` | Active tunnel metadata |
+| `~/.hatch/sessions.json` | Session state (ports, TTL, timestamps) |
 | `~/.hatch/caddy/` | Caddy data (cached site certs) |
 | `/etc/resolver/<tld>` | macOS DNS resolver override |
 | `~/Library/LaunchAgents/dev.hatch.daemon.plist` | Launchd service |

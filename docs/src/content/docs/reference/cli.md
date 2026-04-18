@@ -3,7 +3,7 @@ title: "CLI Commands"
 description: "Complete reference for all Hatch CLI commands, flags, and options."
 category: "reference"
 order: 1
-lastUpdated: 2025-03-05
+lastUpdated: 2026-04-18
 ---
 
 # CLI Commands
@@ -217,6 +217,32 @@ hatch tunnel status
 ```
 
 See [Share a Dev Server](/docs/guides/share-dev-server) for setup and configuration.
+
+## Sessions
+
+### `hatch session list`
+
+List all active sessions with their domains, ports, and TTL.
+
+```bash
+hatch session list
+```
+
+### `hatch session stop <project>/<name>`
+
+Stop a specific session and release its ports.
+
+```bash
+hatch session stop myapp/fix-auth
+```
+
+### `hatch session stop-all`
+
+Stop all active sessions.
+
+```bash
+hatch session stop-all
+```
 
 ## Config
 
