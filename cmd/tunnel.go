@@ -26,7 +26,7 @@ var tunnelStartCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		endpoint := fmt.Sprintf("%s/api/tunnels/%s/%s/start", daemonBaseURL, url.PathEscape(project), url.PathEscape(service))
+		endpoint := fmt.Sprintf("%s/api/tunnels/%s/%s/start", daemonBaseURL(), url.PathEscape(project), url.PathEscape(service))
 		client := &http.Client{Timeout: 30 * time.Second}
 		httpResp, err := client.Post(endpoint, "application/json", strings.NewReader("{}"))
 		if err != nil {
@@ -60,7 +60,7 @@ var tunnelStopCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		endpoint := fmt.Sprintf("%s/api/tunnels/%s/%s/stop", daemonBaseURL, url.PathEscape(project), url.PathEscape(service))
+		endpoint := fmt.Sprintf("%s/api/tunnels/%s/%s/stop", daemonBaseURL(), url.PathEscape(project), url.PathEscape(service))
 		client := &http.Client{Timeout: 30 * time.Second}
 		httpResp, err := client.Post(endpoint, "application/json", strings.NewReader("{}"))
 		if err != nil {
@@ -80,7 +80,7 @@ var tunnelStatusCmd = &cobra.Command{
 	Short: "Show status of all Cloudflare tunnels",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		endpoint := fmt.Sprintf("%s/api/tunnels", daemonBaseURL)
+		endpoint := fmt.Sprintf("%s/api/tunnels", daemonBaseURL())
 		client := &http.Client{Timeout: 30 * time.Second}
 		httpResp, err := client.Get(endpoint)
 		if err != nil {

@@ -66,3 +66,8 @@ func CaddyDir() string {
 func SessionStatePath() string {
 	return filepath.Join(Dir(), "sessions.json")
 }
+
+// IsCustomHome returns true if HATCH_HOME is set to a non-default value.
+func IsCustomHome() bool {
+	return os.Getenv("HATCH_HOME") != ""
+}

@@ -107,10 +107,14 @@ func (d *Daemon) Run(ctx context.Context) error {
 	}
 
 	// Start DNS server.
+	dnsPort := dns.DefaultPort
+	if cfg.Settings.DNSPort != 0 {
+		dnsPort = cfg.Settings.DNSPort
+	}
 	dnsSrv, err := dns.NewServer(dns.ServerConfig{
 		TLD:      cfg.Settings.TLD,
 		ListenIP: dns.DefaultListenIP,
-		Port:     dns.DefaultPort,
+		Port:     dnsPort,
 	})
 	if err != nil {
 		_ = RemovePID(d.pidFile)
@@ -121,7 +125,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 		return fmt.Errorf("start dns: %w", err)
 	}
 	d.dns = dnsSrv
-	log.Info().Str("tld", cfg.Settings.TLD).Int("port", dns.DefaultPort).Msg("dns server started")
+	log.Info().Str("tld", cfg.Settings.TLD).Int("port", dnsPort).Msg("dns server started")
 
 	// Clear Caddy's cached PKI so it uses our intermediate CA.
 	if err := caddy.ClearPKICache(); err != nil {
@@ -129,8 +133,12 @@ func (d *Daemon) Run(ctx context.Context) error {
 	}
 
 	// Start Caddy server.
+	caddyAdminAddr := caddy.DefaultAdminAddr
+	if cfg.Settings.CaddyAdminPort != 0 {
+		caddyAdminAddr = fmt.Sprintf("localhost:%d", cfg.Settings.CaddyAdminPort)
+	}
 	caddySrv := caddy.NewServer(caddy.ServerConfig{
-		AdminAddr: caddy.DefaultAdminAddr,
+		AdminAddr: caddyAdminAddr,
 	})
 	if err := caddySrv.Start(ctx); err != nil {
 		d.shutdownPartial()
@@ -238,8 +246,12 @@ func (d *Daemon) Run(ctx context.Context) error {
 	log.Info().Msg("tunnel manager started")
 
 	// Start API server.
+	apiAddr := api.DefaultAddr
+	if cfg.Settings.APIPort != 0 {
+		apiAddr = fmt.Sprintf("127.0.0.1:%d", cfg.Settings.APIPort)
+	}
 	apiSrv := api.NewServer(api.ServerConfig{
-		Addr:      api.DefaultAddr,
+		Addr:      apiAddr,
 		Health:    d.health,
 		Processes: d.processes,
 		Sessions:  d.sessions,
@@ -256,7 +268,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 		return fmt.Errorf("start api server: %w", err)
 	}
 	d.api = apiSrv
-	log.Info().Str("addr", api.DefaultAddr).Msg("api server started")
+	log.Info().Str("addr", apiAddr).Msg("api server started")
 
 	// Start config watcher.
 	watcher, err := config.NewWatcher(d.cfg, d.onConfigReload)

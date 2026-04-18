@@ -23,7 +23,7 @@ var sessionListCmd = &cobra.Command{
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := &http.Client{Timeout: 10 * time.Second}
-		resp, err := client.Get(daemonBaseURL + "/api/sessions")
+		resp, err := client.Get(daemonBaseURL() +"/api/sessions")
 		if err != nil {
 			return fmt.Errorf("daemon not running, start with: hatch up")
 		}
@@ -71,7 +71,7 @@ var sessionStopCmd = &cobra.Command{
 		}
 
 		client := &http.Client{Timeout: 30 * time.Second}
-		endpoint := fmt.Sprintf("%s/api/sessions/%s/%s", daemonBaseURL, url.PathEscape(project), url.PathEscape(name))
+		endpoint := fmt.Sprintf("%s/api/sessions/%s/%s", daemonBaseURL(), url.PathEscape(project), url.PathEscape(name))
 		req, err := http.NewRequest(http.MethodDelete, endpoint, nil)
 		if err != nil {
 			return err
@@ -97,7 +97,7 @@ var sessionStopAllCmd = &cobra.Command{
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := &http.Client{Timeout: 10 * time.Second}
-		resp, err := client.Get(daemonBaseURL + "/api/sessions")
+		resp, err := client.Get(daemonBaseURL() +"/api/sessions")
 		if err != nil {
 			return fmt.Errorf("daemon not running, start with: hatch up")
 		}
@@ -117,7 +117,7 @@ var sessionStopAllCmd = &cobra.Command{
 		}
 
 		for _, s := range sessions {
-			endpoint := fmt.Sprintf("%s/api/sessions/%s/%s", daemonBaseURL, url.PathEscape(s.Project), url.PathEscape(s.Name))
+			endpoint := fmt.Sprintf("%s/api/sessions/%s/%s", daemonBaseURL(), url.PathEscape(s.Project), url.PathEscape(s.Name))
 			req, err := http.NewRequest(http.MethodDelete, endpoint, nil)
 			if err != nil {
 				continue

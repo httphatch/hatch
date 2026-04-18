@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/httphatch/hatch/internal/api"
+	"github.com/httphatch/hatch/internal/config"
 )
 
 // DaemonClient wraps HTTP calls to the Hatch daemon REST API.
@@ -18,10 +19,15 @@ type DaemonClient struct {
 	http    *http.Client
 }
 
-// NewDaemonClient creates a client that talks to the daemon at the default address.
+// NewDaemonClient creates a client that talks to the daemon,
+// reading the API port from config if set.
 func NewDaemonClient() *DaemonClient {
+	base := "http://" + api.DefaultAddr
+	if cfg, err := config.Load(); err == nil && cfg.Settings.APIPort != 0 {
+		base = fmt.Sprintf("http://127.0.0.1:%d", cfg.Settings.APIPort)
+	}
 	return &DaemonClient{
-		baseURL: "http://" + api.DefaultAddr,
+		baseURL: base,
 		http:    &http.Client{Timeout: 30 * time.Second},
 	}
 }

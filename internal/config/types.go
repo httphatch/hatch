@@ -27,6 +27,9 @@ type Settings struct {
 	SessionPortMin      int    `yaml:"session_port_min,omitempty" json:"session_port_min,omitempty"`
 	SessionPortMax      int    `yaml:"session_port_max,omitempty" json:"session_port_max,omitempty"`
 	SessionTTL          int    `yaml:"session_ttl,omitempty" json:"session_ttl,omitempty"`
+	APIPort             int    `yaml:"api_port,omitempty" json:"api_port,omitempty"`
+	DNSPort             int    `yaml:"dns_port,omitempty" json:"dns_port,omitempty"`
+	CaddyAdminPort      int    `yaml:"caddy_admin_port,omitempty" json:"caddy_admin_port,omitempty"`
 }
 
 // Project defines a single project's proxy configuration.

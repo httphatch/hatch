@@ -7,7 +7,9 @@ LDFLAGS := -s -w \
 	-X github.com/httphatch/hatch/cmd.commit=$(COMMIT) \
 	-X github.com/httphatch/hatch/cmd.date=$(DATE)
 
-.PHONY: build build-test run test lint clean app frontend icon docs
+DEV_HOME := $(HOME)/.hatch-dev
+
+.PHONY: build build-test run test lint clean app frontend icon docs dev dev-init dev-down dev-status
 
 build: frontend
 	go build -ldflags '$(LDFLAGS)' -o hatch .
@@ -35,6 +37,18 @@ icon:
 
 docs:
 	cd docs && npm ci && npm run dev
+
+dev-init: build
+	HATCH_HOME=$(DEV_HOME) ./hatch init
+
+dev: build
+	HATCH_HOME=$(DEV_HOME) ./hatch up
+
+dev-down:
+	HATCH_HOME=$(DEV_HOME) ./hatch down
+
+dev-status:
+	HATCH_HOME=$(DEV_HOME) ./hatch status
 
 clean:
 	rm -f hatch

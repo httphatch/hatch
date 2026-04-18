@@ -11,9 +11,18 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/httphatch/hatch/internal/api"
+	"github.com/httphatch/hatch/internal/config"
 )
 
-var daemonBaseURL = "http://" + api.DefaultAddr
+// daemonBaseURL returns the HTTP base URL for the daemon API,
+// reading the configured api_port from config.yml if set.
+func daemonBaseURL() string {
+	cfg, err := config.Load()
+	if err != nil || cfg.Settings.APIPort == 0 {
+		return "http://" + api.DefaultAddr
+	}
+	return fmt.Sprintf("http://127.0.0.1:%d", cfg.Settings.APIPort)
+}
 
 var processCmd = &cobra.Command{
 	Use:   "process",
@@ -80,7 +89,7 @@ func parseProcessArg(arg string) (project, service string, err error) {
 }
 
 func postProcessAction(project, service, action string) error {
-	endpoint := fmt.Sprintf("%s/api/processes/%s/%s/%s", daemonBaseURL, url.PathEscape(project), url.PathEscape(service), action)
+	endpoint := fmt.Sprintf("%s/api/processes/%s/%s/%s", daemonBaseURL(), url.PathEscape(project), url.PathEscape(service), action)
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Post(endpoint, "application/json", strings.NewReader("{}"))
 	if err != nil {

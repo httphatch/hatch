@@ -96,6 +96,16 @@ func validateSettings(s Settings) []error {
 		errs = append(errs, fmt.Errorf("settings.session_ttl must be >= 0, got %d", s.SessionTTL))
 	}
 
+	if s.APIPort != 0 && (s.APIPort < 1 || s.APIPort > 65535) {
+		errs = append(errs, fmt.Errorf("settings.api_port must be 1-65535, got %d", s.APIPort))
+	}
+	if s.DNSPort != 0 && (s.DNSPort < 1 || s.DNSPort > 65535) {
+		errs = append(errs, fmt.Errorf("settings.dns_port must be 1-65535, got %d", s.DNSPort))
+	}
+	if s.CaddyAdminPort != 0 && (s.CaddyAdminPort < 1 || s.CaddyAdminPort > 65535) {
+		errs = append(errs, fmt.Errorf("settings.caddy_admin_port must be 1-65535, got %d", s.CaddyAdminPort))
+	}
+
 	return errs
 }
 

@@ -10,7 +10,7 @@ import (
 
 func TestGeneratePlist_KeepAliveTrue(t *testing.T) {
 	data, err := GeneratePlist(LaunchdConfig{
-		Label:            PlistLabel,
+		Label:            PlistLabel(),
 		BinaryPath:       "/usr/local/bin/hatch",
 		WorkingDirectory: "/tmp",
 		LogDir:           "/tmp",
@@ -33,7 +33,7 @@ func TestGeneratePlist_KeepAliveTrue(t *testing.T) {
 
 func TestGeneratePlist_KeepAliveFalse(t *testing.T) {
 	data, err := GeneratePlist(LaunchdConfig{
-		Label:            PlistLabel,
+		Label:            PlistLabel(),
 		BinaryPath:       "/usr/local/bin/hatch",
 		WorkingDirectory: "/tmp",
 		LogDir:           "/tmp",
@@ -55,7 +55,7 @@ func TestGeneratePlist_KeepAliveFalse(t *testing.T) {
 
 func TestGeneratePlist_ContainsRunArg(t *testing.T) {
 	data, err := GeneratePlist(LaunchdConfig{
-		Label:            PlistLabel,
+		Label:            PlistLabel(),
 		BinaryPath:       "/usr/local/bin/hatch",
 		WorkingDirectory: "/tmp",
 		LogDir:           "/tmp",
@@ -72,7 +72,7 @@ func TestGeneratePlist_ContainsRunArg(t *testing.T) {
 func TestGeneratePlist_BinaryPath(t *testing.T) {
 	binPath := "/opt/hatch/bin/hatch"
 	data, err := GeneratePlist(LaunchdConfig{
-		Label:            PlistLabel,
+		Label:            PlistLabel(),
 		BinaryPath:       binPath,
 		WorkingDirectory: "/tmp",
 		LogDir:           "/tmp",
@@ -88,7 +88,7 @@ func TestGeneratePlist_BinaryPath(t *testing.T) {
 
 func TestGeneratePlist_ValidXML(t *testing.T) {
 	data, err := GeneratePlist(LaunchdConfig{
-		Label:            PlistLabel,
+		Label:            PlistLabel(),
 		BinaryPath:       "/usr/local/bin/hatch",
 		WorkingDirectory: "/tmp",
 		LogDir:           "/tmp",
@@ -112,7 +112,7 @@ func TestPlistPath(t *testing.T) {
 	}
 
 	home, _ := os.UserHomeDir()
-	expected := filepath.Join(home, "Library", "LaunchAgents", PlistLabel+".plist")
+	expected := filepath.Join(home, "Library", "LaunchAgents", PlistLabel()+".plist")
 	if path != expected {
 		t.Errorf("PlistPath() = %q, want %q", path, expected)
 	}
