@@ -34,7 +34,7 @@ icon:
 	rsvg-convert -f png -w 44 -h 44 split-solid-full.svg -o internal/tray/icon.png
 
 docs:
-	cd docs && npx vitepress dev
+	cd docs && npm ci && npm run dev
 
 clean:
 	rm -f hatch
