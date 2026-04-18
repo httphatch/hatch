@@ -24,6 +24,9 @@ type Settings struct {
 	LogLevel            string `yaml:"log_level" json:"log_level"`
 	CloudflareToken     string `yaml:"cloudflare_token,omitempty" json:"cloudflare_token,omitempty"`
 	CloudflareAccountID string `yaml:"cloudflare_account_id,omitempty" json:"cloudflare_account_id,omitempty"`
+	SessionPortMin      int    `yaml:"session_port_min,omitempty" json:"session_port_min,omitempty"`
+	SessionPortMax      int    `yaml:"session_port_max,omitempty" json:"session_port_max,omitempty"`
+	SessionTTL          int    `yaml:"session_ttl,omitempty" json:"session_ttl,omitempty"`
 }
 
 // Project defines a single project's proxy configuration.

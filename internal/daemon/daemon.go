@@ -21,29 +21,32 @@ import (
 	"github.com/httphatch/hatch/internal/dns"
 	"github.com/httphatch/hatch/internal/health"
 	"github.com/httphatch/hatch/internal/process"
+	"github.com/httphatch/hatch/internal/session"
 	"github.com/httphatch/hatch/internal/tunnel"
 )
 
 // Daemon orchestrates all Hatch subsystems as a long-running background process.
 type Daemon struct {
-	caddy          *caddy.Server
-	dns            *dns.Server
-	health         *health.Checker
-	processes      *process.Manager
-	tunnels        *tunnel.Manager
-	watcher        *config.Watcher
-	api            *api.Server
-	pidFile        *os.File
-	caPaths        certs.CAPaths
-	cfg            config.Config
-	rewriteProxies map[string]*tunnel.RewriteProxy
+	caddy            *caddy.Server
+	dns              *dns.Server
+	health           *health.Checker
+	processes        *process.Manager
+	sessions         *session.Manager
+	tunnels          *tunnel.Manager
+	watcher          *config.Watcher
+	api              *api.Server
+	pidFile          *os.File
+	caPaths          certs.CAPaths
+	cfg              config.Config
+	rewriteProxies   map[string]*tunnel.RewriteProxy
 	tunnelReadyTimer *time.Timer
-	mu             sync.Mutex
-	running        bool
-	version        string
-	startTime      time.Time
-	logHub         *api.LogHub
-	outputHub      *api.ProcessOutputHub
+	idleTicker       *time.Ticker
+	mu               sync.Mutex
+	running          bool
+	version          string
+	startTime        time.Time
+	logHub           *api.LogHub
+	outputHub        *api.ProcessOutputHub
 }
 
 // New creates a new Daemon instance with the given version and log hub.
@@ -136,6 +139,29 @@ func (d *Daemon) Run(ctx context.Context) error {
 	d.caddy = caddySrv
 	log.Info().Msg("caddy server started")
 
+	// Start session manager (before Caddy so restored sessions are included).
+	sessionTTL := time.Duration(cfg.Settings.SessionTTL) * time.Second
+	sessMgr := session.NewManager(session.ManagerConfig{
+		StateFile:  config.SessionStatePath(),
+		PortMin:    cfg.Settings.SessionPortMin,
+		PortMax:    cfg.Settings.SessionPortMax,
+		DefaultTTL: sessionTTL,
+		OnReload: func() {
+			if err := d.ReloadConfig(); err != nil {
+				log.Error().Err(err).Msg("failed to reload config after session change")
+			}
+		},
+	})
+	sessMgr.Ports().ExcludePorts(session.StaticPorts(cfg))
+	if err := sessMgr.RestoreState(cfg); err != nil {
+		log.Warn().Err(err).Msg("failed to restore sessions")
+	}
+	d.sessions = sessMgr
+	log.Info().Msg("session manager started")
+
+	// Merge session synthetic projects into cfg for initial Caddy load.
+	mergedCfg := sessMgr.MergeIntoConfig(cfg)
+
 	// Resolve tunnel domains from Cloudflare API before building Caddy config.
 	tunnelDomains := tunnel.ResolveTunnelDomains(cfg, cloudflare.NewClient())
 	if len(tunnelDomains) > 0 {
@@ -151,7 +177,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 	tunnelProxies := d.startTunnelProxies(cfg, tunnelDomains)
 
 	// Load translated config into Caddy.
-	caddyCfg := caddy.Translate(cfg, caddy.PKIPaths{
+	caddyCfg := caddy.Translate(mergedCfg, caddy.PKIPaths{
 		RootCert:         d.caPaths.Cert,
 		RootKey:          d.caPaths.Key,
 		IntermediateCert: d.caPaths.IntermediateCert,
@@ -165,7 +191,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 
 	// Start health checker.
 	checker := health.NewChecker(health.CheckerConfig{})
-	if err := checker.Start(cfg); err != nil {
+	if err := checker.Start(mergedCfg); err != nil {
 		d.shutdownPartial()
 		return fmt.Errorf("start health checker: %w", err)
 	}
@@ -184,7 +210,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 			d.outputHub.Write(project, service, source, line)
 		},
 	})
-	if err := procMgr.ApplyConfig(cfg); err != nil {
+	if err := procMgr.ApplyConfig(mergedCfg); err != nil {
 		d.shutdownPartial()
 		return fmt.Errorf("apply process config: %w", err)
 	}
@@ -216,6 +242,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 		Addr:      api.DefaultAddr,
 		Health:    d.health,
 		Processes: d.processes,
+		Sessions:  d.sessions,
 		Tunnels:   d.tunnels,
 		Daemon:    d,
 		CAPaths:   d.caPaths,
@@ -239,6 +266,14 @@ func (d *Daemon) Run(ctx context.Context) error {
 	}
 	d.watcher = watcher
 	log.Info().Msg("config watcher started")
+
+	// Start idle session ticker.
+	d.idleTicker = time.NewTicker(60 * time.Second)
+	go func() {
+		for range d.idleTicker.C {
+			d.sessions.CheckIdleSessions()
+		}
+	}()
 
 	d.mu.Lock()
 	d.running = true
@@ -264,6 +299,10 @@ func (d *Daemon) Shutdown() error {
 	if d.tunnelReadyTimer != nil {
 		d.tunnelReadyTimer.Stop()
 		d.tunnelReadyTimer = nil
+	}
+	if d.idleTicker != nil {
+		d.idleTicker.Stop()
+		d.idleTicker = nil
 	}
 	d.mu.Unlock()
 
@@ -296,6 +335,12 @@ func (d *Daemon) Shutdown() error {
 			errs = append(errs, fmt.Errorf("stop tunnel manager: %w", err))
 		}
 		log.Info().Msg("tunnel manager stopped")
+	}
+
+	// Session manager (before process manager so session processes are cleaned up).
+	if d.sessions != nil {
+		d.sessions.Stop()
+		log.Info().Msg("session manager stopped")
 	}
 
 	// Process manager.
@@ -371,7 +416,15 @@ func (d *Daemon) onConfigReload(cfg config.Config) {
 	}
 	d.mu.Unlock()
 
-	caddyCfg := caddy.Translate(cfg, caddy.PKIPaths{
+	// Merge session synthetic projects into config for Caddy and process manager.
+	mergedCfg := cfg
+	if d.sessions != nil {
+		d.sessions.ReconcileWithConfig(cfg)
+		d.sessions.Ports().ExcludePorts(session.StaticPorts(cfg))
+		mergedCfg = d.sessions.MergeIntoConfig(cfg)
+	}
+
+	caddyCfg := caddy.Translate(mergedCfg, caddy.PKIPaths{
 		RootCert:         d.caPaths.Cert,
 		RootKey:          d.caPaths.Key,
 		IntermediateCert: d.caPaths.IntermediateCert,
@@ -388,10 +441,10 @@ func (d *Daemon) onConfigReload(cfg config.Config) {
 		log.Info().Str("service", key).Msg("old rewrite proxy stopped")
 	}
 
-	d.health.UpdateConfig(cfg)
+	d.health.UpdateConfig(mergedCfg)
 
 	if d.processes != nil {
-		if err := d.processes.ApplyConfig(cfg); err != nil {
+		if err := d.processes.ApplyConfig(mergedCfg); err != nil {
 			log.Error().Err(err).Msg("failed to apply process config")
 		}
 	}
@@ -425,6 +478,9 @@ func (d *Daemon) shutdownPartial() {
 	d.stopTunnelProxies()
 	if d.tunnels != nil {
 		_ = d.tunnels.StopAll()
+	}
+	if d.sessions != nil {
+		d.sessions.Stop()
 	}
 	if d.processes != nil {
 		_ = d.processes.Stop()

@@ -11,8 +11,10 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/httphatch/hatch/internal/certs"
+	"github.com/httphatch/hatch/internal/config"
 	"github.com/httphatch/hatch/internal/health"
 	"github.com/httphatch/hatch/internal/process"
+	"github.com/httphatch/hatch/internal/session"
 	"github.com/httphatch/hatch/internal/tunnel"
 )
 
@@ -39,12 +41,21 @@ type ProcessController interface {
 	RestartProcess(id process.ServiceID) error
 }
 
+// SessionController provides session management operations.
+type SessionController interface {
+	CreateSession(project, name string, ttl time.Duration, baseCfg config.Config) (*session.Session, error)
+	DestroySession(id session.SessionID) error
+	Sessions() []session.Session
+	GetSession(id session.SessionID) (session.Session, bool)
+}
+
 // Server is the HTTP API server for the Hatch dashboard.
 type Server struct {
 	httpSrv   *http.Server
 	daemon    DaemonControl
 	health    *health.Checker
 	processes ProcessController
+	sessions  SessionController
 	tunnels   TunnelController
 	caPaths   certs.CAPaths
 	version   string
@@ -59,6 +70,7 @@ type ServerConfig struct {
 	Addr      string
 	Health    *health.Checker
 	Processes ProcessController
+	Sessions  SessionController
 	Tunnels   TunnelController
 	Daemon    DaemonControl
 	CAPaths   certs.CAPaths
@@ -74,6 +86,7 @@ func NewServer(cfg ServerConfig) *Server {
 		daemon:    cfg.Daemon,
 		health:    cfg.Health,
 		processes: cfg.Processes,
+		sessions:  cfg.Sessions,
 		tunnels:   cfg.Tunnels,
 		caPaths:   cfg.CAPaths,
 		version:   cfg.Version,
@@ -139,4 +152,8 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/tunnels/{project}/{service}/start", requireJSON(s.handleTunnelStart))
 	mux.HandleFunc("POST /api/tunnels/{project}/{service}/stop", requireJSON(s.handleTunnelStop))
 	mux.HandleFunc("POST /api/restart", requireJSON(s.handleRestart))
+	mux.HandleFunc("POST /api/sessions", requireJSON(s.handleCreateSession))
+	mux.HandleFunc("GET /api/sessions", s.handleListSessions)
+	mux.HandleFunc("GET /api/sessions/{project}/{name}", s.handleGetSession)
+	mux.HandleFunc("DELETE /api/sessions/{project}/{name}", requireOrigin(s.handleDeleteSession))
 }

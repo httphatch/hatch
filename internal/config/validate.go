@@ -83,6 +83,19 @@ func validateSettings(s Settings) []error {
 		errs = append(errs, fmt.Errorf("settings.cloudflare_account_id must be a 32-character hex string"))
 	}
 
+	if s.SessionPortMin != 0 && (s.SessionPortMin < 1024 || s.SessionPortMin > 65535) {
+		errs = append(errs, fmt.Errorf("settings.session_port_min must be 1024-65535, got %d", s.SessionPortMin))
+	}
+	if s.SessionPortMax != 0 && (s.SessionPortMax < 1024 || s.SessionPortMax > 65535) {
+		errs = append(errs, fmt.Errorf("settings.session_port_max must be 1024-65535, got %d", s.SessionPortMax))
+	}
+	if s.SessionPortMin != 0 && s.SessionPortMax != 0 && s.SessionPortMin > s.SessionPortMax {
+		errs = append(errs, fmt.Errorf("settings.session_port_min (%d) must not exceed session_port_max (%d)", s.SessionPortMin, s.SessionPortMax))
+	}
+	if s.SessionTTL < 0 {
+		errs = append(errs, fmt.Errorf("settings.session_ttl must be >= 0, got %d", s.SessionTTL))
+	}
+
 	return errs
 }
 

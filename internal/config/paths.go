@@ -61,3 +61,8 @@ func ProcessStatePath() string {
 func CaddyDir() string {
 	return filepath.Join(Dir(), "caddy")
 }
+
+// SessionStatePath returns the path to the session state file.
+func SessionStatePath() string {
+	return filepath.Join(Dir(), "sessions.json")
+}

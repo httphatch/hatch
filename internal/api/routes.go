@@ -19,6 +19,7 @@ import (
 	"github.com/httphatch/hatch/internal/certs"
 	"github.com/httphatch/hatch/internal/config"
 	"github.com/httphatch/hatch/internal/process"
+	"github.com/httphatch/hatch/internal/session"
 	"github.com/httphatch/hatch/internal/tunnel"
 )
 
@@ -44,6 +45,24 @@ func requireJSON(next http.HandlerFunc) http.HandlerFunc {
 		ct := r.Header.Get("Content-Type")
 		if ct != "application/json" {
 			writeError(w, http.StatusUnsupportedMediaType, "Content-Type must be application/json")
+			return
+		}
+		next(w, r)
+	}
+}
+
+// requireOrigin rejects requests with a non-empty Origin header that doesn't
+// come from localhost. This provides CSRF protection for endpoints that don't
+// use requireJSON (e.g., DELETE requests with no body).
+func requireOrigin(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+		if origin != "" &&
+			!strings.HasPrefix(origin, "http://127.0.0.1") &&
+			!strings.HasPrefix(origin, "http://localhost") &&
+			!strings.HasPrefix(origin, "https://127.0.0.1") &&
+			!strings.HasPrefix(origin, "https://localhost") {
+			writeError(w, http.StatusForbidden, "cross-origin requests are not allowed")
 			return
 		}
 		next(w, r)
@@ -686,4 +705,145 @@ func (s *Server) handleCerts(w http.ResponseWriter, r *http.Request) {
 		"root_ca":         rootCA,
 		"intermediate_ca": intermediateCA,
 	})
+}
+
+func (s *Server) handleCreateSession(w http.ResponseWriter, r *http.Request) {
+	if s.sessions == nil {
+		writeError(w, http.StatusNotImplemented, "session management not available")
+		return
+	}
+	limitBody(r, w)
+
+	var req struct {
+		Project string `json:"project"`
+		Name    string `json:"name"`
+		TTL     int    `json:"ttl"` // seconds
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON body")
+		return
+	}
+	if req.Project == "" {
+		writeError(w, http.StatusBadRequest, "project is required")
+		return
+	}
+
+	cfg, err := config.LoadWithProjectConfigs()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load config")
+		return
+	}
+
+	ttl := time.Duration(req.TTL) * time.Second
+	sess, err := s.sessions.CreateSession(req.Project, req.Name, ttl, cfg)
+	if err != nil {
+		status := http.StatusBadRequest
+		if errors.Is(err, session.ErrProjectNotFound) {
+			status = http.StatusNotFound
+		} else if errors.Is(err, session.ErrSessionExists) {
+			status = http.StatusConflict
+		}
+		writeError(w, status, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, map[string]any{
+		"project":    sess.ID.Project,
+		"name":       sess.ID.Name,
+		"state":      sess.State.String(),
+		"ports":      sess.Ports,
+		"domains":    sess.Domains,
+		"created_at": sess.CreatedAt.Format(time.RFC3339),
+		"ttl":        int(sess.TTL.Seconds()),
+	})
+}
+
+func (s *Server) handleListSessions(w http.ResponseWriter, r *http.Request) {
+	if s.sessions == nil {
+		writeJSON(w, http.StatusOK, []struct{}{})
+		return
+	}
+
+	sessions := s.sessions.Sessions()
+
+	type sessionInfo struct {
+		Project    string            `json:"project"`
+		Name       string            `json:"name"`
+		State      string            `json:"state"`
+		Ports      map[string]int    `json:"ports"`
+		Domains    map[string]string `json:"domains"`
+		CreatedAt  string            `json:"created_at"`
+		LastActive string            `json:"last_active"`
+		TTL        int               `json:"ttl"`
+	}
+
+	result := make([]sessionInfo, 0, len(sessions))
+	for _, sess := range sessions {
+		result = append(result, sessionInfo{
+			Project:    sess.ID.Project,
+			Name:       sess.ID.Name,
+			State:      sess.State.String(),
+			Ports:      sess.Ports,
+			Domains:    sess.Domains,
+			CreatedAt:  sess.CreatedAt.Format(time.RFC3339),
+			LastActive: sess.LastActive.Format(time.RFC3339),
+			TTL:        int(sess.TTL.Seconds()),
+		})
+	}
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].Project != result[j].Project {
+			return result[i].Project < result[j].Project
+		}
+		return result[i].Name < result[j].Name
+	})
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (s *Server) handleGetSession(w http.ResponseWriter, r *http.Request) {
+	if s.sessions == nil {
+		writeError(w, http.StatusNotImplemented, "session management not available")
+		return
+	}
+
+	id := session.SessionID{
+		Project: r.PathValue("project"),
+		Name:    r.PathValue("name"),
+	}
+	sess, ok := s.sessions.GetSession(id)
+	if !ok {
+		writeError(w, http.StatusNotFound, fmt.Sprintf("session %q not found", id))
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"project":     sess.ID.Project,
+		"name":        sess.ID.Name,
+		"state":       sess.State.String(),
+		"ports":       sess.Ports,
+		"domains":     sess.Domains,
+		"created_at":  sess.CreatedAt.Format(time.RFC3339),
+		"last_active": sess.LastActive.Format(time.RFC3339),
+		"ttl":         int(sess.TTL.Seconds()),
+	})
+}
+
+func (s *Server) handleDeleteSession(w http.ResponseWriter, r *http.Request) {
+	if s.sessions == nil {
+		writeError(w, http.StatusNotImplemented, "session management not available")
+		return
+	}
+
+	id := session.SessionID{
+		Project: r.PathValue("project"),
+		Name:    r.PathValue("name"),
+	}
+	if err := s.sessions.DestroySession(id); err != nil {
+		status := http.StatusBadRequest
+		if errors.Is(err, session.ErrSessionNotFound) {
+			status = http.StatusNotFound
+		}
+		writeError(w, status, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "destroyed"})
 }
