@@ -2,7 +2,7 @@
 title: "Sessions"
 description: "How Hatch creates ephemeral project instances with dynamic ports for parallel development."
 category: "concepts"
-order: 5
+order: 6
 lastUpdated: 2026-04-18
 ---
 
