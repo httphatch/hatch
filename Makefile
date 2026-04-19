@@ -63,13 +63,19 @@ dev-init: build
 	fi
 
 dev: build
-	HATCH_HOME=$(DEV_HOME) ./hatch up
+	HATCH_HOME=$(DEV_HOME) ./hatch _run
 
 dev-down:
-	HATCH_HOME=$(DEV_HOME) ./hatch down
+	@if [ -f $(DEV_HOME)/hatch.pid ]; then \
+		kill $$(cat $(DEV_HOME)/hatch.pid) 2>/dev/null || true; \
+		rm -f $(DEV_HOME)/hatch.pid; \
+		echo "Dev daemon stopped"; \
+	else \
+		echo "Dev daemon not running"; \
+	fi
 
 dev-status:
-	HATCH_HOME=$(DEV_HOME) ./hatch status
+	@HATCH_HOME=$(DEV_HOME) ./hatch status 2>/dev/null || echo "Dev daemon not running"
 
 clean:
 	rm -f hatch
