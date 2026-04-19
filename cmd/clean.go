@@ -107,7 +107,7 @@ func runClean(cmd *cobra.Command, args []string) error {
 			fmt.Printf("  %s Failed to remove config directory: %v\n", red("✗"), err)
 			os.Exit(1)
 		}
-		fmt.Printf("  %s Config directory removed (~/.hatch)\n", green("✓"))
+		fmt.Printf("  %s Config directory removed (%s)\n", green("✓"), config.Dir())
 		anyCleaned = true
 	} else {
 		fmt.Printf("  %s Config directory not found\n", green("✓"))

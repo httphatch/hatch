@@ -3,7 +3,7 @@ title: "Development Setup"
 description: "Set up your development environment to contribute to Hatch."
 category: "contributing"
 order: 1
-lastUpdated: 2025-03-05
+lastUpdated: 2026-04-19
 ---
 
 # Development Setup
@@ -31,7 +31,81 @@ make build
 | `make app` | Build with embedded frontend (Wails) |
 | `make frontend` | Build React frontend only |
 | `make test` | Run `go test ./...` |
+| `make docs` | Start the docs site locally (Astro) |
+| `make dev-init` | Initialize a dev Hatch instance at `~/.hatch-dev` |
+| `make dev` | Build and start the dev daemon |
+| `make dev-down` | Stop the dev daemon |
+| `make dev-status` | Show dev daemon status |
 | `make clean` | Remove built binary |
+
+## Running alongside production
+
+If you have Hatch installed via Homebrew, you can run a dev build alongside it using isolated config and ports.
+
+### First-time setup
+
+```bash
+make dev-init
+```
+
+This creates `~/.hatch-dev/` with its own CA, certs, and config. Edit the config to use non-conflicting ports:
+
+```bash
+$EDITOR ~/.hatch-dev/config.yml
+```
+
+Set these values to avoid conflicts with the production daemon:
+
+```yaml
+version: 1
+settings:
+  tld: dev
+  http_port: 8080
+  https_port: 8443
+  api_port: 42825
+  dns_port: 5054
+  caddy_admin_port: 2020
+  auto_start: false
+  tray_icon: false
+  log_level: debug
+```
+
+### Start the dev daemon
+
+```bash
+make dev
+```
+
+This builds the binary and starts it with `HATCH_HOME=~/.hatch-dev`. The dev daemon uses its own launchd job, PID file, and ports. Your production daemon at `~/.hatch/` is unaffected.
+
+### Using the dev instance
+
+All CLI commands target the dev instance when `HATCH_HOME` is set:
+
+```bash
+HATCH_HOME=~/.hatch-dev ./hatch status
+HATCH_HOME=~/.hatch-dev ./hatch link        # in a project dir
+HATCH_HOME=~/.hatch-dev ./hatch session list
+```
+
+Or use the Makefile shortcut:
+
+```bash
+make dev-status
+```
+
+### Stop the dev daemon
+
+```bash
+make dev-down
+```
+
+### How it works
+
+- `HATCH_HOME` env var redirects all config, certs, logs, and state files to `~/.hatch-dev/`
+- `api_port`, `dns_port`, and `caddy_admin_port` settings override the hardcoded defaults
+- The launchd label is derived from `HATCH_HOME` so each instance gets its own launchd job
+- A different `tld` (e.g., `dev` instead of `test`) creates a separate `/etc/resolver/` file
 
 ## Running tests
 
@@ -61,8 +135,12 @@ hatch/
 │   ├── dns/               # DNS server, resolver files
 │   ├── health/            # Service health checking
 │   ├── logging/           # Structured logging
+│   ├── mcp/               # MCP server for AI agents
+│   ├── process/           # Process supervision
 │   ├── proxy/             # Proxy utilities
-│   └── tray/              # macOS tray integration
+│   ├── session/           # Session management
+│   ├── tray/              # macOS tray integration
+│   └── tunnel/            # Cloudflare tunnel integration
 ├── frontend/              # React dashboard (TypeScript, Vite, Tailwind)
 ├── main.go                # Entry point
 ├── Makefile               # Build targets
