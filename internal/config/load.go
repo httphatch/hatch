@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v3"
@@ -129,13 +130,29 @@ func MergeAllProjectConfigs(cfg *Config) {
 			log.Warn().Str("project", name).Err(err).Msg("skipping project config merge")
 			continue
 		}
-		proj.Domain = pc.Domain
+		proj.Domain = normalizeDomainTLD(pc.Domain, cfg.Settings.TLD)
 		proj.Services = pc.Services
 		if pc.CloudflareToken != "" {
 			proj.CloudflareToken = pc.CloudflareToken
 		}
 		cfg.Projects[name] = proj
 	}
+}
+
+// normalizeDomainTLD rewrites a domain's TLD to match the configured TLD.
+// For example, "demo.test" becomes "demo.dev" when the TLD is "dev".
+// If the domain doesn't end with a known TLD, it's returned unchanged.
+func normalizeDomainTLD(domain, tld string) string {
+	for _, knownTLD := range []string{"test", "localhost", "local", "dev"} {
+		suffix := "." + knownTLD
+		if strings.HasSuffix(domain, suffix) {
+			if knownTLD == tld {
+				return domain
+			}
+			return strings.TrimSuffix(domain, suffix) + "." + tld
+		}
+	}
+	return domain
 }
 
 // LoadWithProjectConfigs loads the central config, merges hatch.yml from

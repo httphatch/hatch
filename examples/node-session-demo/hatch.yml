@@ -1,5 +1,5 @@
 domain: demo.test
 services:
   web:
-    proxy: http://localhost:{{port}}
+    proxy: http://localhost:3000
     command: PORT={{port}} node server.js

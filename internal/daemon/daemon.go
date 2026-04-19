@@ -135,7 +135,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 	// Start Caddy server.
 	caddyAdminAddr := caddy.DefaultAdminAddr
 	if cfg.Settings.CaddyAdminPort != 0 {
-		caddyAdminAddr = fmt.Sprintf("localhost:%d", cfg.Settings.CaddyAdminPort)
+		caddyAdminAddr = fmt.Sprintf("127.0.0.1:%d", cfg.Settings.CaddyAdminPort)
 	}
 	caddySrv := caddy.NewServer(caddy.ServerConfig{
 		AdminAddr: caddyAdminAddr,

@@ -168,8 +168,8 @@ func validateService(prefix, name string, s Service) []error {
 		}
 	}
 
-	// Proxy URL (validated only when set).
-	if s.Proxy != "" {
+	// Proxy URL (validated only when set, skip if it contains template variables).
+	if s.Proxy != "" && !strings.Contains(s.Proxy, "{{") {
 		u, err := url.Parse(s.Proxy)
 		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
 			errs = append(errs, fmt.Errorf("%s.proxy %q must be a valid URL with http or https scheme", svcPrefix, s.Proxy))
