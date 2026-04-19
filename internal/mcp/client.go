@@ -37,7 +37,7 @@ func (c *DaemonClient) get(path string) (json.RawMessage, error) {
 	if err != nil {
 		return nil, fmt.Errorf("hatch daemon is not running — run 'hatch up' in your terminal to start it")
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("reading response: %w", err)
@@ -57,7 +57,7 @@ func (c *DaemonClient) postJSON(path string, payload any) (json.RawMessage, erro
 	if err != nil {
 		return nil, fmt.Errorf("hatch daemon is not running — run 'hatch up' in your terminal to start it")
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("reading response: %w", err)
@@ -77,7 +77,7 @@ func (c *DaemonClient) delete(path string) (json.RawMessage, error) {
 	if err != nil {
 		return nil, fmt.Errorf("hatch daemon is not running — run 'hatch up' in your terminal to start it")
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("reading response: %w", err)
