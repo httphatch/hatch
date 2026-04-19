@@ -38,8 +38,29 @@ icon:
 docs:
 	cd docs && npm ci && npm run dev
 
+define DEV_CONFIG
+version: 1
+settings:
+  tld: dev
+  http_port: 8080
+  https_port: 8443
+  api_port: 42825
+  dns_port: 5054
+  caddy_admin_port: 2020
+  auto_start: false
+  tray_icon: false
+  log_level: debug
+projects: {}
+endef
+export DEV_CONFIG
+
 dev-init: build
 	HATCH_HOME=$(DEV_HOME) ./hatch init
+	@if [ ! -f $(DEV_HOME)/.dev-configured ]; then \
+		echo "Writing dev config with non-conflicting ports..."; \
+		echo "$$DEV_CONFIG" > $(DEV_HOME)/config.yml; \
+		touch $(DEV_HOME)/.dev-configured; \
+	fi
 
 dev: build
 	HATCH_HOME=$(DEV_HOME) ./hatch up
