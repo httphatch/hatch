@@ -56,7 +56,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	if dirExists {
 		fmt.Printf("  %s Config directory exists\n", green("✓"))
 	} else {
-		fmt.Printf("  %s Config directory created (~/.hatch)\n", green("✓"))
+		fmt.Printf("  %s Config directory created (%s)\n", green("✓"), config.Dir())
 		anyCreated = true
 	}
 
@@ -69,7 +69,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	if fileExists {
 		fmt.Printf("  %s Config file exists\n", green("✓"))
 	} else {
-		fmt.Printf("  %s Default config written (~/.hatch/config.yml)\n", green("✓"))
+		fmt.Printf("  %s Default config written (%s)\n", green("✓"), config.ConfigFile())
 		anyCreated = true
 	}
 
@@ -126,10 +126,14 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	// Step 5: DNS resolver
 	tld := cfg.Settings.TLD
+	dnsPort := dns.DefaultPort
+	if cfg.Settings.DNSPort != 0 {
+		dnsPort = cfg.Settings.DNSPort
+	}
 	if dns.IsResolverInstalled(tld) {
 		fmt.Printf("  %s DNS resolver already installed\n", green("✓"))
 	} else {
-		if err := dns.InstallResolverFile(&sudoRunner{}, tld, dns.DefaultListenIP, dns.DefaultPort); err != nil {
+		if err := dns.InstallResolverFile(&sudoRunner{}, tld, dns.DefaultListenIP, dnsPort); err != nil {
 			fmt.Printf("  %s Failed to install DNS resolver: %v\n", red("✗"), err)
 			os.Exit(1)
 		}

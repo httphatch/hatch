@@ -423,6 +423,39 @@ func TestValidate_ServiceDirRequiresCommand(t *testing.T) {
 	requireError(t, errs, "dir requires command")
 }
 
+func TestValidate_SessionSettings(t *testing.T) {
+	cfg := validConfig()
+	cfg.Settings.SessionPortMin = 500
+	errs := Validate(cfg)
+	requireError(t, errs, "session_port_min must be 1024-65535")
+
+	cfg = validConfig()
+	cfg.Settings.SessionPortMax = 100000
+	errs = Validate(cfg)
+	requireError(t, errs, "session_port_max must be 1024-65535")
+
+	cfg = validConfig()
+	cfg.Settings.SessionPortMin = 60000
+	cfg.Settings.SessionPortMax = 50000
+	errs = Validate(cfg)
+	requireError(t, errs, "session_port_min (60000) must not exceed session_port_max (50000)")
+
+	cfg = validConfig()
+	cfg.Settings.SessionTTL = -1
+	errs = Validate(cfg)
+	requireError(t, errs, "session_ttl must be >= 0")
+
+	// Valid session settings should pass.
+	cfg = validConfig()
+	cfg.Settings.SessionPortMin = 49152
+	cfg.Settings.SessionPortMax = 65535
+	cfg.Settings.SessionTTL = 1800
+	errs = Validate(cfg)
+	if len(errs) != 0 {
+		t.Fatalf("expected no errors, got %v", errs)
+	}
+}
+
 func requireError(t *testing.T, errs []error, substr string) {
 	t.Helper()
 	for _, err := range errs {

@@ -83,6 +83,29 @@ func validateSettings(s Settings) []error {
 		errs = append(errs, fmt.Errorf("settings.cloudflare_account_id must be a 32-character hex string"))
 	}
 
+	if s.SessionPortMin != 0 && (s.SessionPortMin < 1024 || s.SessionPortMin > 65535) {
+		errs = append(errs, fmt.Errorf("settings.session_port_min must be 1024-65535, got %d", s.SessionPortMin))
+	}
+	if s.SessionPortMax != 0 && (s.SessionPortMax < 1024 || s.SessionPortMax > 65535) {
+		errs = append(errs, fmt.Errorf("settings.session_port_max must be 1024-65535, got %d", s.SessionPortMax))
+	}
+	if s.SessionPortMin != 0 && s.SessionPortMax != 0 && s.SessionPortMin > s.SessionPortMax {
+		errs = append(errs, fmt.Errorf("settings.session_port_min (%d) must not exceed session_port_max (%d)", s.SessionPortMin, s.SessionPortMax))
+	}
+	if s.SessionTTL < 0 {
+		errs = append(errs, fmt.Errorf("settings.session_ttl must be >= 0, got %d", s.SessionTTL))
+	}
+
+	if s.APIPort != 0 && (s.APIPort < 1 || s.APIPort > 65535) {
+		errs = append(errs, fmt.Errorf("settings.api_port must be 1-65535, got %d", s.APIPort))
+	}
+	if s.DNSPort != 0 && (s.DNSPort < 1 || s.DNSPort > 65535) {
+		errs = append(errs, fmt.Errorf("settings.dns_port must be 1-65535, got %d", s.DNSPort))
+	}
+	if s.CaddyAdminPort != 0 && (s.CaddyAdminPort < 1 || s.CaddyAdminPort > 65535) {
+		errs = append(errs, fmt.Errorf("settings.caddy_admin_port must be 1-65535, got %d", s.CaddyAdminPort))
+	}
+
 	return errs
 }
 
@@ -145,8 +168,8 @@ func validateService(prefix, name string, s Service) []error {
 		}
 	}
 
-	// Proxy URL (validated only when set).
-	if s.Proxy != "" {
+	// Proxy URL (validated only when set, skip if it contains template variables).
+	if s.Proxy != "" && !strings.Contains(s.Proxy, "{{") {
 		u, err := url.Parse(s.Proxy)
 		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
 			errs = append(errs, fmt.Errorf("%s.proxy %q must be a valid URL with http or https scheme", svcPrefix, s.Proxy))

@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"fmt"
 	"os"
 	"os/exec"
@@ -12,8 +13,18 @@ import (
 	"github.com/httphatch/hatch/internal/config"
 )
 
-// PlistLabel is the launchd job label for the Hatch daemon.
-const PlistLabel = "dev.hatch.daemon"
+const defaultPlistLabel = "dev.hatch.daemon"
+
+// PlistLabel returns the launchd job label for the current instance.
+// When HATCH_HOME is set (non-default config dir), a short hash is appended
+// to avoid conflicts with the production daemon.
+func PlistLabel() string {
+	if !config.IsCustomHome() {
+		return defaultPlistLabel
+	}
+	h := sha256.Sum256([]byte(config.Dir()))
+	return fmt.Sprintf("%s.%x", defaultPlistLabel, h[:4])
+}
 
 // LaunchdConfig holds the configuration for generating a launchd plist.
 type LaunchdConfig struct {
@@ -22,6 +33,7 @@ type LaunchdConfig struct {
 	WorkingDirectory string
 	LogDir           string
 	KeepAlive        bool
+	HatchHome        string // set when HATCH_HOME overrides the default
 }
 
 const plistTemplate = `<?xml version="1.0" encoding="UTF-8"?>
@@ -45,6 +57,13 @@ const plistTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 	<string>{{ .LogDir }}/daemon.log</string>
 	<key>StandardErrorPath</key>
 	<string>{{ .LogDir }}/daemon.log</string>
+{{- if .HatchHome }}
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>HATCH_HOME</key>
+		<string>{{ .HatchHome }}</string>
+	</dict>
+{{- end }}
 </dict>
 </plist>
 `
@@ -55,7 +74,7 @@ func PlistPath() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("get home dir: %w", err)
 	}
-	return filepath.Join(home, "Library", "LaunchAgents", PlistLabel+".plist"), nil
+	return filepath.Join(home, "Library", "LaunchAgents", PlistLabel()+".plist"), nil
 }
 
 // GeneratePlist renders the plist XML from the given config.
@@ -135,7 +154,7 @@ func UnloadPlist() error {
 // RemoveJob removes the launchd job by label. Unlike UnloadPlist, this does
 // not require the plist file to exist on disk.
 func RemoveJob() error {
-	out, err := exec.Command("launchctl", "remove", PlistLabel).CombinedOutput()
+	out, err := exec.Command("launchctl", "remove", PlistLabel()).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("launchctl remove: %s: %w", strings.TrimSpace(string(out)), err)
 	}
@@ -144,7 +163,7 @@ func RemoveJob() error {
 
 // IsLoaded checks whether the launchd job is currently loaded.
 func IsLoaded() bool {
-	err := exec.Command("launchctl", "list", PlistLabel).Run()
+	err := exec.Command("launchctl", "list", PlistLabel()).Run()
 	return err == nil
 }
 
@@ -155,11 +174,17 @@ func DefaultLaunchdConfig(autoStart bool) (LaunchdConfig, error) {
 		return LaunchdConfig{}, fmt.Errorf("get executable path: %w", err)
 	}
 
+	var hatchHome string
+	if config.IsCustomHome() {
+		hatchHome = config.Dir()
+	}
+
 	return LaunchdConfig{
-		Label:            PlistLabel,
+		Label:            PlistLabel(),
 		BinaryPath:       bin,
 		WorkingDirectory: config.Dir(),
 		LogDir:           config.LogsDir(),
 		KeepAlive:        autoStart,
+		HatchHome:        hatchHome,
 	}, nil
 }

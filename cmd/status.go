@@ -66,7 +66,7 @@ func runStatus() error {
 	go func() {
 		defer tunnelWg.Done()
 		client := &http.Client{Timeout: 3 * time.Second}
-		resp, err := client.Get(daemonBaseURL + "/api/tunnels")
+		resp, err := client.Get(daemonBaseURL() + "/api/tunnels")
 		if err != nil {
 			return
 		}

@@ -14,7 +14,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
-	"github.com/httphatch/hatch/internal/api"
 	"github.com/httphatch/hatch/internal/certs"
 	"github.com/httphatch/hatch/internal/config"
 	"github.com/httphatch/hatch/internal/daemon"
@@ -81,9 +80,13 @@ func runUp() error {
 	}
 
 	// Install DNS resolver if needed.
+	dnsPort := dns.DefaultPort
+	if cfg.Settings.DNSPort != 0 {
+		dnsPort = cfg.Settings.DNSPort
+	}
 	if !dns.IsResolverInstalled(cfg.Settings.TLD) {
 		log.Info().Str("tld", cfg.Settings.TLD).Msg("installing DNS resolver (may prompt for password)")
-		if err := dns.InstallResolverFile(&sudoRunner{}, cfg.Settings.TLD, dns.DefaultListenIP, dns.DefaultPort); err != nil {
+		if err := dns.InstallResolverFile(&sudoRunner{}, cfg.Settings.TLD, dns.DefaultListenIP, dnsPort); err != nil {
 			return fmt.Errorf("install resolver: %w", err)
 		}
 	}
@@ -136,7 +139,7 @@ func waitForDaemon() error {
 	defer cancel()
 
 	client := &http.Client{Timeout: 2 * time.Second}
-	statusURL := "http://" + api.DefaultAddr + "/api/status"
+	statusURL := daemonBaseURL() + "/api/status"
 
 	// Open the log file for tailing progress.
 	logPath := config.LogFile()

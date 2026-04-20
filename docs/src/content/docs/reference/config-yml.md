@@ -3,7 +3,7 @@ title: "config.yml Reference"
 description: "Complete reference for the global Hatch configuration file at ~/.hatch/config.yml."
 category: "reference"
 order: 2
-lastUpdated: 2025-03-05
+lastUpdated: 2026-04-18
 ---
 
 # config.yml Reference
@@ -25,6 +25,9 @@ settings:
   log_level: info
   cloudflare_token: "your-api-token"
   cloudflare_account_id: "abcdef0123456789abcdef0123456789"
+  session_port_min: 49152
+  session_port_max: 65535
+  session_ttl: 1800
 projects:
   myapp:
     domain: myapp.test
@@ -124,6 +127,32 @@ Cloudflare API token for named [tunnels](/docs/concepts/tunnels). When set, Hatc
 - **Optional**
 
 Cloudflare account ID (32-character hex string). When set, Hatch skips the account lookup API call. When empty, Hatch auto-detects the account from the API token (uses the first account).
+
+### `settings.session_port_min`
+
+- **Type:** `integer`
+- **Default:** `49152`
+- **Range:** 1024-65535
+- **Optional**
+
+Lower bound of the port range used when allocating dynamic ports for [sessions](/docs/concepts/sessions).
+
+### `settings.session_port_max`
+
+- **Type:** `integer`
+- **Default:** `65535`
+- **Range:** 1024-65535
+- **Optional**
+
+Upper bound of the session port range. Must be greater than or equal to `session_port_min`.
+
+### `settings.session_ttl`
+
+- **Type:** `integer` (seconds)
+- **Default:** `1800` (30 minutes)
+- **Optional**
+
+Default idle timeout for [sessions](/docs/concepts/sessions). A session is destroyed after this many seconds with no HTTP traffic. Set to `0` to disable auto-cleanup.
 
 ## Projects
 
@@ -237,3 +266,6 @@ See [Tunnels](/docs/concepts/tunnels) for details.
 - `dir` requires `command`
 - `tunnel` requires `proxy`
 - `settings.cloudflare_account_id`, when set, must be a 32-character hex string
+- `session_port_min` must be 1024-65535
+- `session_port_max` must be 1024-65535 and >= `session_port_min`
+- `session_ttl` must be >= 0
