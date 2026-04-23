@@ -72,7 +72,7 @@ Config schema version. Must be `1`.
 
 - **Type:** `string`
 - **Default:** `test`
-- **Allowed:** `test`, `localhost`, `local`, `dev`
+- **Allowed:** `test`, `localhost`, `local`, `internal`
 
 The top-level domain used for all project domains. See [Domains and DNS](/docs/concepts/domains-and-dns) for how the TLD affects DNS resolution.
 

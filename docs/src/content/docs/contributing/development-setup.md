@@ -59,7 +59,7 @@ Set these values to avoid conflicts with the production daemon:
 ```yaml
 version: 1
 settings:
-  tld: dev
+  tld: internal
   http_port: 8080
   https_port: 8443
   api_port: 42825
@@ -105,7 +105,7 @@ make dev-down
 - `HATCH_HOME` env var redirects all config, certs, logs, and state files to `~/.hatch-dev/`
 - `api_port`, `dns_port`, and `caddy_admin_port` settings override the hardcoded defaults
 - The launchd label is derived from `HATCH_HOME` so each instance gets its own launchd job
-- A different `tld` (e.g., `dev` instead of `test`) creates a separate `/etc/resolver/` file
+- A different `tld` (e.g., `internal` instead of `test`) creates a separate `/etc/resolver/` file
 
 ## Running tests
 

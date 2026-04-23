@@ -21,7 +21,7 @@ func TestValidationErrors_SingleError(t *testing.T) {
 func TestValidationErrors_MultipleErrors(t *testing.T) {
 	ve := &ValidationErrors{Errs: []error{
 		fmt.Errorf("version must be 1"),
-		fmt.Errorf("settings.tld must be one of: test, localhost, local, dev"),
+		fmt.Errorf("settings.tld must be one of: test, localhost, local, internal"),
 	}}
 	got := ve.Error()
 	if !strings.HasPrefix(got, "2 config errors:") {

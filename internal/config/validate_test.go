@@ -47,7 +47,7 @@ func TestValidate_Version(t *testing.T) {
 }
 
 func TestValidate_TLD(t *testing.T) {
-	for _, tld := range []string{"test", "localhost", "local", "dev"} {
+	for _, tld := range []string{"test", "localhost", "local", "internal"} {
 		cfg := validConfig()
 		cfg.Settings.TLD = tld
 		cfg.Projects["myapp"] = Project{
@@ -60,10 +60,13 @@ func TestValidate_TLD(t *testing.T) {
 		}
 	}
 
-	cfg := validConfig()
-	cfg.Settings.TLD = "com"
-	errs := Validate(cfg)
-	requireError(t, errs, "settings.tld must be one of")
+	// Public TLDs must be rejected to avoid hijacking real DNS.
+	for _, tld := range []string{"com", "dev", "app", "io"} {
+		cfg := validConfig()
+		cfg.Settings.TLD = tld
+		errs := Validate(cfg)
+		requireError(t, errs, "settings.tld must be one of")
+	}
 }
 
 func TestValidate_Ports(t *testing.T) {

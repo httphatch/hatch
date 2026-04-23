@@ -65,7 +65,7 @@ func TestEnsureConfigFile_DoesNotOverwrite(t *testing.T) {
 	}
 
 	// Write a custom config
-	custom := []byte("version: 1\nsettings:\n  tld: dev\n  http_port: 80\n  https_port: 443\n  auto_start: false\n  log_level: debug\nprojects: {}\n")
+	custom := []byte("version: 1\nsettings:\n  tld: internal\n  http_port: 80\n  https_port: 443\n  auto_start: false\n  log_level: debug\nprojects: {}\n")
 	path := filepath.Join(home, configFileName)
 	if err := os.WriteFile(path, custom, 0644); err != nil {
 		t.Fatal(err)

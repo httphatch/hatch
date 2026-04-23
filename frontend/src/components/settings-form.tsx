@@ -18,7 +18,7 @@ import { ErrorState } from "@/components/error-state";
 import { useSettings } from "@/hooks/use-settings";
 import type { Settings } from "@/types";
 
-const TLD_OPTIONS = ["test", "localhost", "local", "dev"];
+const TLD_OPTIONS = ["test", "localhost", "local", "internal"];
 const LOG_LEVEL_OPTIONS = ["debug", "info", "warn", "error"];
 
 export function SettingsForm() {

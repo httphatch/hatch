@@ -41,7 +41,7 @@ docs:
 define DEV_CONFIG
 version: 1
 settings:
-  tld: dev
+  tld: internal
   http_port: 8080
   https_port: 8443
   api_port: 42825
