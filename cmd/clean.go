@@ -64,15 +64,27 @@ func runClean(cmd *cobra.Command, args []string) error {
 		fmt.Printf("  %s Daemon not running\n", green("✓"))
 	}
 
-	// Step 2: Remove DNS resolver
-	if dns.IsResolverInstalled(tld) {
-		if err := dns.RemoveResolverFile(&sudoRunner{}, tld); err != nil {
-			fmt.Printf("  %s Failed to remove DNS resolver: %v\n", red("✗"), err)
-			os.Exit(1)
+	// Step 2: Remove DNS resolver (including formerly-allowed TLDs like "dev"
+	// that may have left orphaned resolver files).
+	resolverTLDs := []string{tld}
+	for _, old := range []string{"dev"} {
+		if old != tld {
+			resolverTLDs = append(resolverTLDs, old)
 		}
-		fmt.Printf("  %s DNS resolver removed\n", green("✓"))
-		anyCleaned = true
-	} else {
+	}
+	removedResolver := false
+	for _, t := range resolverTLDs {
+		if dns.IsResolverInstalled(t) {
+			if err := dns.RemoveResolverFile(&sudoRunner{}, t); err != nil {
+				fmt.Printf("  %s Failed to remove DNS resolver for .%s: %v\n", red("✗"), t, err)
+				os.Exit(1)
+			}
+			fmt.Printf("  %s DNS resolver removed (.%s)\n", green("✓"), t)
+			anyCleaned = true
+			removedResolver = true
+		}
+	}
+	if !removedResolver {
 		fmt.Printf("  %s DNS resolver not installed\n", green("✓"))
 	}
 

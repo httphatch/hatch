@@ -35,8 +35,10 @@ The default TLD is `test`, which is an IANA-reserved TLD that will never be used
 
 ```yaml
 settings:
-  tld: test  # also supports: localhost, local, dev
+  tld: test  # also supports: localhost, local, internal
 ```
+
+Only TLDs reserved for local use are allowed: `test`, `localhost`, `local`, and `internal`. Public TLDs like `dev` or `app` are rejected because the macOS resolver file would hijack all DNS queries for that TLD system-wide, breaking real websites.
 
 Changing the TLD updates the resolver file, DNS server, and all project domains.
 

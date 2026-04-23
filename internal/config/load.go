@@ -29,11 +29,23 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("parsing config: %w", &ValidationErrors{Errs: errs})
 	}
 
+	migrateTLD(&cfg)
+
 	if errs := Validate(cfg); len(errs) > 0 {
 		return Config{}, fmt.Errorf("invalid config: %w", &ValidationErrors{Errs: errs})
 	}
 
 	return cfg, nil
+}
+
+// migrateTLD rewrites formerly-allowed TLDs that are now rejected.
+// ".dev" is a real public gTLD; using it as a local TLD hijacks all
+// .dev DNS queries system-wide via the macOS resolver file.
+func migrateTLD(cfg *Config) {
+	if cfg.Settings.TLD == "dev" {
+		log.Warn().Msg("tld \"dev\" is a public gTLD and is no longer allowed; migrating to \"internal\"")
+		cfg.Settings.TLD = "internal"
+	}
 }
 
 // Save atomically writes cfg to ConfigFile().
@@ -140,10 +152,10 @@ func MergeAllProjectConfigs(cfg *Config) {
 }
 
 // normalizeDomainTLD rewrites a domain's TLD to match the configured TLD.
-// For example, "demo.test" becomes "demo.dev" when the TLD is "dev".
+// For example, "demo.test" becomes "demo.internal" when the TLD is "internal".
 // If the domain doesn't end with a known TLD, it's returned unchanged.
 func normalizeDomainTLD(domain, tld string) string {
-	for _, knownTLD := range []string{"test", "localhost", "local", "dev"} {
+	for _, knownTLD := range []string{"test", "localhost", "local", "internal"} {
 		suffix := "." + knownTLD
 		if strings.HasSuffix(domain, suffix) {
 			if knownTLD == tld {

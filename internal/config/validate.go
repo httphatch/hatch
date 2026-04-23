@@ -17,7 +17,7 @@ var allowedTLDs = map[string]bool{
 	"test":      true,
 	"localhost": true,
 	"local":     true,
-	"dev":       true,
+	"internal":  true,
 }
 
 var allowedLogLevels = map[string]bool{
@@ -53,7 +53,7 @@ func validateSettings(s Settings) []error {
 	var errs []error
 
 	if !allowedTLDs[s.TLD] {
-		errs = append(errs, fmt.Errorf("settings.tld must be one of: test, localhost, local, dev; got %q", s.TLD))
+		errs = append(errs, fmt.Errorf("settings.tld must be one of: test, localhost, local, internal; got %q", s.TLD))
 	}
 
 	if s.HTTPPort < 1 || s.HTTPPort > 65535 {

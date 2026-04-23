@@ -52,7 +52,7 @@ func TestResolverFilePath(t *testing.T) {
 	}{
 		{"test", "/etc/resolver/test"},
 		{"localhost", "/etc/resolver/localhost"},
-		{"dev", "/etc/resolver/dev"},
+		{"internal", "/etc/resolver/internal"},
 	}
 
 	for _, tt := range tests {
